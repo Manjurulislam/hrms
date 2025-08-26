@@ -20,7 +20,7 @@ class LeaveTypeRequest extends FormRequest
      */
     public function rules(): array
     {
-        $leaveTypeId = $this->route('leave_type')?->id;
+        $leaveTypeId = $this->route('leaveType')?->id;
 
         return [
             'name'       => [

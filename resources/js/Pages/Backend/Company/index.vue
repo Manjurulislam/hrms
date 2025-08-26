@@ -42,7 +42,7 @@ const setLimit = (obj) => {
 
 const getData = (obj) => {
     setLimit(obj);
-    axios.get(route('company.get', state.filters)).then(({data}) => {
+    axios.get(route('companies.get', state.filters)).then(({data}) => {
         state.loading = false;
         state.serverItems = data.data;
         state.pagination.totalItems = data.total;
@@ -50,7 +50,7 @@ const getData = (obj) => {
 };
 
 const toggleStatus = (item) => {
-    axios.get(route('company.toggle-status', item.id), {}, {preserveScroll: true})
+    axios.get(route('companies.toggle-status', item.id), {}, {preserveScroll: true})
         .then(() => toast('Company status has been updated.'));
 };
 
@@ -68,7 +68,7 @@ const handleSearch = (filters) => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
-                        :router="{title: 'Add New' , route: 'company.create'}"
+                        :router="{title: 'Add New' , route: 'companies.create'}"
                         icon="mdi-plus"
                         title="Companies"
                     />
@@ -112,7 +112,7 @@ const handleSearch = (filters) => {
                             </template>
                             <template v-slot:item.actions="{ item }">
                                 <btn-link
-                                    :route="route('company.edit', item.id)"
+                                    :route="route('companies.edit', item.id)"
                                     color="bg-darkprimary"
                                     icon="mdi-pencil"/>
                             </template>

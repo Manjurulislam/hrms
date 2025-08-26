@@ -29,6 +29,7 @@ return new class extends Migration {
 
             $table->text('address')->nullable();
 
+            $table->unsignedBigInteger('company_id')->index();
             $table->unsignedBigInteger('department_id')->index();
 
             $table->boolean('status')->default(true);

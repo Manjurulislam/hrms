@@ -39,12 +39,7 @@ class EmployeeRequest extends FormRequest
             ],
             'phone'             => ['required', 'string', 'max:20'],
             'sec_phone'         => ['nullable', 'string', 'max:20'],
-            'nid'               => [
-                'nullable',
-                'string',
-                'max:20',
-                Rule::unique('employees', 'nid')->ignore($employeeId)
-            ],
+            'nid'               => ['nullable', 'string', 'max:14', Rule::unique('employees', 'nid')->ignore($employeeId)],
             'gender'            => ['required', Rule::in(['male', 'female', 'other'])],
             'qualification'     => ['nullable', 'string', 'max:255'],
             'emergency_contact' => ['nullable', 'string', 'max:20'],
@@ -52,11 +47,9 @@ class EmployeeRequest extends FormRequest
             'marital_status'    => ['nullable', Rule::in(['single', 'married', 'divorced', 'widowed'])],
             'bank_account'      => ['nullable', 'string', 'max:50'],
             'address'           => ['nullable', 'string', 'max:500'],
-            'department_id'     => [
-                'required',
-                'integer',
-                Rule::exists('departments', 'id')->where('status', true)
-            ],
+            'company_id'        => ['required', 'integer', 'exists:companies,id'],
+            'department_id'     => ['required', 'integer', 'exists:departments,id'],
+            'designations'      => ['required', "array"],
             'status'            => ['boolean'],
             'date_of_birth'     => ['required', 'date', 'before:today'],
             'joining_date'      => ['required', 'date'],

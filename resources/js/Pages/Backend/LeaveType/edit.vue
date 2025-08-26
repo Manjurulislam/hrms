@@ -15,12 +15,12 @@ const props = defineProps({
 let form = useForm({
     name: '',
     days: '',
-    company_id: '',
+    company_id: null,
     status: true
 });
 
 const submit = () => {
-    form.put(route('leave-type.update', props.item.id), {
+    form.put(route('leave-types.update', props.item.id), {
         onSuccess: () => toast('Leave type has been updated successfully.'),
         onError: () => toast.error('Something is wrong. Please try again.')
     });
@@ -38,6 +38,7 @@ onMounted(() => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
+                        :extra-route="{title: 'Back' , route: 'leave-types.index', icon:'mdi-arrow-left-bold'}"
                         icon="mdi-arrow-left-bold"
                         title="Edit Leave Type"
                     />

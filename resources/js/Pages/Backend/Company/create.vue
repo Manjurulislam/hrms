@@ -17,7 +17,7 @@ const form = useForm({
 });
 
 const submit = () => {
-    form.post(route('company.store'), {
+    form.post(route('companies.store'), {
         onSuccess: (success) => {
             toast('Company has been added successfully.');
         },
@@ -35,6 +35,7 @@ const submit = () => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
+                        :extra-route="{title: 'Back' , route: 'companies.index', icon:'mdi-arrow-left-bold'}"
                         icon="mdi-arrow-left-bold"
                         title="Create Company"
                     />
@@ -45,8 +46,7 @@ const submit = () => {
                                     <TextInput
                                         v-model="form.name"
                                         :error-messages="form.errors.name"
-                                        label="Company Name"
-                                        required
+                                        label="Name"
                                     />
                                 </v-col>
                                 <v-col cols="12" md="6">
@@ -54,7 +54,6 @@ const submit = () => {
                                         v-model="form.code"
                                         :error-messages="form.errors.code"
                                         label="Company Code"
-                                        required
                                     />
                                 </v-col>
                             </v-row>

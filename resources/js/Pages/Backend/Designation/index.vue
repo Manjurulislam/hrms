@@ -42,7 +42,7 @@ const setLimit = (obj) => {
 
 const getData = (obj) => {
     setLimit(obj);
-    axios.get(route('designation.get', state.filters)).then(({data}) => {
+    axios.get(route('designations.get', state.filters)).then(({data}) => {
         state.loading = false;
         state.serverItems = data.data;
         state.pagination.totalItems = data.total;
@@ -50,7 +50,7 @@ const getData = (obj) => {
 };
 
 const toggleStatus = (item) => {
-    axios.get(route('designation.toggle-status', item.id), {}, {preserveScroll: true})
+    axios.get(route('designations.toggle-status', item.id), {}, {preserveScroll: true})
         .then(() => toast('Designation status has been updated.'));
 };
 
@@ -73,7 +73,7 @@ const truncateText = (text, length = 40) => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
-                        :router="{title: 'Add New' , route: 'designation.create'}"
+                        :router="{title: 'Add New' , route: 'designations.create'}"
                         icon="mdi-plus"
                         title="Designations"
                     />
@@ -151,7 +151,7 @@ const truncateText = (text, length = 40) => {
                             </template>
                             <template v-slot:item.actions="{ item }">
                                 <btn-link
-                                    :route="route('designation.edit', item.id)"
+                                    :route="route('designations.edit', item.id)"
                                     color="bg-darkprimary"
                                     icon="mdi-pencil"/>
                             </template>

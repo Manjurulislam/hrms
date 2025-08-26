@@ -16,9 +16,9 @@ const props = defineProps({
 const form = useForm({
     title: '',
     description: '',
-    company_id: '',
-    department_id: '',
-    parent_id: '',
+    company_id: null,
+    department_id: null,
+    parent_id: null,
     status: true,
 });
 
@@ -34,12 +34,12 @@ const filteredDesignations = computed(() => {
 
 // Reset department when company changes
 watch(() => form.company_id, () => {
-    form.department_id = '';
-    form.parent_id = '';
+    form.department_id = null;
+    form.parent_id = null;
 });
 
 const submit = () => {
-    form.post(route('designation.store'), {
+    form.post(route('designations.store'), {
         onSuccess: (success) => {
             toast('Designation has been added successfully.');
         },
@@ -57,6 +57,7 @@ const submit = () => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
+                        :extra-route="{title: 'Back' , route: 'designations.index', icon:'mdi-arrow-left-bold'}"
                         icon="mdi-arrow-left-bold"
                         title="Create Designation"
                     />
@@ -68,7 +69,6 @@ const submit = () => {
                                         v-model="form.title"
                                         :error-messages="form.errors.title"
                                         label="Title"
-                                        required
                                     />
                                 </v-col>
                                 <v-col cols="12" md="6">
@@ -81,7 +81,6 @@ const submit = () => {
                                         item-title="name"
                                         item-value="id"
                                         label="Company"
-                                        required
                                         variant="outlined"
                                     />
                                 </v-col>
@@ -91,7 +90,6 @@ const submit = () => {
                                 <v-col cols="12" md="6">
                                     <v-select
                                         v-model="form.department_id"
-                                        :disabled="!form.company_id"
                                         :error-messages="form.errors.department_id"
                                         :items="filteredDepartments"
                                         clearable
@@ -100,14 +98,12 @@ const submit = () => {
                                         item-value="id"
                                         label="Department"
                                         placeholder="Select company first"
-                                        required
                                         variant="outlined"
                                     />
                                 </v-col>
                                 <v-col cols="12" md="6">
                                     <v-select
                                         v-model="form.parent_id"
-                                        :disabled="!form.company_id"
                                         :error-messages="form.errors.parent_id"
                                         :items="filteredDesignations"
                                         clearable
@@ -118,21 +114,6 @@ const submit = () => {
                                         placeholder="Select for hierarchy"
                                         variant="outlined"
                                     />
-                                </v-col>
-                            </v-row>
-
-                            <v-row>
-                                <v-col cols="12" md="6">
-                                    <div class="mt-3">
-                                        <v-label class="mb-2 font-weight-medium">Status</v-label>
-                                        <div>
-                                            <el-switch
-                                                v-model="form.status"
-                                                size="large"
-                                                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                                            />
-                                        </div>
-                                    </div>
                                 </v-col>
                             </v-row>
 

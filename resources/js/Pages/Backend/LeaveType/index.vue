@@ -40,7 +40,7 @@ const setLimit = (obj) => {
 
 const getData = (obj) => {
     setLimit(obj);
-    axios.get(route('leave-type.get', state.filters)).then(({data}) => {
+    axios.get(route('leave-types.get', state.filters)).then(({data}) => {
         state.loading = false;
         state.serverItems = data.data;
         state.pagination.totalItems = data.total;
@@ -78,7 +78,7 @@ const getDaysLabel = (days) => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
-                        :router="{title: 'Add New' , route: 'leave-type.create'}"
+                        :router="{title: 'Add New' , route: 'leave-types.create'}"
                         icon="mdi-plus"
                         title="Leave Types"
                     />
@@ -133,7 +133,7 @@ const getDaysLabel = (days) => {
                             </template>
                             <template v-slot:item.actions="{ item }">
                                 <btn-link
-                                    :route="route('leave-type.edit', item.id)"
+                                    :route="route('leave-types.edit', item.id)"
                                     color="bg-darkprimary"
                                     icon="mdi-pencil"/>
                             </template>

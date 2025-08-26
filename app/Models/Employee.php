@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Employee extends Model
@@ -26,6 +27,7 @@ class Employee extends Model
         'bank_account',
         'address',
         'department_id',
+        'company_id',
         'status',
         'date_of_birth',
         'joining_date',
@@ -68,5 +70,10 @@ class Employee extends Model
     public function getFullNameAttribute(): string
     {
         return trim($this->first_name . ' ' . $this->last_name);
+    }
+
+    public function user(): HasOne
+    {
+        return $this->hasOne(User::class);
     }
 }

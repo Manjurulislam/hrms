@@ -2,7 +2,7 @@
 import TextInput from '@/Components/common/form/TextInput.vue';
 import {Head, useForm} from '@inertiajs/vue3';
 import CardTitle from '@/Components/common/card/CardTitle.vue';
-import {computed, onMounted, watch} from 'vue';
+import {computed, onMounted} from 'vue';
 import {useToast} from 'vue-toastification';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 
@@ -11,50 +11,68 @@ const props = defineProps({
     item: Object,
     companies: Array,
     departments: Array,
-    designations: Array
+    parentDesignations: Array
 });
 
 let form = useForm({
     title: '',
     description: '',
-    company_id: '',
-    department_id: '',
-    parent_id: '',
-    status: true
+    company_id: null,
+    department_id: null,
+    parent_id: null,
 });
 
+// Filter departments based on selected company
 const filteredDepartments = computed(() => {
-    if (!form.company_id) return [];
-    return props.departments.filter(dept => dept.company_id == form.company_id);
-});
-
-const filteredDesignations = computed(() => {
-    if (!form.company_id) return [];
-    // Exclude current item from parent options to prevent circular reference
-    return props.designations.filter(designation =>
-        designation.company_id == form.company_id && designation.id !== props.item.id
-    );
-});
-
-// Reset department when company changes (but not on initial load)
-let isInitialLoad = true;
-watch(() => form.company_id, () => {
-    if (!isInitialLoad) {
-        form.department_id = '';
-        form.parent_id = '';
+    if (!form.company_id) {
+        return props.departments;
     }
+    return props.departments.filter(dept => dept.company_id === form.company_id);
+});
+
+// Filter parent designations based on selected company and department
+const filteredParentDesignations = computed(() => {
+    if (!form.company_id && !form.department_id) {
+        return props.parentDesignations;
+    }
+    return props.parentDesignations.filter(designation => {
+        let matches = true;
+        if (form.company_id) {
+            matches = matches && designation.company_id === form.company_id;
+        }
+        if (form.department_id) {
+            matches = matches && designation.department_id === form.department_id;
+        }
+        return matches;
+    });
 });
 
 const submit = () => {
-    form.put(route('designation.update', props.item.id), {
+    form.put(route('designations.update', props.item.id), {
         onSuccess: () => toast('Designation has been updated successfully.'),
         onError: () => toast.error('Something is wrong. Please try again.')
     });
 };
 
+// Reset department and parent when company changes
+const onCompanyChange = () => {
+    form.department_id = null;
+    form.parent_id = null;
+};
+
+// Reset parent when department changes
+const onDepartmentChange = () => {
+    form.parent_id = null;
+};
+
 onMounted(() => {
-    form = Object.assign(form, props.item);
-    isInitialLoad = false;
+    // Assign the item data to form
+    form.title = props.item.title || '';
+    form.description = props.item.description || '';
+    form.company_id = props.item.company_id || null;
+    form.department_id = props.item.department_id || null;
+    form.parent_id = props.item.parent_id || null;
+    form.status = props.item.status ?? true;
 });
 </script>
 
@@ -65,6 +83,7 @@ onMounted(() => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
+                        :extra-route="{title: 'Back' , route: 'designations.index', icon:'mdi-arrow-left-bold'}"
                         icon="mdi-arrow-left-bold"
                         title="Edit Designation"
                     />
@@ -84,13 +103,14 @@ onMounted(() => {
                                         v-model="form.company_id"
                                         :error-messages="form.errors.company_id"
                                         :items="companies"
+                                        clearable
+                                        density="compact"
                                         item-title="name"
                                         item-value="id"
                                         label="Company"
-                                        variant="outlined"
-                                        density="compact"
-                                        clearable
                                         required
+                                        variant="outlined"
+                                        @update:model-value="onCompanyChange"
                                     />
                                 </v-col>
                             </v-row>
@@ -101,46 +121,27 @@ onMounted(() => {
                                         v-model="form.department_id"
                                         :error-messages="form.errors.department_id"
                                         :items="filteredDepartments"
+                                        clearable
+                                        density="compact"
                                         item-title="name"
                                         item-value="id"
                                         label="Department"
                                         variant="outlined"
-                                        density="compact"
-                                        clearable
-                                        :disabled="!form.company_id"
-                                        placeholder="Select company first"
-                                        required
+                                        @update:model-value="onDepartmentChange"
                                     />
                                 </v-col>
                                 <v-col cols="12" md="6">
                                     <v-select
                                         v-model="form.parent_id"
                                         :error-messages="form.errors.parent_id"
-                                        :items="filteredDesignations"
+                                        :items="filteredParentDesignations"
+                                        clearable
+                                        density="compact"
                                         item-title="title"
                                         item-value="id"
-                                        label="Parent Designation (Optional)"
+                                        label="Parent Designation"
                                         variant="outlined"
-                                        density="compact"
-                                        clearable
-                                        :disabled="!form.company_id"
-                                        placeholder="Select for hierarchy"
                                     />
-                                </v-col>
-                            </v-row>
-
-                            <v-row>
-                                <v-col cols="12" md="6">
-                                    <div class="mt-3">
-                                        <v-label class="mb-2 font-weight-medium">Status</v-label>
-                                        <div>
-                                            <el-switch
-                                                v-model="form.status"
-                                                size="large"
-                                                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                                            />
-                                        </div>
-                                    </div>
                                 </v-col>
                             </v-row>
 
@@ -150,9 +151,9 @@ onMounted(() => {
                                         v-model="form.description"
                                         :error-messages="form.errors.description"
                                         label="Description"
+                                        placeholder="Enter designation description..."
                                         rows="4"
                                         variant="outlined"
-                                        placeholder="Enter designation description..."
                                     />
                                 </v-col>
                             </v-row>
@@ -160,11 +161,11 @@ onMounted(() => {
                         <v-divider></v-divider>
                         <v-card-actions>
                             <v-btn
+                                :loading="form.processing"
                                 class="text-none mb-4 mx-auto"
                                 color="primary"
                                 type="submit"
                                 variant="flat"
-                                :loading="form.processing"
                             >
                                 Update
                             </v-btn>
@@ -174,4 +175,4 @@ onMounted(() => {
             </v-col>
         </v-row>
     </DefaultLayout>
-</template
+</template>

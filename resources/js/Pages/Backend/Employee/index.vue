@@ -17,7 +17,7 @@ const state = reactive({
         {title: 'Phone', key: 'phone'},
         {title: 'Department', key: 'department'},
         {title: 'Designations', key: 'designations', sortable: false},
-        {title: 'Joining Date', key: 'joining_date'},
+        {title: 'Joined', key: 'joining_date'},
         {title: 'Status', key: 'status', sortable: false, width: '8%'},
         {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
     ],

@@ -41,7 +41,7 @@ const setLimit = (obj) => {
 
 const getData = (obj) => {
     setLimit(obj);
-    axios.get(route('holiday.get', state.filters)).then(({data}) => {
+    axios.get(route('holidays.get', state.filters)).then(({data}) => {
         state.loading = false;
         state.serverItems = data.data;
         state.pagination.totalItems = data.total;
@@ -49,7 +49,7 @@ const getData = (obj) => {
 };
 
 const toggleStatus = (item) => {
-    axios.get(route('holiday.toggle-status', item.id), {}, {preserveScroll: true})
+    axios.get(route('holidays.toggle-status', item.id), {}, {preserveScroll: true})
         .then(() => toast('Holiday status has been updated.'));
 };
 
@@ -94,7 +94,7 @@ const getDateColor = (date) => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
-                        :router="{title: 'Add New' , route: 'holiday.create'}"
+                        :router="{title: 'Add New' , route: 'holidays.create'}"
                         icon="mdi-plus"
                         title="Holidays"
                     />
@@ -158,7 +158,7 @@ const getDateColor = (date) => {
                             </template>
                             <template v-slot:item.actions="{ item }">
                                 <btn-link
-                                    :route="route('holiday.edit', item.id)"
+                                    :route="route('holidays.edit', item.id)"
                                     color="bg-darkprimary"
                                     icon="mdi-pencil"/>
                             </template>

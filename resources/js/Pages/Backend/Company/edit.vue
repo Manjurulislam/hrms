@@ -22,7 +22,7 @@ let form = useForm({
 });
 
 const submit = () => {
-    form.put(route('company.update', props.item.id), {
+    form.put(route('companies.update', props.item.id), {
         onSuccess: () => toast('Company has been updated successfully.'),
         onError: () => toast.error('Something is wrong. Please try again.')
     });
@@ -40,6 +40,7 @@ onMounted(() => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
+                        :extra-route="{title: 'Back' , route: 'companies.index', icon:'mdi-arrow-left-bold'}"
                         icon="mdi-arrow-left-bold"
                         title="Edit Company"
                     />
@@ -51,7 +52,6 @@ onMounted(() => {
                                         v-model="form.name"
                                         :error-messages="form.errors.name"
                                         label="Name"
-                                        required
                                     />
                                 </v-col>
                                 <v-col cols="12" md="6">
@@ -59,7 +59,6 @@ onMounted(() => {
                                         v-model="form.code"
                                         :error-messages="form.errors.code"
                                         label="Company Code"
-                                        required
                                     />
                                 </v-col>
                             </v-row>

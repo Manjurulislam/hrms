@@ -13,12 +13,12 @@ const props = defineProps({
 const form = useForm({
     name: '',
     description: '',
-    company_id: '',
+    company_id: null,
     status: true,
 });
 
 const submit = () => {
-    form.post(route('department.store'), {
+    form.post(route('departments.store'), {
         onSuccess: (success) => {
             toast('Department has been added successfully.');
         },
@@ -36,6 +36,7 @@ const submit = () => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
+                        :extra-route="{title: 'Back' , route: 'departments.index', icon:'mdi-arrow-left-bold'}"
                         icon="mdi-arrow-left-bold"
                         title="Create Department"
                     />
@@ -63,21 +64,6 @@ const submit = () => {
                                         required
                                         variant="outlined"
                                     />
-                                </v-col>
-                            </v-row>
-
-                            <v-row>
-                                <v-col cols="12" md="6">
-                                    <div class="mt-3">
-                                        <v-label class="mb-2 font-weight-medium">Status</v-label>
-                                        <div>
-                                            <el-switch
-                                                v-model="form.status"
-                                                size="large"
-                                                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                                            />
-                                        </div>
-                                    </div>
                                 </v-col>
                             </v-row>
 

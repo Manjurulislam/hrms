@@ -16,12 +16,11 @@ let form = useForm({
     name: '',
     description: '',
     day_at: '',
-    company_id: '',
-    status: true
+    company_id: null,
 });
 
 const submit = () => {
-    form.put(route('holiday.update', props.item.id), {
+    form.put(route('holidays.update', props.item.id), {
         onSuccess: () => toast('Holiday has been updated successfully.'),
         onError: () => toast.error('Something is wrong. Please try again.')
     });
@@ -39,20 +38,21 @@ onMounted(() => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
+                        :extra-route="{title: 'Back' , route: 'holidays.index', icon:'mdi-arrow-left-bold'}"
                         icon="mdi-arrow-left-bold"
                         title="Edit Holiday"
                     />
                     <form @submit.prevent="submit">
                         <v-card-text class="mt-4 rounded-md">
                             <v-row>
-                                <v-col cols="12" md="6">
+                                <v-col cols="12" md="4">
                                     <TextInput
                                         v-model="form.name"
                                         :error-messages="form.errors.name"
                                         label="Name"
                                     />
                                 </v-col>
-                                <v-col cols="12" md="6">
+                                <v-col cols="12" md="4">
                                     <v-select
                                         v-model="form.company_id"
                                         :error-messages="form.errors.company_id"
@@ -62,38 +62,23 @@ onMounted(() => {
                                         item-title="name"
                                         item-value="id"
                                         label="Company"
-                                        required
                                         variant="outlined"
                                     />
                                 </v-col>
-                            </v-row>
 
-                            <v-row>
-                                <v-col cols="12" md="6">
-                                    <div class="mt-3">
-                                        <v-label class="mb-2 font-weight-medium">Holiday Date *</v-label>
+                                <v-col cols="12" md="4">
+                                    <div>
                                         <el-date-picker
                                             v-model="form.day_at"
                                             format="YYYY-MM-DD"
                                             placeholder="Select holiday date"
+                                            size="large"
                                             style="width: 100%"
                                             type="date"
                                             value-format="YYYY-MM-DD"
                                         />
                                         <div v-if="form.errors.day_at" class="text-error text-caption mt-1">
                                             {{ form.errors.day_at }}
-                                        </div>
-                                    </div>
-                                </v-col>
-                                <v-col cols="12" md="6">
-                                    <div class="mt-3">
-                                        <v-label class="mb-2 font-weight-medium">Status</v-label>
-                                        <div>
-                                            <el-switch
-                                                v-model="form.status"
-                                                size="large"
-                                                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                                            />
                                         </div>
                                     </div>
                                 </v-col>

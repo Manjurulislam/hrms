@@ -13,12 +13,12 @@ const props = defineProps({
 const form = useForm({
     name: '',
     days: '',
-    company_id: '',
+    company_id: null,
     status: true,
 });
 
 const submit = () => {
-    form.post(route('leave-type.store'), {
+    form.post(route('leave-types.store'), {
         onSuccess: (success) => {
             toast('Leave type has been added successfully.');
         },
@@ -36,6 +36,7 @@ const submit = () => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
+                        :extra-route="{title: 'Back' , route: 'leave-types.index', icon:'mdi-arrow-left-bold'}"
                         icon="mdi-arrow-left-bold"
                         title="Create Leave Type"
                     />
@@ -46,7 +47,7 @@ const submit = () => {
                                     <TextInput
                                         v-model="form.name"
                                         :error-messages="form.errors.name"
-                                        label=Name"
+                                        label="Name"
                                         placeholder="e.g., Annual Leave, Sick Leave"
                                         required
                                     />

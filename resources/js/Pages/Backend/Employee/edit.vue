@@ -2,13 +2,14 @@
 import TextInput from '@/Components/common/form/TextInput.vue';
 import {Head, useForm} from '@inertiajs/vue3';
 import CardTitle from '@/Components/common/card/CardTitle.vue';
-import {onMounted} from 'vue';
+import {computed, onMounted} from 'vue';
 import {useToast} from 'vue-toastification';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 
 const toast = useToast();
 const props = defineProps({
     item: Object,
+    companies: Array,
     departments: Array,
     designations: Array,
     selectedDesignations: Array,
@@ -25,20 +26,60 @@ let form = useForm({
     phone: '',
     sec_phone: '',
     nid: '',
-    gender: '',
+    gender: null,
     qualification: '',
     emergency_contact: '',
-    blood_group: '',
-    marital_status: '',
+    blood_group: null,
+    marital_status: null,
     bank_account: '',
     address: '',
-    department_id: '',
+    company_id: null,
+    department_id: null,
     designations: [],
     date_of_birth: '',
     joining_date: '',
     probation_end_at: '',
     status: true
 });
+
+// Filter departments based on selected company
+const filteredDepartments = computed(() => {
+    if (!form.company_id) {
+        return [];
+    }
+    return props.departments.filter(dept => dept.company_id === form.company_id);
+});
+
+// Filter designations based on selected company and optionally department
+const filteredDesignations = computed(() => {
+    if (!form.company_id) {
+        return [];
+    }
+
+    let filtered = props.designations.filter(designation =>
+        designation.company_id === form.company_id
+    );
+
+    // If department is selected, further filter by department
+    if (form.department_id) {
+        filtered = filtered.filter(designation =>
+            !designation.department_id || designation.department_id === form.department_id
+        );
+    }
+
+    return filtered;
+});
+
+// Reset dependent fields when company changes
+const onCompanyChange = () => {
+    form.department_id = '';
+    form.designations = [];
+};
+
+// Reset designations when department changes
+const onDepartmentChange = () => {
+    form.designations = [];
+};
 
 const submit = () => {
     form.put(route('employees.update', props.item.id), {
@@ -60,6 +101,7 @@ onMounted(() => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
+                        :extra-route="{title: 'Back', route: 'employees.index', icon:'mdi-arrow-left-bold'}"
                         icon="mdi-arrow-left-bold"
                         title="Edit Employee"
                     />
@@ -96,7 +138,7 @@ onMounted(() => {
                                 </v-row>
 
                                 <v-row>
-                                    <v-col cols="12" md="6">
+                                    <v-col cols="12" md="4">
                                         <TextInput
                                             v-model="form.email"
                                             :error-messages="form.errors.email"
@@ -105,7 +147,7 @@ onMounted(() => {
                                             type="email"
                                         />
                                     </v-col>
-                                    <v-col cols="12" md="3">
+                                    <v-col cols="12" md="4">
                                         <TextInput
                                             v-model="form.phone"
                                             :error-messages="form.errors.phone"
@@ -114,7 +156,7 @@ onMounted(() => {
                                             type="tel"
                                         />
                                     </v-col>
-                                    <v-col cols="12" md="3">
+                                    <v-col cols="12" md="4">
                                         <TextInput
                                             v-model="form.sec_phone"
                                             :error-messages="form.errors.sec_phone"
@@ -139,7 +181,7 @@ onMounted(() => {
                                             :items="genderOptions"
                                             clearable
                                             density="compact"
-                                            item-title="text"
+                                            item-title="label"
                                             item-value="value"
                                             label="Gender"
                                             variant="outlined"
@@ -152,7 +194,7 @@ onMounted(() => {
                                             :items="maritalStatusOptions"
                                             clearable
                                             density="compact"
-                                            item-title="text"
+                                            item-title="label"
                                             item-value="value"
                                             label="Marital Status"
                                             variant="outlined"
@@ -162,12 +204,12 @@ onMounted(() => {
 
                                 <v-row>
                                     <v-col cols="12" md="4">
-                                        <div class="mt-3">
-                                            <v-label class="mb-2 font-weight-medium">Date of Birth</v-label>
+                                        <div>
                                             <el-date-picker
                                                 v-model="form.date_of_birth"
                                                 format="YYYY-MM-DD"
                                                 placeholder="Select date of birth"
+                                                size="large"
                                                 style="width: 100%"
                                                 type="date"
                                                 value-format="YYYY-MM-DD"
@@ -184,7 +226,7 @@ onMounted(() => {
                                             :items="bloodGroupOptions"
                                             clearable
                                             density="compact"
-                                            item-title="text"
+                                            item-title="label"
                                             item-value="value"
                                             label="Blood Group"
                                             variant="outlined"
@@ -205,11 +247,26 @@ onMounted(() => {
                             <div class="mb-6">
                                 <h3 class="text-h6 mb-4 text-primary">Employment Information</h3>
                                 <v-row>
-                                    <v-col cols="12" md="6">
+                                    <v-col cols="12" md="4">
+                                        <v-select
+                                            v-model="form.company_id"
+                                            :error-messages="form.errors.company_id"
+                                            :items="companies"
+                                            clearable
+                                            density="compact"
+                                            item-title="name"
+                                            item-value="id"
+                                            label="Company"
+                                            required
+                                            variant="outlined"
+                                            @update:model-value="onCompanyChange"
+                                        />
+                                    </v-col>
+                                    <v-col cols="12" md="4">
                                         <v-select
                                             v-model="form.department_id"
                                             :error-messages="form.errors.department_id"
-                                            :items="departments"
+                                            :items="filteredDepartments"
                                             clearable
                                             density="compact"
                                             item-title="name"
@@ -217,13 +274,14 @@ onMounted(() => {
                                             label="Department"
                                             required
                                             variant="outlined"
+                                            @update:model-value="onDepartmentChange"
                                         />
                                     </v-col>
-                                    <v-col cols="12" md="6">
+                                    <v-col cols="12" md="4">
                                         <v-select
                                             v-model="form.designations"
                                             :error-messages="form.errors.designations"
-                                            :items="designations"
+                                            :items="filteredDesignations"
                                             chips
                                             clearable
                                             closable-chips
@@ -239,48 +297,32 @@ onMounted(() => {
 
                                 <v-row>
                                     <v-col cols="12" md="4">
-                                        <div class="mt-3">
-                                            <v-label class="mb-2 font-weight-medium">Joining Date *</v-label>
-                                            <el-date-picker
-                                                v-model="form.joining_date"
-                                                format="YYYY-MM-DD"
-                                                placeholder="Select joining date"
-                                                style="width: 100%"
-                                                type="date"
-                                                value-format="YYYY-MM-DD"
-                                            />
-                                            <div v-if="form.errors.joining_date" class="text-error text-caption mt-1">
-                                                {{ form.errors.joining_date }}
-                                            </div>
+                                        <v-label class="font-weight-medium">Joining Date *</v-label>
+                                        <el-date-picker
+                                            v-model="form.joining_date"
+                                            format="YYYY-MM-DD"
+                                            placeholder="Select joining date"
+                                            style="width: 100%"
+                                            type="date"
+                                            value-format="YYYY-MM-DD"
+                                        />
+                                        <div v-if="form.errors.joining_date" class="text-error text-caption mt-1">
+                                            {{ form.errors.joining_date }}
                                         </div>
                                     </v-col>
                                     <v-col cols="12" md="4">
-                                        <div class="mt-3">
-                                            <v-label class="mb-2 font-weight-medium">Probation End Date</v-label>
-                                            <el-date-picker
-                                                v-model="form.probation_end_at"
-                                                format="YYYY-MM-DD"
-                                                placeholder="Select probation end date"
-                                                style="width: 100%"
-                                                type="date"
-                                                value-format="YYYY-MM-DD"
-                                            />
-                                            <div v-if="form.errors.probation_end_at"
-                                                 class="text-error text-caption mt-1">
-                                                {{ form.errors.probation_end_at }}
-                                            </div>
-                                        </div>
-                                    </v-col>
-                                    <v-col cols="12" md="4">
-                                        <div class="mt-3">
-                                            <v-label class="mb-2 font-weight-medium">Status</v-label>
-                                            <div>
-                                                <el-switch
-                                                    v-model="form.status"
-                                                    size="large"
-                                                    style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                                                />
-                                            </div>
+                                        <v-label class="font-weight-medium">Probation End Date</v-label>
+                                        <el-date-picker
+                                            v-model="form.probation_end_at"
+                                            format="YYYY-MM-DD"
+                                            placeholder="Select probation end date"
+                                            style="width: 100%"
+                                            type="date"
+                                            value-format="YYYY-MM-DD"
+                                        />
+                                        <div v-if="form.errors.probation_end_at"
+                                             class="text-error text-caption mt-1">
+                                            {{ form.errors.probation_end_at }}
                                         </div>
                                     </v-col>
                                 </v-row>
