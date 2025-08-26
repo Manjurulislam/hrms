@@ -1,0 +1,15 @@
+/*@tailwind base;*/
+/*@tailwind components;*/
+/*@tailwind utilities;*/
+.v-list-item-title a {
+    text-decoration: none !important;
+}
+
+.text-subtitle-1 a {
+    text-decoration: none !important;
+}
+
+a {
+    text-decoration: none;
+    color: #616161;
+}
