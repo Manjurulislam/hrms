@@ -66,13 +66,7 @@ const onDepartmentChange = () => {
 };
 
 onMounted(() => {
-    // Assign the item data to form
-    form.title = props.item.title || '';
-    form.description = props.item.description || '';
-    form.company_id = props.item.company_id || null;
-    form.department_id = props.item.department_id || null;
-    form.parent_id = props.item.parent_id || null;
-    form.status = props.item.status ?? true;
+    form = Object.assign(form, props.item);
 });
 </script>
 

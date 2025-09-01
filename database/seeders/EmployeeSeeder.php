@@ -31,7 +31,8 @@ class EmployeeSeeder extends Seeder
                 'marital_status'    => 'married',
                 'bank_account'      => '1234567890',
                 'address'           => 'House 15, Road 7, Dhanmondi, Dhaka-1205',
-                'department_id'     => 1, // Information Technology
+                'department_id'     => 1,
+                'company_id'        => 1,
                 'status'            => true,
                 'date_of_birth'     => Carbon::parse('1990-05-15'),
                 'joining_date'      => Carbon::parse('2023-01-15'),
@@ -53,6 +54,7 @@ class EmployeeSeeder extends Seeder
                 'bank_account'      => '2345678901',
                 'address'           => 'Flat 4B, Gulshan Avenue, Dhaka-1212',
                 'department_id'     => 2, // Human Resources
+                'company_id'        => 1,
                 'status'            => true,
                 'date_of_birth'     => Carbon::parse('1988-12-03'),
                 'joining_date'      => Carbon::parse('2022-03-01'),
@@ -74,6 +76,7 @@ class EmployeeSeeder extends Seeder
                 'bank_account'      => '3456789012',
                 'address'           => 'Plot 25, Block C, Bashundhara R/A, Dhaka-1229',
                 'department_id'     => 3, // Finance & Accounting
+                'company_id'        => 1,
                 'status'            => true,
                 'date_of_birth'     => Carbon::parse('1985-08-22'),
                 'joining_date'      => Carbon::parse('2021-06-10'),
@@ -95,6 +98,7 @@ class EmployeeSeeder extends Seeder
                 'bank_account'      => '4567890123',
                 'address'           => 'House 8, Lane 3, Uttara Sector 12, Dhaka-1230',
                 'department_id'     => 4, // Marketing & Sales
+                'company_id'        => 1,
                 'status'            => false,
                 'date_of_birth'     => Carbon::parse('1992-11-18'),
                 'joining_date'      => Carbon::parse('2024-02-01'),
@@ -116,6 +120,7 @@ class EmployeeSeeder extends Seeder
                 'bank_account'      => '5678901234',
                 'address'           => 'Apartment 12A, Banani DOHS, Dhaka-1213',
                 'department_id'     => 5, // Operations
+                'company_id'        => 1,
                 'status'            => true,
                 'date_of_birth'     => Carbon::parse('1995-03-10'),
                 'joining_date'      => Carbon::parse('2024-05-20'),

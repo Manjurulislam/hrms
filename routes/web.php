@@ -3,6 +3,7 @@
 use App\Http\Controllers\Backend\CompanyController;
 use App\Http\Controllers\Backend\DashboardController;
 use App\Http\Controllers\Backend\DepartmentController;
+use App\Http\Controllers\Backend\DepartmentScheduleController;
 use App\Http\Controllers\Backend\DesignationController;
 use App\Http\Controllers\Backend\EmployeeController;
 use App\Http\Controllers\Backend\HolidayController;
@@ -41,6 +42,14 @@ Route::middleware('auth')->group(function () {
             Route::put('update/{department}', 'update')->name('update');
             Route::get('{department}/toggle-status', 'toggleStatus')->name('toggle-status');
             Route::delete('delete/{department}', 'destroy')->name('destroy');
+        });
+
+    Route::controller(DepartmentScheduleController::class)->name('department-schedules.')
+        ->prefix('department-schedules')->group(function () {
+            Route::post('{department}/store', 'store')->name('store');
+            Route::get('{department}/edit', 'edit')->name('edit');
+            Route::get('{department}/has-schedule', 'hasSchedule')->name('has-schedule');
+            Route::put('update/{department}', 'update')->name('update');
         });
 
 

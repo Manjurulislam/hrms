@@ -18,7 +18,6 @@ class DepartmentScheduleSeeder extends Seeder
         $schedules = [
             [
                 'department_id'   => 1, // Information Technology
-                'work_days'       => ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'],
                 'work_start_time' => Carbon::createFromTime(9, 0, 0), // 09:00 AM
                 'work_end_time'   => Carbon::createFromTime(18, 00, 0), // 06:00 PM
             ],

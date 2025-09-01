@@ -48,7 +48,7 @@ class DepartmentController extends Controller
     public function get(Request $request)
     {
         $query  = Department::query()
-            ->with('company:id,name')
+            ->with('company:id,name', 'schedule')
             ->orderBy('name');
         $query  = $this->commonQueryWithoutTrash($query, $request);
         $rows   = $request->get('per_page', 10);

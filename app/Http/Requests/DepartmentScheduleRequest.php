@@ -3,8 +3,8 @@
 namespace App\Http\Requests;
 
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class DepartmentScheduleRequest extends FormRequest
 {
@@ -13,7 +13,7 @@ class DepartmentScheduleRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return auth()->check();
     }
 
     /**
@@ -21,68 +21,41 @@ class DepartmentScheduleRequest extends FormRequest
      */
     public function rules(): array
     {
-        $scheduleId = $this->route('department_schedule')?->id;
-        $validDays  = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-
         return [
-            'department_id'   => [
-                'required',
-                'integer',
-                Rule::exists('departments', 'id')->where('status', true),
-                Rule::unique('department_schedules', 'department_id')->ignore($scheduleId)
-            ],
-            'work_days'       => [
-                'required',
-                'array',
-                'min:1'
-            ],
-            'work_days.*'     => [
-                'string',
-                Rule::in($validDays)
-            ],
-            'work_start_time' => [
-                'required',
-                'date_format:Y-m-d H:i:s'
-            ],
-            'work_end_time'   => [
-                'required',
-                'date_format:Y-m-d H:i:s',
-                'after:work_start_time'
-            ],
+            'work_start_time' => ['required', 'date_format:h:i A'],
+            'work_end_time'   => ['required', 'date_format:h:i A', 'after_time:work_start_time'],
+            'working_days'    => ['required', 'array', 'min:1'],
+            'working_days.*'  => ['required', 'string', 'in:saturday,sunday,monday,tuesday,wednesday,thursday,friday'],
         ];
     }
 
     /**
-     * Get the validation rules for the input data before transformation.
+     * Configure the validator instance.
      */
-    public function getValidatorInstance()
+    public function withValidator($validator)
     {
-        // Override to validate time format before transformation
-        $validator = parent::getValidatorInstance();
+        $validator->addExtension('after_time', function ($attribute, $value, $parameters, $validator) {
+            $startTimeField = $parameters[0];
+            $startTime      = $validator->getData()[$startTimeField] ?? null;
 
-        $validator->sometimes('work_start_time', 'date_format:H:i', function ($input) {
-            return is_string($input->work_start_time) && strlen($input->work_start_time) <= 5;
+            if (!$startTime || !$value) {
+                return false;
+            }
+
+            try {
+                $startCarbon = Carbon::createFromFormat('h:i A', $startTime);
+                $endCarbon   = Carbon::createFromFormat('h:i A', $value);
+
+                // Handle overnight shifts (e.g., 11:00 PM to 6:00 AM)
+                if ($endCarbon->lessThan($startCarbon)) {
+                    $endCarbon->addDay();
+                }
+
+                return $endCarbon->greaterThan($startCarbon);
+            } catch (Exception $e) {
+                return false;
+            }
         });
-
-        $validator->sometimes('work_end_time', 'date_format:H:i', function ($input) {
-            return is_string($input->work_end_time) && strlen($input->work_end_time) <= 5;
-        });
-
-        return $validator;
-    }
-
-    /**
-     * Get custom attributes for validator errors.
-     */
-    public function attributes(): array
-    {
-        return [
-            'department_id'   => 'department',
-            'work_days'       => 'work days',
-            'work_days.*'     => 'work day',
-            'work_start_time' => 'work start time',
-            'work_end_time'   => 'work end time',
-        ];
     }
 
     /**
@@ -94,29 +67,30 @@ class DepartmentScheduleRequest extends FormRequest
             'department_id.required'      => 'Please select a department.',
             'department_id.exists'        => 'Selected department is invalid or inactive.',
             'department_id.unique'        => 'This department already has a schedule assigned.',
-            'work_days.required'          => 'Please select at least one work day.',
-            'work_days.min'               => 'Please select at least one work day.',
-            'work_days.*.in'              => 'Invalid work day selected.',
+            'working_days.required'       => 'Please select at least one working day.',
+            'working_days.min'            => 'Please select at least one working day.',
+            'working_days.array'          => 'Working days must be provided as a list.',
+            'working_days.*.in'           => 'Invalid working day selected.',
+            'working_days.*.required'     => 'Working day cannot be empty.',
+            'working_days.*.string'       => 'Working day must be a valid text.',
             'work_start_time.required'    => 'Work start time is required.',
-            'work_start_time.date_format' => 'Please enter a valid start time (HH:MM format).',
+            'work_start_time.date_format' => 'Please enter a valid start time (e.g., 08:30 AM).',
             'work_end_time.required'      => 'Work end time is required.',
-            'work_end_time.date_format'   => 'Please enter a valid end time (HH:MM format).',
-            'work_end_time.after'         => 'Work end time must be after start time.',
+            'work_end_time.date_format'   => 'Please enter a valid end time (e.g., 05:30 PM).',
+            'work_end_time.after_time'    => 'Work end time must be after start time.',
         ];
     }
 
     /**
-     * Handle a passed validation attempt.
+     * Get custom attributes for validator errors.
      */
-    public function passedValidation()
+    public function attributes(): array
     {
-        // Additional business logic validation can be added here
-        $workDays  = $this->input('work_days', []);
-        $startTime = $this->input('work_start_time');
-        $endTime   = $this->input('work_end_time');
-
-        // You can add custom validation logic here if needed
-        // For example, checking if the schedule makes business sense
+        return [
+            'work_start_time' => 'start time',
+            'work_end_time'   => 'end time',
+            'working_days'    => 'working days',
+        ];
     }
 
     /**
@@ -124,16 +98,10 @@ class DepartmentScheduleRequest extends FormRequest
      */
     protected function prepareForValidation()
     {
-        // Convert time strings to datetime objects for storage
-        if ($this->has('work_start_time') && $this->work_start_time) {
+        // Ensure working_days is always an array
+        if ($this->has('working_days') && !is_array($this->working_days)) {
             $this->merge([
-                'work_start_time' => Carbon::createFromFormat('H:i', $this->work_start_time)->format('Y-m-d H:i:s')
-            ]);
-        }
-
-        if ($this->has('work_end_time') && $this->work_end_time) {
-            $this->merge([
-                'work_end_time' => Carbon::createFromFormat('H:i', $this->work_end_time)->format('Y-m-d H:i:s')
+                'working_days' => []
             ]);
         }
     }

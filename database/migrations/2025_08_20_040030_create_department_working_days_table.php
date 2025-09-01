@@ -10,11 +10,11 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('department_schedules', function (Blueprint $table) {
+        Schema::create('department_working_days', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('department_id')->index();
-            $table->time('work_start_time')->index();
-            $table->time('work_end_time')->index();
+            $table->string('day', 30)->index();
+            $table->unsignedBigInteger('department_schedule_id')->index();
+            $table->boolean('status')->default(true);
             $table->timestamps();
         });
     }
@@ -24,6 +24,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('department_schedules');
+        Schema::dropIfExists('department_working_days');
     }
 };

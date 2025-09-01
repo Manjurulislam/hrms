@@ -2,11 +2,14 @@
 import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head} from '@inertiajs/vue3';
 import BtnLink from '@/Components/common/utility/BtnLink.vue';
-import {reactive} from 'vue';
+import {reactive, ref} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 import FilterWithoutTrash from '@/Components/common/filter/FilterWithoutTrash.vue';
 import {useToast} from 'vue-toastification';
+import Schedule from "@/Components/modules/department/schedule.vue";
 
+
+const schDialog = ref(false);
 const toast = useToast();
 const state = reactive({
     headers: [
@@ -28,6 +31,7 @@ const state = reactive({
         per_page: 10
     },
     serverItems: [],
+    departmentSchema: [],
     loading: true
 });
 
@@ -57,6 +61,14 @@ const handleSearch = (filters) => {
     state.loading = true;
     getData(state.filters);
 };
+
+const handleSchedule = (item) => {
+    state.departmentSchema = {
+        id: item.id,
+        title: item.name,
+    };
+    schDialog.value = true;
+}
 
 const truncateText = (text, length = 50) => {
     if (!text) return '-';
@@ -124,6 +136,7 @@ const truncateText = (text, length = 50) => {
                                 <span v-else class="text-muted">-</span>
                             </template>
                             <template v-slot:item.actions="{ item }">
+                                <v-btn color="success" icon="mdi-clock" size="x-small" @click="handleSchedule(item)"/>
                                 <btn-link
                                     :route="route('departments.edit', item.id)"
                                     color="bg-darkprimary"
@@ -133,6 +146,8 @@ const truncateText = (text, length = 50) => {
                     </v-card-text>
                 </v-card>
             </v-col>
+
+            <schedule v-model="schDialog" :department="state.departmentSchema"/>
         </v-row>
     </DefaultLayout>
 </template>
