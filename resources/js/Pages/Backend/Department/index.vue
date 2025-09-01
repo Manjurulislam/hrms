@@ -17,6 +17,8 @@ const state = reactive({
         {title: 'Name', key: 'name'},
         {title: 'Company', key: 'company'},
         {title: 'Description', key: 'description', sortable: false},
+        {title: 'Start', key: 'start', sortable: false},
+        {title: 'End', key: 'ended', sortable: false},
         {title: 'Status', key: 'status', sortable: false, width: '8%'},
         {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
     ],
@@ -121,7 +123,7 @@ const truncateText = (text, length = 50) => {
                                     size="small"
                                     variant="tonal"
                                 >
-                                    {{ item.company.name }}
+                                    {{ item.company }}
                                 </v-chip>
                                 <span v-else class="text-muted">-</span>
                             </template>

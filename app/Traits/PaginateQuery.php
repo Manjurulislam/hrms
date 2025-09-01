@@ -3,6 +3,8 @@
 namespace App\Traits;
 
 
+use Carbon\Carbon;
+
 trait PaginateQuery
 {
     public function paginateOrFetchAll($query, $rows): array
@@ -97,6 +99,40 @@ trait PaginateQuery
                 'email'  => $item->email,
                 'phone'  => $item->phone,
                 'status' => $item->status,
+            ]);
+        });
+
+        return [
+            'total' => $total,
+            'data'  => $data,
+        ];
+    }
+
+    public function transformDepartment($query, $rows): array
+    {
+        if ($rows == -1) {
+            $items = $query->get();
+            $total = $items->count();
+            $data  = $items;
+        } else {
+            $pagination = $query->paginate($rows);
+            $total      = $pagination->total();
+            $data       = $pagination->items();
+        }
+
+        $data = collect($data)->map(function ($item) {
+
+            $start = data_get($item, 'schedule.work_start_time');
+            $end   = data_get($item, 'schedule.work_end_time');
+
+
+            return array_merge($item->toArray(), [
+                'name'        => $item->name,
+                'description' => $item->description,
+                'company'     => $item->company->name,
+                'start'       => $start ? Carbon::parse($start)->format('H:i A') : '',
+                'ended'       => $end ? Carbon::parse($end)->format('H:i A') : '',
+                'status'      => $item->status,
             ]);
         });
 

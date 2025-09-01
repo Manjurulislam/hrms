@@ -48,11 +48,11 @@ class DepartmentController extends Controller
     public function get(Request $request)
     {
         $query  = Department::query()
-            ->with('company:id,name', 'schedule')
+            ->with('company', 'schedule')
             ->orderBy('name');
         $query  = $this->commonQueryWithoutTrash($query, $request);
         $rows   = $request->get('per_page', 10);
-        $result = $this->paginateOrFetchAll($query, $rows);
+        $result = $this->transformDepartment($query, $rows);
         return response()->json($result);
     }
 
