@@ -18,6 +18,7 @@ class RoutePermissionMiddleware
         $user  = auth()->user();
         $route = $request->route()?->getName(); // Add null safety
 
+
         if (!$this->userCanAccessRoute($user, $route)) {
             abort(403, 'Access denied. You do not have permission to access this resource.');
         }
@@ -29,6 +30,11 @@ class RoutePermissionMiddleware
     {
         if (blank($route)) {
             return false;
+        }
+
+        // Optional: Skip certain routes
+        if ($this->shouldSkipPermissionCheck($route)) {
+            return true;
         }
 
         $menus = $user->isEmployee()
@@ -46,6 +52,16 @@ class RoutePermissionMiddleware
 
         // Check for resource route patterns (users.index allows all users.*)
         return $this->hasResourceAccess($route, $allowedRoutes);
+    }
+
+    private function shouldSkipPermissionCheck(string $route): bool
+    {
+        $skipRoutes = [
+            'login',
+            'logout',
+            'dashboard', // If dashboard is common to both
+        ];
+        return in_array($route, $skipRoutes);
     }
 
     private function extractRoutes(array $menu): array

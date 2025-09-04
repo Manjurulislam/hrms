@@ -48,7 +48,7 @@ class HandleInertiaRequests extends Middleware
     {
         $user = auth()->user();
 
-        if ($user->isEmployee()) {
+        if (auth()->check() && $user->isEmployee()) {
             return config('services.emp-menus');
         }
 
