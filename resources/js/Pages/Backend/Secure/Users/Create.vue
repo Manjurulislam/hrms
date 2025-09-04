@@ -13,14 +13,13 @@ const toast = useToast();
 const form = useForm({
     name: '',
     email: '',
-    phone: '',
     password: '',
     status: true,
-    roles: []
+    role: []
 });
 
 const submit = () => {
-    form.post(route('core.users.store'), {
+    form.post(route('users.store'), {
         onSuccess: () => toast('Data has been added successfully.'),
         onError: () => toast.error('Something is wrong. Please try again.')
     });
@@ -34,7 +33,7 @@ const submit = () => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
-                        :router="{title:'Back', route:'core.users.index'}"
+                        :router="{title:'Back', route:'users.index'}"
                         icon="mdi-arrow-left-bold"
                         title="Create User"
                     />
@@ -53,19 +52,14 @@ const submit = () => {
                                         label="Email"
                                     />
                                     <TextInput
-                                        v-model="form.phone"
-                                        :error-messages="form.errors.phone"
-                                        label="Phone"
-                                    />
-                                    <TextInput
                                         v-model="form.password"
                                         :error-messages="form.errors.password"
                                         label="Password"
                                         type="password"
                                     />
                                     <v-select
-                                        v-model="form.roles"
-                                        :error-messages="form.errors.roles"
+                                        v-model="form.role"
+                                        :error-messages="form.errors.role"
                                         :items="roles"
                                         clearable
                                         density="compact"

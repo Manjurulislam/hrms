@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Employee;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class EmployeeSeeder extends Seeder
 {
@@ -13,6 +14,8 @@ class EmployeeSeeder extends Seeder
      */
     public function run(): void
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
         Employee::truncate();
 
         $employees = [
@@ -131,5 +134,7 @@ class EmployeeSeeder extends Seeder
         foreach ($employees as $employee) {
             Employee::create($employee);
         }
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
     }
 }

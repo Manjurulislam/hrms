@@ -10,20 +10,19 @@ const toast = useToast();
 const props = defineProps({
     item: Object,
     roles: Array,
-    selectedRoles: Array
+    selectedRole: Array
 });
 
 let form = useForm({
     name: '',
     email: '',
-    phone: '',
     password: '',
     status: true,
-    roles: []
+    role: []
 });
 
 const submit = () => {
-    form.put(route('core.users.update', props.item.id), {
+    form.put(route('users.update', props.item.id), {
         onSuccess: () => toast('Data has been updated successfully.'),
         onError: () => toast.error('Something is wrong. Please try again.')
     });
@@ -31,7 +30,7 @@ const submit = () => {
 
 onMounted(() => {
     form = Object.assign(form, props.item);
-    form.roles = props.selectedRoles;
+    form.role = props.selectedRole || null;
 });
 </script>
 
@@ -42,7 +41,7 @@ onMounted(() => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
-                        :router="{title:'Back', route:'core.users.index'}"
+                        :router="{title:'Back', route:'users.index'}"
                         icon="mdi-arrow-left-bold"
                         title="Edit User"
                     />
@@ -60,11 +59,7 @@ onMounted(() => {
                                         :error-messages="form.errors.email"
                                         label="Email"
                                     />
-                                    <TextInput
-                                        v-model="form.phone"
-                                        :error-messages="form.errors.phone"
-                                        label="Phone"
-                                    />
+
                                     <TextInput
                                         v-model="form.password"
                                         :error-messages="form.errors.password"
@@ -72,8 +67,8 @@ onMounted(() => {
                                         type="password"
                                     />
                                     <v-select
-                                        v-model="form.roles"
-                                        :error-messages="form.errors.roles"
+                                        v-model="form.role"
+                                        :error-messages="form.errors.role"
                                         :items="roles"
                                         clearable
                                         density="compact"

@@ -34,12 +34,24 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth'  => [
                 'user'  => $request->user(),
-                'menus' => config('services.menus'),
+                'menus' => $this->getMenus(),
             ],
             'ziggy' => fn() => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
         ];
+    }
+
+
+    protected function getMenus()
+    {
+        $user = auth()->user();
+
+        if ($user->isEmployee()) {
+            return config('services.emp-menus');
+        }
+
+        return config('services.menus');
     }
 }

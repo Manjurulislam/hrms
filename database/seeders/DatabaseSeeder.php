@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             DepartmentScheduleSeeder::class,
             HolidaySeeder::class,
             LeaveTypeSeeder::class,
+            RoleSeeder::class,
             UserSeeder::class,
             EmployeeSeeder::class,
         ]);

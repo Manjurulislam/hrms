@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class UserRequest extends FormRequest
 {
@@ -12,7 +13,7 @@ class UserRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return auth()->check();
     }
 
     /**
@@ -20,31 +21,21 @@ class UserRequest extends FormRequest
      */
     public function rules(): array
     {
-        $userId   = $this->route('user')?->id;
-        $isUpdate = $this->isMethod('PUT') || $this->isMethod('PATCH');
-
         return [
-            'name'        => ['required', 'string', 'max:255'],
-            'email'       => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($userId)
-            ],
-            'password'    => [
-                $isUpdate ? 'nullable' : 'required',
-                'string',
-                'min:8',
-                'confirmed'
-            ],
-            'employee_id' => [
-                'required',
-                'integer',
-                Rule::exists('employees', 'id')->where('status', true),
-                Rule::unique('users', 'employee_id')->ignore($userId)
-            ],
-            'status'      => ['boolean'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'email', 'max:255', Rule::unique('users')->ignore($this->user)],
+            'password' => $this->getPasswordRules(),
+            'status'   => ['required', 'boolean'],
+            'role'     => ['required', 'array', 'exists:roles,id'],
         ];
+    }
+
+    protected function getPasswordRules(): array
+    {
+        $required      = $this->user ? 'nullable' : 'required';
+        $passwordRules = Password::min(6)->mixedCase()->numbers()->symbols();
+
+        return [$required, $passwordRules];
     }
 
     /**
@@ -67,16 +58,13 @@ class UserRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required'        => 'Name is required.',
-            'email.required'       => 'Email address is required.',
-            'email.email'          => 'Please enter a valid email address.',
-            'email.unique'         => 'This email address is already registered.',
-            'password.required'    => 'Password is required.',
-            'password.min'         => 'Password must be at least 8 characters.',
-            'password.confirmed'   => 'Password confirmation does not match.',
-            'employee_id.required' => 'Please select an employee.',
-            'employee_id.exists'   => 'Selected employee is invalid or inactive.',
-            'employee_id.unique'   => 'This employee already has a user account.',
+            'name.required'      => 'Name is required.',
+            'email.required'     => 'Email address is required.',
+            'email.email'        => 'Please enter a valid email address.',
+            'email.unique'       => 'This email address is already registered.',
+            'password.required'  => 'Password is required.',
+            'password.min'       => 'Password must be at least 8 characters.',
+            'password.confirmed' => 'Password confirmation does not match.',
         ];
     }
 }

@@ -11,8 +11,8 @@ const toast = useToast();
 const state = reactive({
     headers: [
         {title: 'SL', align: 'start', sortable: false, key: 'id'},
-        {title: 'Emp ID', key: 'id_no'},
         {title: 'Name', key: 'full_name'},
+        {title: 'Emp ID', key: 'id_no'},
         {title: 'Email', key: 'email'},
         {title: 'Phone', key: 'phone'},
         {title: 'Department', key: 'department'},
@@ -134,7 +134,7 @@ const truncateEmail = (email, length = 25) => {
                             <template v-slot:item.id_no="{ item }">
                                 <v-chip
                                     class="font-weight-medium"
-                                    color="info"
+                                    color="primary"
                                     size="small"
                                     variant="tonal"
                                 >
@@ -143,15 +143,6 @@ const truncateEmail = (email, length = 25) => {
                             </template>
                             <template v-slot:item.full_name="{ item }">
                                 <div class="d-flex align-center">
-                                    <v-avatar
-                                        class="me-2"
-                                        color="primary"
-                                        size="32"
-                                    >
-                                        <span class="text-white font-weight-medium">
-                                            {{ (item.first_name?.[0] || '') + (item.last_name?.[0] || '') }}
-                                        </span>
-                                    </v-avatar>
                                     <div>
                                         <div class="font-weight-medium">{{ getFullName(item) }}</div>
                                         <div class="text-caption text-medium-emphasis">{{ item.gender || '-' }}</div>

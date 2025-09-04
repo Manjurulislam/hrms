@@ -13,3 +13,26 @@ a {
     text-decoration: none;
     color: #616161;
 }
+
+
+.v-application .v-table .v-table__wrapper table thead tr th,
+.v-application .v-table .v-table__wrapper table tbody tr td {
+    padding: 5px 10px !important;
+}
+
+.v-application .v-data-table th.v-data-table__th {
+    font-weight: bold !important;
+    font-size: 11px !important;
+    text-transform: uppercase;
+    background: #1045712b !important;
+}
+
+.v-application .v-data-table .v-data-table-footer {
+    padding: 3px !important;
+}
+
+.v-chip {
+    font-weight: 500;
+    letter-spacing: 0.025em;
+    text-transform: none;
+}

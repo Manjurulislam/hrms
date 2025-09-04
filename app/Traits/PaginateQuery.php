@@ -69,9 +69,8 @@ trait PaginateQuery
             return array_merge($item->toArray(), [
                 'name'   => $item->name,
                 'email'  => $item->email,
-                'phone'  => $item->phone,
                 'status' => $item->status,
-                'roles'  => $item->roles->pluck('name')->implode(', '),
+                'roles'  => $item->roles->pluck('name'),
             ]);
         });
 

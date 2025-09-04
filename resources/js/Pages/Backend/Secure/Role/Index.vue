@@ -6,6 +6,7 @@ import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 import FilterWithoutTrash from '@/Components/common/filter/FilterWithoutTrash.vue';
 import {useToast} from 'vue-toastification';
+import BtnDelete from "@/Components/common/utility/BtnDelete.vue";
 
 const toast = useToast();
 
@@ -13,7 +14,6 @@ const state = reactive({
     headers: [
         {title: 'SL', align: 'start', sortable: false, key: 'id'},
         {title: 'Name', key: 'name'},
-        // {title: 'Role For', key: 'role_type'},
         {title: 'Status', key: 'status', sortable: false},
         {title: 'Actions', key: 'actions', sortable: false, width: '10%'}
     ],
@@ -24,7 +24,6 @@ const state = reactive({
     filters: {
         search: '',
         dateSearch: null,
-        isChecked: false,
         per_page: 10
     },
     serverItems: [],
@@ -40,7 +39,7 @@ const setLimit = (obj) => {
 
 const getData = (obj) => {
     setLimit(obj);
-    axios.get(route('core.role.get', state.filters)).then(({data}) => {
+    axios.get(route('roles.get', state.filters)).then(({data}) => {
         state.loading = false;
         state.serverItems = data.data;
         state.pagination.totalItems = data.total;
@@ -48,7 +47,7 @@ const getData = (obj) => {
 };
 
 const toggleStatus = (item) => {
-    axios.get(route('core.role.toggle-status', item.id), {}, {preserveScroll: true})
+    axios.get(route('roles.toggle-status', item.id), {}, {preserveScroll: true})
         .then(() => toast('Status has been updated.'));
 };
 
@@ -66,8 +65,7 @@ const handleSearch = (filters) => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
-                        :extra-route="{title: 'Back' , route: 'core', icon:'mdi-arrow-left-bold'}"
-                        :router="{title: 'Add New' , route: 'core.role.create'}"
+                        :router="{title: 'Add New' , route: 'roles.create'}"
                         icon="mdi-plus"
                         title="Roles"
                     />
@@ -83,7 +81,6 @@ const handleSearch = (filters) => {
                             :search="state.searchParam"
                             density="compact"
                             item-value="name"
-                            show-expand
                             @update:options="getData"
                         >
                             <template v-slot:item.id="{ index }">
@@ -100,44 +97,19 @@ const handleSearch = (filters) => {
                                     @change="() => toggleStatus(item)"
                                 />
                             </template>
-
-                            <template v-slot:expanded-row="{ columns, item }">
-                                <tr>
-                                    <td :colspan="columns.length" class="py-2">
-                                        <v-sheet border rounded="lg">
-                                            <v-table density="compact">
-                                                <tbody class="bg-surface-light">
-                                                <tr>
-                                                    <th>Permissions</th>
-                                                </tr>
-                                                </tbody>
-                                                <tbody>
-                                                <tr>
-                                                    <td>
-                                                        <div class="d-flex flex-wrap gap-2">
-                                                            <v-chip
-                                                                v-for="permission in item.permissions"
-                                                                :key="permission.id"
-                                                                color="primary"
-                                                                size="small"
-                                                            >
-                                                                {{ permission.name }}
-                                                            </v-chip>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                </tbody>
-                                            </v-table>
-                                        </v-sheet>
-                                    </td>
-                                </tr>
-                            </template>
-
                             <template v-slot:item.actions="{ item }">
                                 <btn-link
-                                    :route="route('core.role.edit', item.id)"
+                                    :route="route('roles.edit', item.id)"
                                     color="bg-darkprimary"
                                     icon="mdi-pencil"/>
+
+                                <btn-delete
+                                    :route="route('roles.destroy', item.id)"
+                                    color="bg-red-darken-2"
+                                    icon="mdi-delete"
+                                    size="small"
+                                    title="Delete Role"
+                                />
                             </template>
                         </v-data-table-server>
                     </v-card-text>

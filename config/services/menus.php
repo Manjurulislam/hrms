@@ -94,13 +94,8 @@ return [
             [
                 'title' => 'Roles',
                 'icon'  => 'checklist-minimalistic-line-duotone',
-                'to'    => '',
-            ],
-            [
-                'title' => 'Permissions',
-                'icon'  => 'checklist-minimalistic-line-duotone',
-                'to'    => '',
-            ],
+                'to'    => 'roles.index',
+            ]
         ]
     ],
 

@@ -6,6 +6,7 @@ import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 import FilterWithoutTrash from '@/Components/common/filter/FilterWithoutTrash.vue';
 import {useToast} from 'vue-toastification';
+import BtnDelete from "@/Components/common/utility/BtnDelete.vue";
 
 const toast = useToast();
 const state = reactive({
@@ -13,7 +14,6 @@ const state = reactive({
         {title: 'SL', align: 'start', sortable: false, key: 'id'},
         {title: 'Name', key: 'name'},
         {title: 'Email', key: 'email'},
-        {title: 'Phone', key: 'phone'},
         {title: 'Roles', key: 'roles'},
         {title: 'Status', key: 'status', sortable: false, width: '8%'},
         {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
@@ -41,7 +41,7 @@ const setLimit = (obj) => {
 
 const getData = (obj) => {
     setLimit(obj);
-    axios.get(route('core.users.get', state.filters)).then(({data}) => {
+    axios.get(route('users.get', state.filters)).then(({data}) => {
         state.loading = false;
         state.serverItems = data.data;
         state.pagination.totalItems = data.total;
@@ -49,7 +49,7 @@ const getData = (obj) => {
 };
 
 const toggleStatus = (item) => {
-    axios.get(route('core.users.toggle-status', item.id), {}, {preserveScroll: true})
+    axios.get(route('users.toggle-status', item.id), {}, {preserveScroll: true})
         .then(() => toast('Status has been updated.'));
 };
 
@@ -67,8 +67,7 @@ const handleSearch = (filters) => {
             <v-col cols="12">
                 <v-card>
                     <CardTitle
-                        :extra-route="{title: 'Back' , route: 'core', icon:'mdi-arrow-left-bold'}"
-                        :router="{title: 'Add New' , route: 'core.users.create'}"
+                        :router="{title: 'Add New' , route: 'users.create'}"
                         icon="mdi-plus"
                         title="Users"
                     />
@@ -111,9 +110,17 @@ const handleSearch = (filters) => {
                             </template>
                             <template v-slot:item.actions="{ item }">
                                 <btn-link
-                                    :route="route('core.users.edit', item.id)"
+                                    :route="route('users.edit', item.id)"
                                     color="bg-darkprimary"
                                     icon="mdi-pencil"/>
+
+                                <btn-delete
+                                    :route="route('users.destroy', item.id)"
+                                    color="bg-red-darken-2"
+                                    icon="mdi-delete"
+                                    size="small"
+                                    title="Delete User"
+                                />
                             </template>
                         </v-data-table-server>
                     </v-card-text>
