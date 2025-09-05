@@ -13,6 +13,9 @@ return new class extends Migration {
         Schema::create('department_schedules', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('department_id')->index();
+            $table->unsignedBigInteger('company_id')->index();
+            $table->ipAddress('office_ip')->index()->nullable();
+            $table->boolean('status')->default(true)->index();
             $table->time('work_start_time')->index();
             $table->time('work_end_time')->index();
             $table->timestamps();

@@ -11,8 +11,17 @@ class DepartmentSchedule extends Model
 
     protected $fillable = [
         'department_id',
+        'company_id',
+        'office_ip',
         'work_start_time',
         'work_end_time',
+        'status',
+    ];
+
+
+    protected $casts = [
+        'office_ip' => 'string',
+        'status'    => 'boolean',
     ];
 
 
@@ -22,6 +31,11 @@ class DepartmentSchedule extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     /**
@@ -38,13 +52,5 @@ class DepartmentSchedule extends Model
     public function activeWorkingDays(): HasMany
     {
         return $this->hasMany(DepartmentWorkingDay::class)->where('status', true);
-    }
-
-    /**
-     * Scope a query to only include schedules for a specific department.
-     */
-    public function scopeForDepartment($query, $departmentId)
-    {
-        return $query->where('department_id', $departmentId);
     }
 }

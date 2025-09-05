@@ -15,12 +15,13 @@ return new class extends Migration {
             $table->unsignedBigInteger('company_id')->index();
             $table->unsignedBigInteger('employee_id')->index();
 
-            $table->text('note')->nullable();
-            $table->string('request_ip')->nullable();
+            $table->ipAddress()->index();
+            $table->string('location')->default('office')->index();
             $table->string('lat')->nullable()->index();
             $table->string('long')->nullable()->index();
-            $table->string('status', 50)->index();
+            $table->text('note')->nullable();
 
+            $table->string('status', 50)->default('present')->index();
             $table->dateTime('checkin')->index();
             $table->dateTime('checkout')->nullable()->index();
             $table->date('attend_at')->index();
