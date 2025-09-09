@@ -11,7 +11,7 @@ return [
     [
         'title'    => 'Attendance',
         'icon'     => 'chat-square-2-outline',
-        'to'       => '',
+        'to'       => 'emp-attendance.index',
         'hasChild' => false,
     ],
 

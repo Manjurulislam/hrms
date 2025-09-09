@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->unsignedBigInteger('department_id')->index();
             $table->unsignedBigInteger('company_id')->index();
             $table->ipAddress('office_ip')->index()->nullable();
+            $table->integer('delay')->index()->nullable();
             $table->boolean('status')->default(true)->index();
             $table->time('work_start_time')->index();
             $table->time('work_end_time')->index();
