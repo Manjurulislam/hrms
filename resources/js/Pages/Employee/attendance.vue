@@ -7,19 +7,27 @@ import EmpStats from "@/Components/modules/employee/attendance/empStats.vue";
 import {computed, ref} from 'vue'
 import {Head} from "@inertiajs/vue3";
 
-// Props
+// Props from Inertia backend
 const props = defineProps({
     userInfo: {
         type: Object,
-        default: () => ({name: 'John Doe', position: 'Software Developer'})
+        required: true
     },
     officeHours: {
         type: Object,
-        default: () => ({start: '9:00 AM', end: '6:00 PM'})
+        required: true
     },
     monthlyStats: {
         type: Object,
-        default: () => ({present: 18, absent: 2, late: 3, rate: 90})
+        required: true
+    },
+    todayData: {
+        type: Object,
+        default: null
+    },
+    attendanceRecords: {
+        type: Object,
+        default: () => ({})
     }
 })
 
@@ -68,6 +76,7 @@ const handleAttendanceUpdated = (data) => {
             <v-col cols="12" lg="8">
                 <tracker-clock
                     :office-hours="officeHours"
+                    :today-data="todayData"
                     @work-started="handleWorkStarted"
                     @work-ended="handleWorkEnded"
                     @attendance-updated="handleAttendanceUpdated"
@@ -87,7 +96,10 @@ const handleAttendanceUpdated = (data) => {
         <!-- Attendance Records Component -->
         <v-row>
             <v-col cols="12">
-                <AttendantRecords/>
+                <AttendantRecords
+                    :employee-id="userInfo.employeeId"
+                    :can-manage="false"
+                />
             </v-col>
         </v-row>
     </DefaultLayout>

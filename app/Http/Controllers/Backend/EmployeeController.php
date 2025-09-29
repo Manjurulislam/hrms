@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\EmployeeRequest;
+use App\Imports\EmployeeImport;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\Designation;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 use Throwable;
 
 class EmployeeController extends Controller
@@ -26,7 +28,84 @@ class EmployeeController extends Controller
 
     public function index()
     {
-        return Inertia::render('Backend/Employee/index');
+        [$companies, $departments, $designations] = $this->getParams();
+        return Inertia::render('Backend/Employee/index', [
+            'companies'    => $companies,
+            'departments'  => $departments,
+            'designations' => $designations,
+        ]);
+    }
+
+    protected function getParams()
+    {
+        $companies = Company::where('status', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $departments = Department::where('status', true)
+            ->with('company:id,name')
+            ->orderBy('name')
+            ->get(['id', 'name', 'company_id']);
+
+        $designations = Designation::where('status', true)
+            ->orderBy('title')
+            ->get(['id', 'title', 'company_id', 'department_id']);
+
+        return [$companies, $departments, $designations];
+    }
+
+    public function get(Request $request)
+    {
+        $query  = Employee::query()
+            ->with(['department', 'designations', 'user:id,employee_id,email,status'])
+            ->orderBy('first_name')
+            ->orderBy('last_name');
+        $query  = $this->commonQueryWithoutTrash($query, $request);
+        $rows   = $request->get('per_page', 10);
+        $result = $this->paginateOrFetchAll($query, $rows);
+        return response()->json($result);
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file'          => 'required|mimes:xlsx,xls,csv|max:2048',
+            'company_id'    => 'required|exists:companies,id',
+            'department_id' => 'required|exists:departments,id',
+        ]);
+
+        try {
+            $company    = $request->get('company_id');
+            $department = $request->get('department_id');
+            $import     = new EmployeeImport($company, $department);
+            Excel::import($import, $request->file('file'));
+
+            $successCount = $import->getImportedCount();
+            $failureCount = $import->failures()->count();
+            $errorCount   = $import->errors()->count();
+
+            $message = "Import completed! {$successCount} employees imported successfully.";
+
+            if ($failureCount > 0) {
+                $message .= " {$failureCount} rows failed validation.";
+            }
+
+            if ($errorCount > 0) {
+                $message .= " {$errorCount} rows had errors.";
+            }
+
+            // Store failures in session for display if needed
+            if ($import->failures()->count() > 0) {
+                session()->put('import_failures', $import->failures()->toArray());
+            }
+
+            return redirect()->back()->with('success', $message);
+
+        } catch (Exception $e) {
+            return redirect()->back()->with('error', 'Import failed: ' . $e->getMessage());
+        }
+
+
     }
 
     /**
@@ -59,18 +138,7 @@ class EmployeeController extends Controller
 
     public function create()
     {
-        $companies = Company::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        $departments = Department::where('status', true)
-            ->with('company:id,name')
-            ->orderBy('name')
-            ->get(['id', 'name', 'company_id']);
-
-        $designations = Designation::where('status', true)
-            ->orderBy('title')
-            ->get(['id', 'title', 'company_id', 'department_id']);
+        [$companies, $departments, $designations] = $this->getParams();
 
         return Inertia::render('Backend/Employee/create', [
             'companies'            => $companies,
@@ -80,18 +148,6 @@ class EmployeeController extends Controller
             'bloodGroupOptions'    => $this->getBloodGroupOptions(),
             'maritalStatusOptions' => $this->getMaritalStatusOptions()
         ]);
-    }
-
-    public function get(Request $request)
-    {
-        $query  = Employee::query()
-            ->with(['department', 'designations', 'user:id,employee_id,email,status'])
-            ->orderBy('first_name')
-            ->orderBy('last_name');
-        $query  = $this->commonQueryWithoutTrash($query, $request);
-        $rows   = $request->get('per_page', 10);
-        $result = $this->paginateOrFetchAll($query, $rows);
-        return response()->json($result);
     }
 
     private function getGenderOptions(): array
@@ -143,21 +199,13 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee)
     {
-        $companies = Company::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        [$companies, $departments, $designations] = $this->getParams();
 
-        $departments = Department::where('status', true)
-            ->with('company:id,name')
-            ->orderBy('name')
-            ->get(['id', 'name', 'company_id']);
-
-        $designations = Designation::where('status', true)
-            ->orderBy('title')
-            ->get(['id', 'title', 'company_id', 'department_id']);
-
-        $employee->load(['department:id,name,company_id', 'department.company:id,name', 'user:id,employee_id,email,status']);
-
+        $employee->load([
+            'department:id,name,company_id',
+            'department.company:id,name',
+            'user:id,employee_id,email,status'
+        ]);
         // Get selected designations
         $selectedDesignations = $employee->designations->pluck('id')->toArray();
 

@@ -1,11 +1,19 @@
 <script setup>
 import {computed, onMounted, onUnmounted, ref} from 'vue'
+import axios from 'axios'
+import {useToast} from 'vue-toastification'
+
+const toast = useToast()
 
 // Props
 const props = defineProps({
     officeHours: {
         type: Object,
         required: true
+    },
+    todayData: {
+        type: Object,
+        default: null
     }
 })
 
@@ -22,11 +30,40 @@ const endTime = ref('--:--')
 const totalHours = ref('0h 0m')
 const workTimer = ref('00:00:00')
 const progressPercentage = ref(0)
-const totalWorkedSeconds = ref(0) // Accumulated work time for today
+const totalWorkedSeconds = ref(0)
+const isLoading = ref(false)
 
 // Timer intervals
 let clockInterval = null
 let workInterval = null
+
+// Initialize from server data
+const initializeFromServerData = () => {
+    if (props.todayData) {
+        // Set total worked seconds from server
+        totalWorkedSeconds.value = props.todayData.totalWorkedSeconds || 0
+
+        // If there's an active session
+        if (props.todayData.currentSession) {
+            isWorking.value = true
+            workStartTime.value = new Date(props.todayData.currentSession.startTime)
+
+            // Start the work timer
+            workInterval = setInterval(updateWorkTimer, 1000)
+            updateWorkTimer()
+        }
+
+        // Set summary times
+        if (props.todayData.summary) {
+            startTime.value = props.todayData.summary.firstCheckIn || '--:--'
+            endTime.value = props.todayData.summary.lastCheckOut || '--:--'
+            totalHours.value = props.todayData.summary.totalHours || '0h 0m'
+        }
+
+        // Update progress
+        updateProgress()
+    }
+}
 
 // Computed properties for separated date display
 const currentWeekday = computed(() => {
@@ -89,108 +126,6 @@ const getTotalOfficeHours = () => {
     return (endMinutes - startMinutes) * 60 // Convert to seconds
 }
 
-// Get today's date key for localStorage
-const getTodayKey = () => {
-    return new Date().toDateString()
-}
-
-// Save work session to localStorage
-const saveWorkSession = () => {
-    const todayKey = getTodayKey()
-    const workSessions = JSON.parse(localStorage.getItem('workSessions') || '{}')
-
-    if (!workSessions[todayKey]) {
-        workSessions[todayKey] = {
-            sessions: [],
-            totalWorkedSeconds: 0,
-            currentSession: null
-        }
-    }
-
-    workSessions[todayKey].currentSession = {
-        startTime: workStartTime.value?.toISOString(),
-        isWorking: isWorking.value
-    }
-    workSessions[todayKey].totalWorkedSeconds = totalWorkedSeconds.value
-
-    localStorage.setItem('workSessions', JSON.stringify(workSessions))
-}
-
-// Load work session from localStorage
-const loadWorkSession = () => {
-    const todayKey = getTodayKey()
-    const workSessions = JSON.parse(localStorage.getItem('workSessions') || '{}')
-    const todayData = workSessions[todayKey]
-
-    if (todayData) {
-        totalWorkedSeconds.value = todayData.totalWorkedSeconds || 0
-
-        // Show the first start time of the day
-        if (todayData.sessions && todayData.sessions.length > 0) {
-            const firstSession = todayData.sessions[0]
-            startTime.value = formatTime(new Date(firstSession.startTime))
-
-            // Show the last end time if all sessions are completed
-            if (!todayData.currentSession || !todayData.currentSession.isWorking) {
-                const lastSession = todayData.sessions[todayData.sessions.length - 1]
-                if (lastSession.endTime) {
-                    endTime.value = formatTime(new Date(lastSession.endTime))
-                }
-            }
-        }
-
-        // Check if there's an active session
-        if (todayData.currentSession && todayData.currentSession.isWorking) {
-            isWorking.value = true
-            workStartTime.value = new Date(todayData.currentSession.startTime)
-
-            // Don't override startTime.value if it's already set from first session
-            if (startTime.value === '--:--') {
-                startTime.value = formatTime(workStartTime.value)
-            }
-
-            // Start the work timer
-            workInterval = setInterval(updateWorkTimer, 1000)
-            updateWorkTimer()
-        }
-
-        // Calculate and display total hours for the day
-        updateTotalHoursDisplay()
-    }
-}
-
-// Update total hours display
-const updateTotalHoursDisplay = () => {
-    const totalHoursCalc = Math.floor(totalWorkedSeconds.value / 3600)
-    const totalMinutes = Math.floor((totalWorkedSeconds.value % 3600) / 60)
-    totalHours.value = `${totalHoursCalc}h ${totalMinutes}m`
-}
-
-// Complete a work session
-const completeWorkSession = (sessionEndTime) => {
-    const todayKey = getTodayKey()
-    const workSessions = JSON.parse(localStorage.getItem('workSessions') || '{}')
-
-    if (!workSessions[todayKey]) {
-        workSessions[todayKey] = {sessions: [], totalWorkedSeconds: 0}
-    }
-
-    // Add completed session
-    const sessionDuration = Math.floor((sessionEndTime - workStartTime.value) / 1000)
-    workSessions[todayKey].sessions.push({
-        startTime: workStartTime.value.toISOString(),
-        endTime: sessionEndTime.toISOString(),
-        duration: sessionDuration
-    })
-
-    // Update total worked time
-    totalWorkedSeconds.value += sessionDuration
-    workSessions[todayKey].totalWorkedSeconds = totalWorkedSeconds.value
-    workSessions[todayKey].currentSession = null
-
-    localStorage.setItem('workSessions', JSON.stringify(workSessions))
-}
-
 // Update current time and date
 const updateClock = () => {
     const now = new Date()
@@ -209,6 +144,8 @@ const updateWorkTimer = () => {
 
     const now = new Date()
     const currentSessionSeconds = Math.floor((now - workStartTime.value) / 1000)
+
+    // Total seconds including previous sessions
     const totalSecondsToday = totalWorkedSeconds.value + currentSessionSeconds
 
     // Update current session timer
@@ -217,17 +154,12 @@ const updateWorkTimer = () => {
     const seconds = currentSessionSeconds % 60
     workTimer.value = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
 
-    // Calculate progress based on total worked time today vs office hours
-    const totalOfficeSeconds = getTotalOfficeHours()
-    progressPercentage.value = Math.min((totalSecondsToday / totalOfficeSeconds) * 100, 100)
-
-    // Update total hours display with accumulated time
+    // Update total hours display
     const totalHoursCalc = Math.floor(totalSecondsToday / 3600)
     const totalMinutes = Math.floor((totalSecondsToday % 3600) / 60)
     totalHours.value = `${totalHoursCalc}h ${totalMinutes}m`
 
-    // Save current state
-    saveWorkSession()
+    updateProgress()
 
     emit('attendance-updated', {
         isWorking: isWorking.value,
@@ -237,57 +169,175 @@ const updateWorkTimer = () => {
     })
 }
 
-// Start work session
-const startWork = () => {
-    isWorking.value = true
-    workStartTime.value = new Date()
+// Update progress calculation
+const updateProgress = () => {
+    let totalSeconds = totalWorkedSeconds.value
 
-    // If this is the first session of the day, set the start time
-    if (startTime.value === '--:--') {
-        startTime.value = formatTime(workStartTime.value)
+    if (isWorking.value && workStartTime.value) {
+        const currentSessionSeconds = Math.floor((new Date() - workStartTime.value) / 1000)
+        totalSeconds += currentSessionSeconds
     }
 
-    endTime.value = '--:--' // Reset end time for new session
-
-    workInterval = setInterval(updateWorkTimer, 1000)
-    updateWorkTimer()
-
-    // Save to localStorage
-    saveWorkSession()
-
-    emit('work-started', {
-        startTime: workStartTime.value
-    })
+    const totalOfficeSeconds = getTotalOfficeHours()
+    progressPercentage.value = Math.min((totalSeconds / totalOfficeSeconds) * 100, 100)
 }
 
-// End work session
-const endWork = () => {
-    isWorking.value = false
-    const workEndTime = new Date()
-    endTime.value = formatTime(workEndTime)
+// Start work session using axios
+const startWork = async () => {
+    if (isLoading.value) return
 
-    // Complete this session and save to localStorage
-    completeWorkSession(workEndTime)
+    isLoading.value = true
 
-    // Clear work timer but keep accumulated time
-    clearInterval(workInterval)
-    workInterval = null
-    workTimer.value = '00:00:00'
+    try {
+        const response = await axios.post('/emp-attendance/start-work', {
+            location: 'office',
+            note: null
+        })
 
-    // Update display with total accumulated time
-    updateTotalHoursDisplay()
+        if (response.data.success) {
+            // Update from server response
+            const todayData = response.data.todayData
+            totalWorkedSeconds.value = todayData.totalWorkedSeconds || 0
 
-    emit('work-ended', {
-        startTime: workStartTime.value,
-        endTime: workEndTime,
-        totalHours: totalHours.value,
-        totalWorkedSeconds: totalWorkedSeconds.value
-    })
+            if (todayData.currentSession) {
+                isWorking.value = true
+                workStartTime.value = new Date(todayData.currentSession.startTime)
+
+                // Update display times
+                if (todayData.summary) {
+                    startTime.value = todayData.summary.firstCheckIn || formatTime(workStartTime.value)
+                    endTime.value = '--:--'
+                }
+
+                // Start timer
+                workInterval = setInterval(updateWorkTimer, 1000)
+                updateWorkTimer()
+
+                toast.success(response.data.message || 'Work started successfully!')
+                emit('work-started', {
+                    startTime: workStartTime.value
+                })
+            }
+        }
+    } catch (error) {
+        if (error.response && error.response.status === 422) {
+            const message = error.response.data.message || error.response.data.errors?.session?.[0] || 'Failed to start work'
+            toast.error(message)
+        } else {
+            toast.error('An error occurred while starting work')
+        }
+    } finally {
+        isLoading.value = false
+    }
+}
+
+// End work session using axios
+const endWork = async () => {
+    if (isLoading.value) return
+
+    isLoading.value = true
+
+    try {
+        const response = await axios.post('/emp-attendance/end-work', {
+            location: 'office',
+            note: null
+        })
+
+        if (response.data.success) {
+            // Update from server response
+            const todayData = response.data.todayData
+            isWorking.value = false
+
+            // Update total worked seconds
+            totalWorkedSeconds.value = todayData.totalWorkedSeconds || 0
+
+            // Update display times
+            if (todayData.summary) {
+                endTime.value = todayData.summary.lastCheckOut || formatTime(new Date())
+                totalHours.value = todayData.summary.totalHours || totalHours.value
+            }
+
+            // Clear work timer
+            clearInterval(workInterval)
+            workInterval = null
+            workTimer.value = '00:00:00'
+
+            toast.success(response.data.message || 'Work ended successfully!')
+            emit('work-ended', {
+                startTime: workStartTime.value,
+                endTime: new Date(),
+                totalHours: totalHours.value,
+                totalWorkedSeconds: totalWorkedSeconds.value
+            })
+
+            workStartTime.value = null
+        }
+    } catch (error) {
+        if (error.response && error.response.status === 422) {
+            const message = error.response.data.message || error.response.data.errors?.session?.[0] || 'Failed to end work'
+            toast.error(message)
+        } else {
+            toast.error('An error occurred while ending work')
+        }
+    } finally {
+        isLoading.value = false
+    }
 }
 
 // Toggle attendance
 const handleToggleAttendance = () => {
+    if (isLoading.value) return
     isWorking.value ? endWork() : startWork()
+}
+
+// Sync with server periodically
+const syncWithServer = async () => {
+    try {
+        const response = await axios.get('/emp-attendance/current-status')
+
+        if (response.data.success && response.data.data) {
+            const serverData = response.data.data
+
+            // Update local state from server
+            totalWorkedSeconds.value = serverData.totalWorkedSeconds || 0
+
+            // Check if session status changed
+            if (serverData.currentSession && !isWorking.value) {
+                // Session started elsewhere
+                isWorking.value = true
+                workStartTime.value = new Date(serverData.currentSession.startTime)
+
+                // Start timer
+                if (!workInterval) {
+                    workInterval = setInterval(updateWorkTimer, 1000)
+                }
+                updateWorkTimer()
+
+                // Update display
+                if (serverData.summary) {
+                    startTime.value = serverData.summary.firstCheckIn || '--:--'
+                    endTime.value = '--:--'
+                    totalHours.value = serverData.summary.totalHours || '0h 0m'
+                }
+            } else if (!serverData.currentSession && isWorking.value) {
+                // Session ended elsewhere
+                isWorking.value = false
+                clearInterval(workInterval)
+                workInterval = null
+                workTimer.value = '00:00:00'
+
+                if (serverData.summary) {
+                    endTime.value = serverData.summary.lastCheckOut || '--:--'
+                    totalHours.value = serverData.summary.totalHours || '0h 0m'
+                }
+            } else if (serverData.summary) {
+                // Just update totals
+                totalHours.value = serverData.summary.totalHours || totalHours.value
+            }
+        }
+    } catch (error) {
+        console.error('Failed to sync with server:', error)
+    }
 }
 
 // Lifecycle
@@ -295,13 +345,24 @@ onMounted(() => {
     updateClock()
     clockInterval = setInterval(updateClock, 1000)
 
-    // Load any existing work session for today
-    loadWorkSession()
+    // Initialize from server data
+    initializeFromServerData()
+
+    // Sync with server every 30 seconds
+    const syncInterval = setInterval(syncWithServer, 30000)
+
+    // Store sync interval for cleanup
+    window.attendanceSyncInterval = syncInterval
 })
 
 onUnmounted(() => {
     clearInterval(clockInterval)
     clearInterval(workInterval)
+
+    // Clear sync interval
+    if (window.attendanceSyncInterval) {
+        clearInterval(window.attendanceSyncInterval)
+    }
 })
 </script>
 
@@ -348,6 +409,8 @@ onUnmounted(() => {
                 </div>
                 <v-btn
                     :color="isWorking ? 'error' : 'success'"
+                    :disabled="isLoading"
+                    :loading="isLoading"
                     class="px-8 mt-4"
                     elevation="2"
                     size="small"

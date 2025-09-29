@@ -86,6 +86,7 @@ Route::controller(EmployeeController::class)->name('employees.')
         Route::get('/', 'index')->name('index');
         Route::get('get', 'get')->name('get');
         Route::get('create', 'create')->name('create');
+        Route::post('import', 'import')->name('import');
         Route::post('store', 'store')->name('store');
         Route::get('{employee}/edit', 'edit')->name('edit');
         Route::put('update/{employee}', 'update')->name('update');

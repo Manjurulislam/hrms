@@ -169,4 +169,70 @@ trait PaginateQuery
             'data'  => $data,
         ];
     }
+
+    public function transformAttendance($query, $rows): array
+    {
+        if ($rows == -1) {
+            $items = $query->get();
+            $total = $items->count();
+            $data  = $items;
+        } else {
+            $pagination = $query->paginate($rows);
+            $total      = $pagination->total();
+            $data       = $pagination->items();
+        }
+
+        $data = collect($data)->map(function ($item) {
+            $date = Carbon::parse($item->attendance_date);
+
+            return array_merge($item->toArray(), [
+                'attendance_date_display' => $date->format('d M Y'),
+                'day' => $date->format('D'),
+                'first_check_in_display' => $item->first_check_in
+                    ? Carbon::parse($item->first_check_in)->format('g:i a')
+                    : '--:--',
+                'last_check_out_display' => $item->last_check_out
+                    ? Carbon::parse($item->last_check_out)->format('g:i a')
+                    : '--:--',
+                'working_hours' => $this->formatMinutesToHours($item->total_working_minutes),
+                'break_hours' => $this->formatMinutesToHours($item->total_break_minutes),
+                'total_sessions' => $item->total_sessions ?? 0,
+                'status_label' => $this->getStatusLabel($item->status),
+            ]);
+        });
+
+        return [
+            'total' => $total,
+            'data'  => $data,
+        ];
+    }
+
+    /**
+     * Format minutes to hours
+     */
+    private function formatMinutesToHours($minutes)
+    {
+        if (!$minutes) return '0h 0m';
+        $hours = floor($minutes / 60);
+        $mins = $minutes % 60;
+        return sprintf('%dh %dm', $hours, $mins);
+    }
+
+    /**
+     * Get status label
+     */
+    private function getStatusLabel($status)
+    {
+        $labels = [
+            'present' => 'Present',
+            'absent' => 'Absent',
+            'late' => 'Late',
+            'half_day' => 'Half Day',
+            'leave' => 'Leave',
+            'holiday' => 'Holiday',
+            'weekend' => 'Weekend',
+            'work_from_home' => 'WFH'
+        ];
+        return $labels[$status] ?? $status;
+    }
 }

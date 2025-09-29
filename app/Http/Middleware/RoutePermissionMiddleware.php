@@ -60,7 +60,21 @@ class RoutePermissionMiddleware
             'login',
             'logout',
             'dashboard', // If dashboard is common to both
+            'attendance-records.get', // API for attendance data table
+            'attendance-records.export', // API for attendance export
+            'emp-attendance.start-work', // API for attendance check-in
+            'emp-attendance.end-work', // API for attendance check-out
+            'emp-attendance.start-break', // API for break start
+            'emp-attendance.end-break', // API for break end
+            'emp-attendance.current-status', // API for current status
+            'emp-attendance.monthly-data', // API for monthly data
         ];
+
+        // Also skip any routes starting with 'api.'
+        if (str_starts_with($route, 'api.')) {
+            return true;
+        }
+
         return in_array($route, $skipRoutes);
     }
 

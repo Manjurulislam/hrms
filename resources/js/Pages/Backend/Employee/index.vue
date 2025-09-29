@@ -1,12 +1,20 @@
 <script setup>
-import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head} from '@inertiajs/vue3';
 import BtnLink from '@/Components/common/utility/BtnLink.vue';
-import {reactive} from 'vue';
+import {reactive, ref} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 import FilterWithoutTrash from '@/Components/common/filter/FilterWithoutTrash.vue';
 import {useToast} from 'vue-toastification';
+import ImportEmployeeDialog from "@/Components/modules/employee/ImportEmployeeDialog.vue";
 
+
+defineProps([
+    'companies',
+    'departments',
+    'designations',
+])
+
+const showImportDialog = ref(false);
 const toast = useToast();
 const state = reactive({
     headers: [
@@ -92,6 +100,12 @@ const truncateEmail = (email, length = 25) => {
     if (!email) return '-';
     return email.length > length ? email.substring(0, length) + '...' : email;
 };
+
+const handleImportSuccess = () => {
+    state.loading = true;
+    getData(state.filters);
+    showImportDialog.value = false;
+};
 </script>
 
 <template>
@@ -100,11 +114,33 @@ const truncateEmail = (email, length = 25) => {
         <v-row no-gutters>
             <v-col cols="12">
                 <v-card>
-                    <CardTitle
-                        :router="{title: 'Add New' , route: 'employees.create'}"
-                        icon="mdi-plus"
-                        title="Employees"
-                    />
+                    <v-toolbar :rounded="true" class="border-b pr-3" color="#FFFFFF" density="compact">
+                        <v-toolbar-title class="text-uppercase text-subtitle-2 font-weight-bold">
+                            Employees
+                        </v-toolbar-title>
+                        <v-spacer></v-spacer>
+
+                        <v-btn
+                            class="bg-surface-variant ml-2"
+                            prepend-icon="mdi-file-import"
+                            size="small"
+                            variant="elevated"
+                            @click="showImportDialog = true"
+                        >
+                            Import
+                        </v-btn>
+
+                        <v-btn
+                            :href="route('employees.create')"
+                            class="ml-2"
+                            color="darkgray"
+                            size="small"
+                            variant="elevated"
+                        >
+                            <v-icon icon="mdi-plus"></v-icon>
+                            Add New
+                        </v-btn>
+                    </v-toolbar>
 
                     <FilterWithoutTrash :dateSearch="true" :filters="state.filters" @handleFilter="handleSearch"/>
                     <v-card-text>
@@ -230,5 +266,12 @@ const truncateEmail = (email, length = 25) => {
                 </v-card>
             </v-col>
         </v-row>
+
+        <ImportEmployeeDialog
+            v-model="showImportDialog"
+            :companies="companies"
+            :departments="departments"
+            @success="handleImportSuccess"
+        />
     </DefaultLayout>
 </template>

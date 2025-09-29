@@ -2,13 +2,27 @@
 
 
 use App\Http\Controllers\Backend\EmployeeAttendanceController;
+use App\Http\Controllers\Api\AttendanceRecordController;
 
 
 Route::controller(EmployeeAttendanceController::class)->name('emp-attendance.')
     ->prefix('emp-attendance')->group(function () {
         Route::get('/', 'index')->name('index');
 
+        // API endpoints for attendance
+        Route::post('/start-work', 'startWork')->name('start-work');
+        Route::post('/end-work', 'endWork')->name('end-work');
+        Route::post('/start-break', 'startBreak')->name('start-break');
+        Route::post('/end-break', 'endBreak')->name('end-break');
+        Route::get('/current-status', 'currentStatus')->name('current-status');
+        Route::get('/monthly-data', 'monthlyData')->name('monthly-data');
     });
+
+// API routes for attendance records data table
+Route::prefix('api')->group(function () {
+    Route::get('/attendance-records', [AttendanceRecordController::class, 'index'])->name('attendance-records.get');
+    Route::get('/attendance-records/export', [AttendanceRecordController::class, 'export'])->name('attendance-records.export');
+});
 
 
 

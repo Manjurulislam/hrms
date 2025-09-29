@@ -1,264 +1,309 @@
 <script setup>
-import {computed, onMounted, ref} from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import axios from 'axios'
+import { useToast } from 'vue-toastification'
 
-// Reactive state
-const search = ref('')
-const selectedMonth = ref('')
-const availableMonths = ref([])
+const toast = useToast()
 
-// Mock attendance data
-const attendanceRecords = ref({
-    '2025-09': [
-        {date: 1, checkIn: '09:15', checkOut: '17:45', hours: 8.5, status: 'Present', late: true},
-        {date: 2, checkIn: '09:00', checkOut: '18:00', hours: 9, status: 'Present', late: false},
-        {date: 3, checkIn: null, checkOut: null, hours: 0, status: 'Absent', late: false},
-        {date: 4, checkIn: '08:45', checkOut: '17:30', hours: 8.75, status: 'Present', late: false},
-        {date: 5, checkIn: '09:30', checkOut: '18:15', hours: 8.75, status: 'Present', late: true},
-        {date: 6, checkIn: '09:00', checkOut: '17:45', hours: 8.75, status: 'Present', late: false},
-        {date: 7, checkIn: null, checkOut: null, hours: 0, status: 'Weekend', late: false},
-        {date: 8, checkIn: null, checkOut: null, hours: 0, status: 'Weekend', late: false},
-        {date: 9, checkIn: '08:55', checkOut: '17:40', hours: 8.75, status: 'Present', late: false},
+// Props
+const props = defineProps({
+    canManage: {
+        type: Boolean,
+        default: false
+    },
+    employeeId: {
+        type: [Number, String],
+        default: null
+    }
+})
+
+// State
+const state = reactive({
+    headers: [
+        { title: 'Date', key: 'attendance_date_display', sortable: true },
+        { title: 'Day', key: 'day', sortable: false },
+        { title: 'Check In', key: 'first_check_in_display', sortable: false },
+        { title: 'Check Out', key: 'last_check_out_display', sortable: false },
+        { title: 'Working Hours', key: 'working_hours', sortable: false },
+        { title: 'Break Hours', key: 'break_hours', sortable: false },
+        { title: 'Sessions', key: 'total_sessions', sortable: false },
+        { title: 'Status', key: 'status', sortable: false, width: '10%' }
     ],
-    '2025-08': [
-        {date: 1, checkIn: '09:00', checkOut: '18:00', hours: 9, status: 'Present', late: false},
-        {date: 2, checkIn: '09:15', checkOut: '17:45', hours: 8.5, status: 'Present', late: true},
-        {date: 3, checkIn: null, checkOut: null, hours: 0, status: 'Weekend', late: false},
-        {date: 4, checkIn: null, checkOut: null, hours: 0, status: 'Weekend', late: false},
-        {date: 5, checkIn: '09:00', checkOut: '17:30', hours: 8.5, status: 'Present', late: false},
-    ],
-    '2025-07': [
-        {date: 1, checkIn: '08:45', checkOut: '17:30', hours: 8.75, status: 'Present', late: false},
-        {date: 2, checkIn: '09:30', checkOut: '18:15', hours: 8.75, status: 'Present', late: true},
-        {date: 3, checkIn: null, checkOut: null, hours: 0, status: 'Absent', late: false},
-    ]
+    serverItems: [],
+    pagination: {
+        itemsPerPage: 15,
+        totalItems: 0
+    },
+    filters: {
+        search: '',
+        month: getCurrentYearMonth(),
+        employee_id: props.employeeId,
+        per_page: 15,
+        page: 1
+    },
+    loading: true
 })
 
-// Data table headers
-const headers = [
-    {title: 'Date', key: 'date', sortable: true, width: '80px'},
-    {title: 'Day', key: 'day', sortable: true, width: '100px'},
-    {title: 'Check In', key: 'checkIn', sortable: true, width: '120px'},
-    {title: 'Check Out', key: 'checkOut', sortable: true, width: '120px'},
-    {title: 'Total Hours', key: 'totalHours', sortable: true, width: '130px'},
-    {title: 'Status', key: 'status', sortable: true, width: '120px'}
-]
+// Month selector
+const selectedMonth = ref(getCurrentYearMonth())
+const isCalendarOpen = ref(false)
 
-// Computed properties
-const tableData = computed(() => {
-    const monthKey = selectedMonth.value
-    if (!monthKey || !attendanceRecords.value[monthKey]) return []
-
-    return attendanceRecords.value[monthKey].map(record => ({
-        date: String(record.date).padStart(2, '0'),
-        day: getDayName(record.date, monthKey),
-        checkIn: record.checkIn || '--:--',
-        checkOut: record.checkOut || '--:--',
-        totalHours: record.hours > 0 ? record.hours + 'h' : '--',
-        status: record.status,
-        late: record.late,
-        originalRecord: record
-    }))
-})
-
-const currentMonthDisplay = computed(() => {
-    if (!selectedMonth.value) return ''
-    const [year, month] = selectedMonth.value.split('-')
-    const date = new Date(year, month - 1)
-    return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long'
-    })
-})
-
-// Methods
-const initializeMonths = () => {
-    const months = Object.keys(attendanceRecords.value).sort().reverse()
-    availableMonths.value = months.map(monthKey => {
-        const [year, month] = monthKey.split('-')
-        const date = new Date(year, month - 1)
-        return {
-            value: monthKey,
-            title: date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long'
-            })
-        }
-    })
-
-    // Set current month as default
+// Get current year-month
+function getCurrentYearMonth() {
     const now = new Date()
-    const currentMonthKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`
-    selectedMonth.value = availableMonths.value.find(m => m.value === currentMonthKey)?.value || availableMonths.value[0]?.value || ''
+    const year = now.getFullYear()
+    const month = (now.getMonth() + 1).toString().padStart(2, '0')
+    return `${year}-${month}`
 }
 
-const getDayName = (date, monthKey) => {
-    if (!monthKey) return ''
-    const [year, month] = monthKey.split('-')
-    const recordDate = new Date(year, month - 1, date)
-    return recordDate.toLocaleDateString('en-US', {weekday: 'short'})
+// Set pagination and sorting
+const setLimit = (obj) => {
+    const { page, itemsPerPage, sortBy } = obj
+    state.filters.page = page
+    state.filters.sort = sortBy
+    state.filters.per_page = itemsPerPage === 'All' ? -1 : itemsPerPage
 }
 
-const getStatusColor = (status, late) => {
-    switch (status) {
-        case 'Present':
-            return late ? 'warning' : 'success'
-        case 'Absent':
-            return 'error'
-        case 'Weekend':
-            return 'grey'
-        default:
-            return 'grey'
+// Fetch data from server
+const getData = (obj) => {
+    setLimit(obj)
+    axios.get('/api/attendance-records', { params: state.filters }).then(({ data }) => {
+        state.loading = false
+        state.serverItems = data.data
+        state.pagination.totalItems = data.total
+    }).catch(error => {
+        state.loading = false
+        toast.error('Failed to load attendance records')
+        console.error('Error:', error)
+    })
+}
+
+// Handle month change
+const handleMonthChange = (value) => {
+    selectedMonth.value = value
+    state.filters.month = value
+    state.loading = true
+    getData({ page: 1, itemsPerPage: state.filters.per_page, sortBy: [] })
+}
+
+// Handle search
+const handleSearch = (value) => {
+    state.filters.search = value
+    state.loading = true
+    getData({ page: 1, itemsPerPage: state.filters.per_page, sortBy: [] })
+}
+
+// Get status color
+const getStatusColor = (status) => {
+    const colors = {
+        'present': 'success',
+        'absent': 'error',
+        'late': 'warning',
+        'half_day': 'info',
+        'leave': 'secondary',
+        'holiday': 'primary',
+        'weekend': 'grey',
+        'work_from_home': 'cyan'
     }
+    return colors[status] || 'grey'
 }
 
-const getStatusText = (status, late) => {
-    if (status === 'Present') {
-        return late ? 'Late' : 'Present'
-    }
-    return status
+// Export data
+const exportData = () => {
+    axios.get('/api/attendance-records/export', {
+        params: {
+            month: state.filters.month,
+            employee_id: state.filters.employee_id
+        },
+        responseType: 'blob'
+    }).then(response => {
+        const url = window.URL.createObjectURL(new Blob([response.data]))
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', `attendance_${state.filters.month}.csv`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        toast.success('Attendance records exported successfully')
+    }).catch(error => {
+        toast.error('Failed to export attendance records')
+    })
 }
 
-// Lifecycle
+// Format month for display
+const formatMonthDisplay = (monthString) => {
+    if (!monthString) return 'Select Month'
+    const [year, month] = monthString.split('-')
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December']
+    return `${monthNames[parseInt(month) - 1]} ${year}`
+}
+
+// Initialize on mount
 onMounted(() => {
-    initializeMonths()
+    getData({ page: 1, itemsPerPage: state.filters.per_page, sortBy: [] })
 })
 </script>
 
 <template>
     <v-card elevation="3">
+        <v-card-title class="d-flex justify-space-between align-center">
+            <div class="d-flex align-center">
+                <v-icon class="me-2">mdi-calendar-check</v-icon>
+                <span>Attendance Records</span>
+            </div>
+            <div class="d-flex align-center gap-2">
+                <!-- Export Button -->
+                <v-btn
+                    @click="exportData"
+                    color="primary"
+                    variant="tonal"
+                    size="small"
+                    prepend-icon="mdi-download"
+                >
+                    Export
+                </v-btn>
+
+                <!-- Month Selector -->
+                <v-menu
+                    v-model="isCalendarOpen"
+                    :close-on-content-click="false"
+                    offset-y
+                >
+                    <template v-slot:activator="{ props }">
+                        <v-btn
+                            v-bind="props"
+                            variant="outlined"
+                            prepend-icon="mdi-calendar"
+                            size="small"
+                        >
+                            {{ formatMonthDisplay(selectedMonth) }}
+                            <v-icon end>mdi-chevron-down</v-icon>
+                        </v-btn>
+                    </template>
+                    <v-card min-width="250">
+                        <v-card-text>
+                            <input
+                                type="month"
+                                v-model="selectedMonth"
+                                @change="handleMonthChange(selectedMonth)"
+                                class="month-picker"
+                            />
+                        </v-card-text>
+                    </v-card>
+                </v-menu>
+            </div>
+        </v-card-title>
+
         <v-card-text>
-            <!-- Header with Month Selection and Search -->
-            <div
-                class="d-flex flex-column flex-md-row justify-space-between align-start align-md-center gap-4 mb-4">
-                <div class="text-subtitle-1 text-uppercase">
-                    <v-icon class="me-2">mdi-calendar-month</v-icon>
-                    Attendance
-                </div>
-
-                <div class="d-flex flex-column flex-sm-row gap-3 align-center">
-                    <!-- Month Selector -->
-                    <v-select
-                        v-model="selectedMonth"
-                        :items="availableMonths"
-                        density="compact"
-                        hide-details
-                        label="Select Month"
-                        prepend-inner-icon="mdi-calendar"
-                        style="min-width: 200px;"
-                        variant="outlined"
-                    ></v-select>
-
-                    <!-- Search Field -->
+            <!-- Search Bar -->
+            <v-row class="mb-3">
+                <v-col cols="12" md="4">
                     <v-text-field
-                        v-model="search"
-                        clearable
-                        density="compact"
-                        hide-details
-                        label="Search records..."
+                        v-model="state.filters.search"
+                        @update:model-value="handleSearch"
                         prepend-inner-icon="mdi-magnify"
-                        style="min-width: 250px;"
+                        placeholder="Search by date or status..."
                         variant="outlined"
-                    ></v-text-field>
-                </div>
-            </div>
-
-            <!-- Current Month Display -->
-            <div class="text-subtitle-1 text-medium-emphasis mb-4">
-                {{ currentMonthDisplay }}
-            </div>
+                        density="compact"
+                        clearable
+                        hide-details
+                    />
+                </v-col>
+            </v-row>
 
             <!-- Data Table -->
-            <v-data-table
-                :headers="headers"
-                :items="tableData"
-                :items-per-page="15"
-                :search="search"
-                class="elevation-1"
-                density="comfortable"
+            <v-data-table-server
+                :headers="state.headers"
+                :items="state.serverItems"
+                :items-length="state.pagination.totalItems"
+                :items-per-page="state.pagination.itemsPerPage"
+                :loading="state.loading"
+                density="compact"
+                item-value="id"
+                @update:options="getData"
+                class="elevation-0 custom-table"
             >
-                <!-- Custom Status Column -->
-                <template v-slot:item.status="{ item }">
+                <template v-slot:item.attendance_date_display="{ item }">
+                    <span class="font-weight-medium">{{ item.attendance_date_display }}</span>
+                </template>
+
+                <template v-slot:item.day="{ item }">
                     <v-chip
-                        :color="getStatusColor(item.status, item.late)"
-                        class="status-chip"
-                        size="small"
+                        size="x-small"
+                        :color="item.day === 'Sun' || item.day === 'Sat' ? 'grey' : 'default'"
+                        variant="text"
                     >
-                        {{ getStatusText(item.status, item.late) }}
+                        {{ item.day }}
                     </v-chip>
                 </template>
 
-                <!-- Custom Date Column -->
-                <template v-slot:item.date="{ item }">
-                    <span class="font-weight-bold">{{ item.date }}</span>
+                <template v-slot:item.first_check_in_display="{ item }">
+                    <span :class="item.late_minutes > 0 ? 'text-warning' : ''">{{ item.first_check_in_display }}</span>
                 </template>
 
-                <!-- Custom Total Hours Column -->
-                <template v-slot:item.totalHours="{ item }">
-                    <span :class="item.originalRecord.hours > 8 ? 'text-success font-weight-bold' : ''">
-                        {{ item.totalHours }}
-                    </span>
+                <template v-slot:item.last_check_out_display="{ item }">
+                    {{ item.last_check_out_display }}
                 </template>
 
-                <!-- No Data Slot -->
+                <template v-slot:item.working_hours="{ item }">
+                    {{ item.working_hours }}
+                </template>
+
+                <template v-slot:item.break_hours="{ item }">
+                    {{ item.break_hours }}
+                </template>
+
+                <template v-slot:item.total_sessions="{ item }">
+                    <v-chip size="x-small" variant="tonal">
+                        {{ item.total_sessions || 0 }}
+                    </v-chip>
+                </template>
+
+                <template v-slot:item.status="{ item }">
+                    <v-chip
+                        :color="getStatusColor(item.status)"
+                        size="small"
+                        label
+                    >
+                        {{ item.status_label }}
+                    </v-chip>
+                </template>
+
+                <template v-slot:loading>
+                    <v-skeleton-loader type="table-row@10" />
+                </template>
+
                 <template v-slot:no-data>
                     <div class="text-center py-8">
-                        <v-icon class="mb-2" color="grey" size="48">mdi-calendar-remove</v-icon>
-                        <div class="text-body-1 text-medium-emphasis">
-                            No attendance data available for {{ currentMonthDisplay }}
-                        </div>
+                        <v-icon size="48" color="grey">mdi-calendar-blank</v-icon>
+                        <p class="text-grey mt-2">No attendance records found</p>
                     </div>
                 </template>
-
-                <!-- Bottom Pagination -->
-                <template v-slot:bottom>
-                    <div class="text-center pt-2">
-                        <v-pagination
-                            v-model="page"
-                            :length="pageCount"
-                            rounded="circle"
-                        ></v-pagination>
-                    </div>
-                </template>
-            </v-data-table>
+            </v-data-table-server>
         </v-card-text>
     </v-card>
 </template>
 
 <style scoped>
-.status-chip {
-    font-weight: 500;
+.custom-table :deep(.v-data-table__td) {
+    white-space: nowrap;
 }
 
-/* Data table styling */
-:deep(.v-data-table) {
-    border-radius: 8px;
-}
-
-:deep(.v-data-table-header) {
-    background-color: #f5f5f5;
-}
-
-:deep(.v-data-table-header th) {
+.custom-table :deep(.v-data-table-header__content) {
     font-weight: 600;
-    color: #1B4F72;
 }
 
-:deep(.v-data-table__td) {
-    border-bottom: 1px solid #e0e0e0 !important;
+.month-picker {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 100%;
+    font-size: 14px;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .d-flex.flex-column.flex-md-row {
-        align-items: stretch !important;
-    }
-
-    .d-flex.flex-column.flex-sm-row {
-        width: 100%;
-    }
-
-    .v-select, .v-text-field {
-        min-width: 100% !important;
-    }
+.month-picker:focus {
+    outline: none;
+    border-color: #1976D2;
 }
 </style>

@@ -24,8 +24,8 @@ class DatabaseSeeder extends Seeder
             HolidaySeeder::class,
             LeaveTypeSeeder::class,
             RoleSeeder::class,
-            UserSeeder::class,
-            EmployeeSeeder::class,
+            EmployeeSeeder::class,  // Employees must be created first
+            UserSeeder::class,       // Then create users (including employee users)
         ]);
 
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
