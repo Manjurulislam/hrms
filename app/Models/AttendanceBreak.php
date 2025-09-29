@@ -16,6 +16,8 @@ class AttendanceBreak extends Model
         'duration_minutes',
         'break_type',
         'reason',
+        'is_paid',
+        'max_allowed_minutes',
         'break_start_ip',
         'break_end_ip',
         'status',
@@ -25,6 +27,7 @@ class AttendanceBreak extends Model
         'attendance_date' => 'date',
         'break_start' => 'datetime',
         'break_end' => 'datetime',
+        'is_paid' => 'boolean',
     ];
 
     public function employee(): BelongsTo

@@ -25,6 +25,8 @@ return new class extends Migration
             // Break details
             $table->enum('break_type', ['lunch', 'tea', 'personal', 'prayer', 'other'])->default('personal');
             $table->text('reason')->nullable();
+            $table->boolean('is_paid')->default(false);
+            $table->integer('max_allowed_minutes')->nullable();
 
             // IP tracking
             $table->ipAddress('break_start_ip')->nullable();

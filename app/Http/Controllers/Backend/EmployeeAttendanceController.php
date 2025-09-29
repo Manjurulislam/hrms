@@ -269,16 +269,24 @@ class EmployeeAttendanceController extends Controller
     {
         $schedule = $employee->department->schedule ?? null;
 
-        if ($schedule && $schedule->start_time && $schedule->end_time) {
+        if ($schedule && $schedule->work_start_time && $schedule->work_end_time) {
             return [
-                'start' => Carbon::parse($schedule->start_time)->format('g:i A'),
-                'end' => Carbon::parse($schedule->end_time)->format('g:i A')
+                'start' => Carbon::parse($schedule->work_start_time)->format('g:i A'),
+                'end' => Carbon::parse($schedule->work_end_time)->format('g:i A'),
+                'delay' => $schedule->delay ?? 0,
+                'office_ip' => $schedule->office_ip ?? null,
+                'company' => $employee->department->company->name ?? 'N/A',
+                'department' => $employee->department->name ?? 'N/A'
             ];
         }
 
         return [
-            'start' => Carbon::parse(config('attendance.default_office_start'))->format('g:i A'),
-            'end' => Carbon::parse(config('attendance.default_office_end'))->format('g:i A')
+            'start' => Carbon::parse(config('attendance.default_office_start', '09:00'))->format('g:i A'),
+            'end' => Carbon::parse(config('attendance.default_office_end', '18:00'))->format('g:i A'),
+            'delay' => config('attendance.late_grace_period', 15),
+            'office_ip' => null,
+            'company' => $employee->department->company->name ?? 'N/A',
+            'department' => $employee->department->name ?? 'N/A'
         ];
     }
 

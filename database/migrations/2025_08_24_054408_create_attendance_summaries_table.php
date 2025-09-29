@@ -15,7 +15,13 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('employee_id')->index();
             $table->unsignedBigInteger('company_id')->index();
+            $table->unsignedBigInteger('department_id')->nullable()->index();
             $table->date('attendance_date')->index();
+
+            // Scheduled office hours for the day
+            $table->time('scheduled_start_time')->nullable();
+            $table->time('scheduled_end_time')->nullable();
+            $table->integer('grace_minutes')->default(0);
 
             // Time tracking
             $table->time('first_check_in')->nullable();
@@ -41,6 +47,10 @@ return new class extends Migration
                 'work_from_home'
             ])->default('absent')->index();
 
+            // Working day and shift info
+            $table->boolean('is_working_day')->default(true)->index();
+            $table->string('shift_name')->nullable();
+
             // IP tracking for the day
             $table->json('ip_addresses')->nullable(); // Store all IPs used during the day
             $table->json('locations')->nullable(); // Store all locations during the day
@@ -53,6 +63,7 @@ return new class extends Migration
             // Foreign keys
             $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
             $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
+            $table->foreign('department_id')->references('id')->on('departments')->onDelete('set null');
 
             // Additional indexes (with custom names to avoid length issues)
             $table->index(['attendance_date', 'status'], 'idx_summary_date_status');

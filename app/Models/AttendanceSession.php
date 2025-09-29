@@ -14,15 +14,18 @@ class AttendanceSession extends Model
     protected $fillable = [
         'employee_id',
         'company_id',
+        'department_id',
         'attendance_date',
         'session_number',
         'check_in_time',
+        'scheduled_start_time',
         'check_in_ip',
         'check_in_location',
         'check_in_lat',
         'check_in_long',
         'check_in_note',
         'check_out_time',
+        'scheduled_end_time',
         'check_out_ip',
         'check_out_location',
         'check_out_lat',
@@ -31,6 +34,9 @@ class AttendanceSession extends Model
         'duration_minutes',
         'session_type',
         'status',
+        'is_late',
+        'is_early_departure',
+        'is_overtime',
     ];
 
     protected $casts = [
@@ -41,6 +47,9 @@ class AttendanceSession extends Model
         'check_in_long' => 'decimal:8',
         'check_out_lat' => 'decimal:8',
         'check_out_long' => 'decimal:8',
+        'is_late' => 'boolean',
+        'is_early_departure' => 'boolean',
+        'is_overtime' => 'boolean',
     ];
 
     public function employee(): BelongsTo

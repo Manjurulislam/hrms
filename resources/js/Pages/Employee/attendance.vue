@@ -93,12 +93,12 @@ const handleAttendanceUpdated = (data) => {
                 />
             </v-col>
         </v-row>
-        <!-- Attendance Records Component -->
+
         <v-row>
             <v-col cols="12">
                 <AttendantRecords
-                    :employee-id="userInfo.employeeId"
                     :can-manage="false"
+                    :employee-id="userInfo.employeeId"
                 />
             </v-col>
         </v-row>

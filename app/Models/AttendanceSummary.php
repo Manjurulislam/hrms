@@ -11,7 +11,11 @@ class AttendanceSummary extends Model
     protected $fillable = [
         'employee_id',
         'company_id',
+        'department_id',
         'attendance_date',
+        'scheduled_start_time',
+        'scheduled_end_time',
+        'grace_minutes',
         'first_check_in',
         'last_check_out',
         'total_working_minutes',
@@ -21,6 +25,8 @@ class AttendanceSummary extends Model
         'early_leave_minutes',
         'total_sessions',
         'status',
+        'is_working_day',
+        'shift_name',
         'ip_addresses',
         'locations',
     ];
@@ -29,6 +35,7 @@ class AttendanceSummary extends Model
         'attendance_date' => 'date',
         'ip_addresses' => 'array',
         'locations' => 'array',
+        'is_working_day' => 'boolean',
     ];
 
     public function employee(): BelongsTo

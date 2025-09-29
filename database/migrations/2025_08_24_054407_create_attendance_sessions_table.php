@@ -14,10 +14,12 @@ return new class extends Migration {
             $table->id();
             $table->unsignedBigInteger('employee_id')->index();
             $table->unsignedBigInteger('company_id')->index();
+            $table->unsignedBigInteger('department_id')->nullable()->index();
             $table->integer('session_number')->default(1);
 
             // Check-in details
             $table->dateTime('check_in_time')->index();
+            $table->time('scheduled_start_time')->nullable();
             $table->ipAddress('check_in_ip')->index();
             $table->string('check_in_location')->default('office');
             $table->decimal('check_in_lat', 10, 8)->nullable();
@@ -26,6 +28,7 @@ return new class extends Migration {
 
             // Check-out details
             $table->dateTime('check_out_time')->nullable()->index();
+            $table->time('scheduled_end_time')->nullable();
             $table->ipAddress('check_out_ip')->nullable()->index();
             $table->string('check_out_location')->nullable();
             $table->decimal('check_out_lat', 10, 8)->nullable();
@@ -37,9 +40,15 @@ return new class extends Migration {
             $table->enum('session_type', ['regular', 'overtime', 'break_return'])->default('regular');
             $table->enum('status', ['active', 'completed', 'auto_closed'])->default('active')->index();
 
+            // Tracking flags
+            $table->boolean('is_late')->default(false)->index();
+            $table->boolean('is_early_departure')->default(false)->index();
+            $table->boolean('is_overtime')->default(false)->index();
+
             // Foreign keys
             $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
             $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
+            $table->foreign('department_id')->references('id')->on('departments')->onDelete('set null');
 
             // Indexes for performance (with custom names to avoid length issues)
             $table->index(['employee_id', 'attendance_date', 'session_number'], 'idx_emp_date_session');

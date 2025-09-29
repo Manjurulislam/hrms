@@ -6,12 +6,20 @@ use App\Models\AttendanceBreak;
 use App\Models\AttendanceSession;
 use App\Models\AttendanceSummary;
 use App\Models\Employee;
+use App\Services\WorkScheduleService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
 class AttendanceService
 {
+    protected WorkScheduleService $scheduleService;
+
+    public function __construct(WorkScheduleService $scheduleService = null)
+    {
+        $this->scheduleService = $scheduleService ?: new WorkScheduleService();
+    }
+
     /**
      * Process check-in for an employee
      */
@@ -19,6 +27,17 @@ class AttendanceService
     {
         try {
             DB::beginTransaction();
+
+            $today = today();
+
+            // Check if today is a working day
+            $isWorkingDay = $this->scheduleService->isWorkingDay($employee, $today);
+            $sessionType = 'regular';
+
+            // If it's a weekend, mark session as overtime
+            if (!$isWorkingDay) {
+                $sessionType = 'overtime';
+            }
 
             // Check for active session
             $activeSession = AttendanceSession::forEmployee($employee->id)
@@ -53,20 +72,39 @@ class AttendanceService
                 ->today()
                 ->max('session_number') + 1;
 
+            // Get schedule information
+            $schedule = $employee->department->schedule;
+            $scheduledStartTime = null;
+            $scheduledEndTime = null;
+            $lateMinutes = 0;
+
+            if ($schedule) {
+                $scheduledStartTime = $schedule->work_start_time;
+                $scheduledEndTime = $schedule->work_end_time;
+
+                // Calculate if late
+                $lateMinutes = $this->scheduleService->calculateLateMinutes($employee, now());
+            }
+
             // Create new session
             $session = AttendanceSession::create([
                 'employee_id' => $employee->id,
                 'company_id' => $employee->department->company_id,
+                'department_id' => $employee->department_id,
                 'attendance_date' => today(),
                 'session_number' => $sessionNumber,
                 'check_in_time' => now(),
+                'scheduled_start_time' => $scheduledStartTime,
+                'scheduled_end_time' => $scheduledEndTime,
                 'check_in_ip' => $ip,
                 'check_in_location' => $data['location'] ?? 'office',
                 'check_in_lat' => $data['lat'] ?? null,
                 'check_in_long' => $data['long'] ?? null,
                 'check_in_note' => $data['note'] ?? null,
-                'session_type' => $this->determineSessionType($employee),
+                'session_type' => $sessionType,
                 'status' => 'active',
+                'is_late' => $lateMinutes > 0,
+                'is_overtime' => !$isWorkingDay,
             ]);
 
             // Update or create daily summary
@@ -394,13 +432,23 @@ class AttendanceService
      */
     private function updateDailySummary(Employee $employee, string $ip, string $location = 'office'): void
     {
+        $today = today();
+        $schedule = $employee->department->schedule;
+        $isWorkingDay = $this->scheduleService->isWorkingDay($employee, $today);
+
         $summary = AttendanceSummary::firstOrCreate(
             [
                 'employee_id' => $employee->id,
-                'attendance_date' => today(),
+                'attendance_date' => $today,
             ],
             [
                 'company_id' => $employee->department->company_id,
+                'department_id' => $employee->department_id,
+                'scheduled_start_time' => $schedule ? $schedule->work_start_time : null,
+                'scheduled_end_time' => $schedule ? $schedule->work_end_time : null,
+                'grace_minutes' => $schedule ? ($schedule->delay ?? 15) : 15,
+                'is_working_day' => $isWorkingDay,
+                'shift_name' => $schedule ? 'Regular' : 'Default',
             ]
         );
 
