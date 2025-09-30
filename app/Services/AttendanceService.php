@@ -351,6 +351,12 @@ class AttendanceService
         // Get active session
         $activeSession = $sessions->where('status', 'active')->first();
 
+        // Get active break
+        $activeBreak = AttendanceBreak::where('employee_id', $employee->id)
+            ->whereDate('attendance_date', $today)
+            ->where('status', 'active')
+            ->first();
+
         // Get summary
         $summary = AttendanceSummary::where('employee_id', $employee->id)
             ->where('attendance_date', $today)
@@ -407,6 +413,11 @@ class AttendanceService
                 'isWorking' => true,
                 'sessionId' => $activeSession->id,
                 'currentDuration' => $currentSessionSeconds
+            ] : null,
+            'currentBreak' => $activeBreak ? [
+                'startTime' => $activeBreak->break_start->toIso8601String(),
+                'breakType' => $activeBreak->break_type,
+                'breakId' => $activeBreak->id
             ] : null,
             'summary' => [
                 'firstCheckIn' => $firstCheckInTime ?? '--:--',

@@ -24,11 +24,14 @@ const emit = defineEmits(['work-started', 'work-ended', 'attendance-updated'])
 const currentTime = ref('00:00:00')
 const currentDate = ref('')
 const isWorking = ref(false)
+const isOnBreak = ref(false)
 const workStartTime = ref(null)
+const breakStartTime = ref(null)
 const startTime = ref('--:--')
 const endTime = ref('--:--')
 const totalHours = ref('0h 0m')
 const workTimer = ref('00:00:00')
+const breakTimer = ref('00:00:00')
 const progressPercentage = ref(0)
 const totalWorkedSeconds = ref(0)
 const isLoading = ref(false)
@@ -36,6 +39,7 @@ const isLoading = ref(false)
 // Timer intervals
 let clockInterval = null
 let workInterval = null
+let breakInterval = null
 
 // Initialize from server data
 const initializeFromServerData = () => {
@@ -51,6 +55,16 @@ const initializeFromServerData = () => {
             // Start the work timer
             workInterval = setInterval(updateWorkTimer, 1000)
             updateWorkTimer()
+        }
+
+        // Check for active break
+        if (props.todayData.currentBreak) {
+            isOnBreak.value = true
+            breakStartTime.value = new Date(props.todayData.currentBreak.startTime)
+
+            // Start the break timer
+            breakInterval = setInterval(updateBreakTimer, 1000)
+            updateBreakTimer()
         }
 
         // Set summary times
@@ -169,6 +183,19 @@ const updateWorkTimer = () => {
     })
 }
 
+// Update break timer
+const updateBreakTimer = () => {
+    if (!isOnBreak.value || !breakStartTime.value) return
+
+    const now = new Date()
+    const breakSeconds = Math.floor((now - breakStartTime.value) / 1000)
+
+    const hours = Math.floor(breakSeconds / 3600)
+    const minutes = Math.floor((breakSeconds % 3600) / 60)
+    const seconds = breakSeconds % 60
+    breakTimer.value = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+}
+
 // Update progress calculation
 const updateProgress = () => {
     let totalSeconds = totalWorkedSeconds.value
@@ -273,11 +300,80 @@ const endWork = async () => {
             workStartTime.value = null
         }
     } catch (error) {
+        console.error('End work error:', error)
         if (error.response && error.response.status === 422) {
             const message = error.response.data.message || error.response.data.errors?.session?.[0] || 'Failed to end work'
             toast.error(message)
         } else {
-            toast.error('An error occurred while ending work')
+            toast.error('An error occurred while ending work: ' + (error.message || 'Unknown error'))
+        }
+    } finally {
+        isLoading.value = false
+    }
+}
+
+// Start break using axios
+const startBreak = async () => {
+    if (isLoading.value || !isWorking.value) return
+
+    isLoading.value = true
+
+    try {
+        const response = await axios.post('/emp-attendance/start-break', {
+            break_type: 'personal',
+            reason: null
+        })
+
+        if (response.data.success) {
+            isOnBreak.value = true
+            breakStartTime.value = new Date()
+
+            // Start break timer
+            breakInterval = setInterval(updateBreakTimer, 1000)
+            updateBreakTimer()
+
+            toast.success(response.data.message || 'Break started successfully!')
+        }
+    } catch (error) {
+        console.error('Start break error:', error)
+        if (error.response && error.response.status === 422) {
+            const message = error.response.data.message || error.response.data.errors?.break?.[0] || 'Failed to start break'
+            toast.error(message)
+        } else {
+            toast.error('An error occurred while starting break: ' + (error.message || 'Unknown error'))
+        }
+    } finally {
+        isLoading.value = false
+    }
+}
+
+// End break using axios
+const endBreak = async () => {
+    if (isLoading.value || !isOnBreak.value) return
+
+    isLoading.value = true
+
+    try {
+        const response = await axios.post('/emp-attendance/end-break')
+
+        if (response.data.success) {
+            isOnBreak.value = false
+
+            // Clear break timer
+            clearInterval(breakInterval)
+            breakInterval = null
+            breakTimer.value = '00:00:00'
+            breakStartTime.value = null
+
+            toast.success(response.data.message || 'Break ended successfully!')
+        }
+    } catch (error) {
+        console.error('End break error:', error)
+        if (error.response && error.response.status === 422) {
+            const message = error.response.data.message || error.response.data.errors?.break?.[0] || 'Failed to end break'
+            toast.error(message)
+        } else {
+            toast.error('An error occurred while ending break: ' + (error.message || 'Unknown error'))
         }
     } finally {
         isLoading.value = false
@@ -334,6 +430,25 @@ const syncWithServer = async () => {
                 // Just update totals
                 totalHours.value = serverData.summary.totalHours || totalHours.value
             }
+
+            // Check if break status changed
+            if (serverData.currentBreak && !isOnBreak.value) {
+                // Break started elsewhere
+                isOnBreak.value = true
+                breakStartTime.value = new Date(serverData.currentBreak.startTime)
+
+                if (!breakInterval) {
+                    breakInterval = setInterval(updateBreakTimer, 1000)
+                }
+                updateBreakTimer()
+            } else if (!serverData.currentBreak && isOnBreak.value) {
+                // Break ended elsewhere
+                isOnBreak.value = false
+                clearInterval(breakInterval)
+                breakInterval = null
+                breakTimer.value = '00:00:00'
+                breakStartTime.value = null
+            }
         }
     } catch (error) {
         console.error('Failed to sync with server:', error)
@@ -358,6 +473,7 @@ onMounted(() => {
 onUnmounted(() => {
     clearInterval(clockInterval)
     clearInterval(workInterval)
+    clearInterval(breakInterval)
 
     // Clear sync interval
     if (window.attendanceSyncInterval) {
@@ -407,18 +523,34 @@ onUnmounted(() => {
                         <div class="progress-label">{{ progressLabel }}</div>
                     </div>
                 </div>
-                <v-btn
-                    :color="isWorking ? 'error' : 'success'"
-                    :disabled="isLoading"
-                    :loading="isLoading"
-                    class="px-8 mt-4"
-                    elevation="2"
-                    size="small"
-                    @click="handleToggleAttendance"
-                >
-                    <v-icon class="me-2">{{ isWorking ? 'mdi-stop' : 'mdi-play' }}</v-icon>
-                    {{ isWorking ? 'End Work' : 'Start Work' }}
-                </v-btn>
+                <div class="d-flex gap-2 mt-4 flex-wrap justify-center">
+                    <v-btn
+                        :color="isWorking ? 'error' : 'success'"
+                        :disabled="isLoading || isOnBreak"
+                        :loading="isLoading && !isOnBreak"
+                        class="px-6"
+                        elevation="2"
+                        size="small"
+                        @click="handleToggleAttendance"
+                    >
+                        <v-icon class="me-2">{{ isWorking ? 'mdi-stop' : 'mdi-play' }}</v-icon>
+                        {{ isWorking ? 'End Work' : 'Start Work' }}
+                    </v-btn>
+
+                    <v-btn
+                        v-if="isWorking"
+                        :color="isOnBreak ? 'warning' : 'info'"
+                        :disabled="isLoading"
+                        :loading="isLoading && isOnBreak"
+                        class="px-6"
+                        elevation="2"
+                        size="small"
+                        @click="isOnBreak ? endBreak() : startBreak()"
+                    >
+                        <v-icon class="me-2">{{ isOnBreak ? 'mdi-play-circle' : 'mdi-coffee' }}</v-icon>
+                        {{ isOnBreak ? 'End Break' : 'Start Break' }}
+                    </v-btn>
+                </div>
             </v-card>
         </v-col>
     </v-row>
@@ -430,17 +562,25 @@ onUnmounted(() => {
                 Today's Summary
             </v-card-title>
             <v-row class="text-center">
-                <v-col cols="4">
+                <v-col cols="3">
                     <div class="text-h6">{{ startTime }}</div>
                     <div class="text-caption text-medium-emphasis">Start Time</div>
                 </v-col>
-                <v-col cols="4">
+                <v-col cols="3">
                     <div class="text-h6">{{ endTime }}</div>
                     <div class="text-caption text-medium-emphasis">End Time</div>
                 </v-col>
-                <v-col cols="4">
+                <v-col cols="3">
                     <div class="text-h6 text-primary">{{ totalHours }}</div>
                     <div class="text-caption text-medium-emphasis">Total Hours</div>
+                </v-col>
+                <v-col cols="3">
+                    <div class="text-h6" :class="isOnBreak ? 'text-warning' : ''">
+                        {{ isOnBreak ? breakTimer : '--:--' }}
+                    </div>
+                    <div class="text-caption text-medium-emphasis">
+                        {{ isOnBreak ? 'Break Time' : 'No Break' }}
+                    </div>
                 </v-col>
             </v-row>
         </v-card-text>
