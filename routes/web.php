@@ -11,10 +11,10 @@ Route::get('error-logs', [LogViewerController::class, 'index']);
 
 Route::middleware(['auth', 'menu.permission'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('dashboard/data', [DashboardController::class, 'getData'])->name('dashboard.data');
 
     //admin routes
     require __DIR__ . '/backend/admin-routes.php';
-    require __DIR__ . '/backend/company-routes.php';
     require __DIR__ . '/backend/employee-routes.php';
 
 });

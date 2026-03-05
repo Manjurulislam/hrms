@@ -2,24 +2,20 @@
 
 namespace App\Http\Requests\Attendance;
 
-use App\Models\AttendanceBreak;
 use App\Models\AttendanceSession;
+use App\Traits\AttendanceValidation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class BreakStartRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+    use AttendanceValidation;
+
     public function authorize(): bool
     {
-        return $this->user() && $this->user()->employee;
+        return (bool) $this->getEmployee();
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
     public function rules(): array
     {
         return [
@@ -28,57 +24,50 @@ class BreakStartRequest extends FormRequest
         ];
     }
 
-    /**
-     * Configure the validator instance.
-     */
     public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator) {
-            if ($this->user() && $this->user()->employee) {
-                $employee = $this->user()->employee;
+            $employee = $this->getEmployee();
+            if (!$employee) return;
 
-                // Check if there's an active session
-                $activeSession = AttendanceSession::where('employee_id', $employee->id)
-                    ->whereDate('attendance_date', today())
-                    ->where('status', 'active')
-                    ->first();
-
-                if (!$activeSession) {
-                    $validator->errors()->add('session', 'No active session found. Please check in first.');
-                    return;
-                }
-
-                // Check for existing active break
-                $activeBreak = AttendanceBreak::where('employee_id', $employee->id)
-                    ->whereDate('attendance_date', today())
-                    ->where('status', 'active')
-                    ->first();
-
-                if ($activeBreak) {
-                    $validator->errors()->add('break', 'You already have an active break. Please end it first.');
-                    return;
-                }
-
-                // Check maximum breaks per day
-                $breaksToday = AttendanceBreak::where('employee_id', $employee->id)
-                    ->whereDate('attendance_date', today())
-                    ->count();
-
-                $maxBreaks = config('attendance.max_breaks_per_day', 5); // Default 5 breaks
-
-                if ($breaksToday >= $maxBreaks) {
-                    $validator->errors()->add('break', "Maximum {$maxBreaks} breaks allowed per day.");
-                }
-
-                // Store active session for use in controller
-                $this->merge(['active_session' => $activeSession]);
-            }
+            $this->validateHasActiveSession($validator, $employee);
+            $this->validateNoActiveBreak($validator, $employee);
+            $this->validateMaxBreaks($validator, $employee);
         });
     }
 
-    /**
-     * Get custom error messages.
-     */
+    private function validateHasActiveSession($validator, $employee): void
+    {
+        $activeSession = $this->findActiveSession($employee);
+
+        if (!$activeSession) {
+            $validator->errors()->add('session', 'No active session found. Please check in first.');
+            return;
+        }
+
+        $this->merge(['active_session' => $activeSession]);
+    }
+
+    private function validateNoActiveBreak($validator, $employee): void
+    {
+        if ($validator->errors()->isNotEmpty()) return;
+
+        if ($this->findActiveBreak($employee)) {
+            $validator->errors()->add('break', 'You already have an active break. Please end it first.');
+        }
+    }
+
+    private function validateMaxBreaks($validator, $employee): void
+    {
+        if ($validator->errors()->isNotEmpty()) return;
+
+        $maxBreaks = config('attendance.max_breaks_per_day', 5);
+
+        if ($this->getTodayBreakCount($employee) >= $maxBreaks) {
+            $validator->errors()->add('break', "Maximum {$maxBreaks} breaks allowed per day.");
+        }
+    }
+
     public function messages(): array
     {
         return [
@@ -89,9 +78,6 @@ class BreakStartRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get sanitized data for processing
-     */
     public function getSanitizedData(): array
     {
         return [
@@ -100,9 +86,6 @@ class BreakStartRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get the active session (set during validation)
-     */
     public function getActiveSession(): ?AttendanceSession
     {
         return $this->input('active_session');

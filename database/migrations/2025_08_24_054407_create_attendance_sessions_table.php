@@ -55,8 +55,8 @@ return new class extends Migration {
             $table->index(['employee_id', 'status'], 'idx_emp_status');
             $table->index(['attendance_date', 'status'], 'idx_date_status');
 
-            // Prevent multiple active sessions for same employee
-            $table->unique(['employee_id', 'attendance_date', 'status'], 'unique_active_session');
+            // Note: "one active session per employee per day" is enforced in AttendanceService::checkIn()
+            // A DB unique on (employee_id, attendance_date, status) would block multiple completed sessions
 
 
             $table->date('attendance_date')->index();

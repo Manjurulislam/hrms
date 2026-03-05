@@ -18,13 +18,13 @@ const state = reactive({
         {title: 'Actions', key: 'actions', sortable: false, width: '10%'}
     ],
     pagination: {
-        itemsPerPage: 10,
+        itemsPerPage: 50,
         totalItems: 0
     },
     filters: {
         search: '',
         status: null,
-        per_page: 10
+        per_page: 50
     },
     serverItems: [],
     loading: true

@@ -2,27 +2,31 @@
 
 namespace App\Services;
 
+use App\Enums\AttendanceMessage;
+use App\Enums\AttendanceStatus;
+use App\Enums\BreakStatus;
+use App\Enums\LeaveRequestStatus;
+use App\Enums\SessionStatus;
 use App\Models\AttendanceBreak;
 use App\Models\AttendanceSession;
 use App\Models\AttendanceSummary;
 use App\Models\Employee;
-use App\Services\WorkScheduleService;
+use App\Models\Holiday;
+use App\Models\LeaveRequest;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
 class AttendanceService
 {
-    protected WorkScheduleService $scheduleService;
-
-    public function __construct(WorkScheduleService $scheduleService = null)
-    {
+    public function __construct(
+        protected ?WorkScheduleService $scheduleService = null
+    ) {
         $this->scheduleService = $scheduleService ?: new WorkScheduleService();
     }
 
-    /**
-     * Process check-in for an employee
-     */
+    // ─── Check In ────────────────────────────────────────────────
+
     public function checkIn(Employee $employee, string $ip, array $data = []): array
     {
         try {
@@ -30,427 +34,389 @@ class AttendanceService
 
             $today = today();
 
-            // Check if today is a working day
+            // Step 1: Validate employee can check in
+            if ($error = $this->validateCheckIn($employee, $today)) {
+                return $error;
+            }
+
+            // Step 2: Determine session type (regular or overtime)
             $isWorkingDay = $this->scheduleService->isWorkingDay($employee, $today);
-            $sessionType = 'regular';
+            $sessionType  = $isWorkingDay ? 'regular' : 'overtime';
 
-            // If it's a weekend, mark session as overtime
-            if (!$isWorkingDay) {
-                $sessionType = 'overtime';
-            }
+            // Step 3: Get schedule info and late minutes
+            $schedule    = $this->getScheduleInfo($employee);
+            $lateMinutes = data_get($schedule, 'late_minutes', 0);
 
-            // Check for active session
-            $activeSession = AttendanceSession::forEmployee($employee->id)
-                ->today()
-                ->active()
-                ->first();
+            // Step 4: Create attendance session
+            $session = $this->createSession($employee, $ip, $data, $sessionType, $schedule, $isWorkingDay, $lateMinutes);
 
-            if ($activeSession) {
-                return [
-                    'success' => false,
-                    'message' => 'You already have an active session. Please check out first.',
-                    'session' => $activeSession
-                ];
-            }
-
-            // Check for active break
-            $activeBreak = AttendanceBreak::where('employee_id', $employee->id)
-                ->whereDate('attendance_date', today())
-                ->active()
-                ->first();
-
-            if ($activeBreak) {
-                return [
-                    'success' => false,
-                    'message' => 'You have an active break. Please end your break first.',
-                    'break' => $activeBreak
-                ];
-            }
-
-            // Get session number for today
-            $sessionNumber = AttendanceSession::forEmployee($employee->id)
-                ->today()
-                ->max('session_number') + 1;
-
-            // Get schedule information from company
-            $company = $employee->company;
-            $scheduledStartTime = null;
-            $scheduledEndTime = null;
-            $lateMinutes = 0;
-
-            if ($company) {
-                $scheduledStartTime = $company->office_start_time;
-                $scheduledEndTime = $company->office_end_time;
-
-                // Calculate if late
-                $lateMinutes = $this->scheduleService->calculateLateMinutes($employee, now());
-            }
-
-            // Create new session
-            $session = AttendanceSession::create([
-                'employee_id' => $employee->id,
-                'company_id' => $employee->company_id,
-                'department_id' => $employee->department_id,
-                'attendance_date' => today(),
-                'session_number' => $sessionNumber,
-                'check_in_time' => now(),
-                'scheduled_start_time' => $scheduledStartTime,
-                'scheduled_end_time' => $scheduledEndTime,
-                'check_in_ip' => $ip,
-                'check_in_location' => $data['location'] ?? 'office',
-                'check_in_lat' => $data['lat'] ?? null,
-                'check_in_long' => $data['long'] ?? null,
-                'check_in_note' => $data['note'] ?? null,
-                'session_type' => $sessionType,
-                'status' => 'active',
-                'is_late' => $lateMinutes > 0,
-                'is_overtime' => !$isWorkingDay,
-            ]);
-
-            // Update or create daily summary
-            $this->updateDailySummary($employee, $ip, $data['location'] ?? 'office');
+            // Step 5: Update daily summary
+            $this->updateDailySummary($employee, $ip, data_get($data, 'location', 'office'));
 
             DB::commit();
 
-            return [
-                'success' => true,
-                'message' => 'Checked in successfully',
-                'session' => $session
-            ];
+            return $this->success(AttendanceMessage::CheckInSuccess->value, ['session' => $session]);
         } catch (Exception $e) {
             DB::rollBack();
-            return [
-                'success' => false,
-                'message' => 'Failed to check in: ' . $e->getMessage()
-            ];
+
+            return $this->error(AttendanceMessage::CheckInFailed->value);
         }
     }
 
-    /**
-     * Process check-out for an employee
-     */
+    // ─── Check Out ───────────────────────────────────────────────
+
     public function checkOut(Employee $employee, string $ip, array $data = []): array
     {
         try {
             DB::beginTransaction();
 
-            // Find active session
-            $activeSession = AttendanceSession::forEmployee($employee->id)
-                ->today()
-                ->active()
-                ->first();
+            // Step 1: Find active session
+            $activeSession = $this->findActiveSession($employee);
 
             if (!$activeSession) {
-                return [
-                    'success' => false,
-                    'message' => 'No active check-in found for today.'
-                ];
+                return $this->error(AttendanceMessage::NoActiveSession->value);
             }
 
-            // Check minimum session duration (1 minute)
-            $duration = now()->diffInMinutes($activeSession->check_in_time);
-            if ($duration < 1) {
-                return [
-                    'success' => false,
-                    'message' => 'Session too short. Minimum 1 minute required.'
-                ];
-            }
-
-            // Process check-out
+            // Step 2: Process check-out
             $activeSession->checkOut(
                 $ip,
-                $data['location'] ?? 'office',
-                $data['lat'] ?? null,
-                $data['long'] ?? null,
-                $data['note'] ?? null
+                data_get($data, 'location', 'office'),
+                data_get($data, 'lat'),
+                data_get($data, 'long'),
+                data_get($data, 'note'),
             );
 
-            // Update daily summary
-            $this->updateDailySummary($employee, $ip, $data['location'] ?? 'office');
+            // Step 3: Update daily summary
+            $this->updateDailySummary($employee, $ip, data_get($data, 'location', 'office'));
 
             DB::commit();
 
-            return [
-                'success' => true,
-                'message' => 'Checked out successfully',
-                'session' => $activeSession->fresh(),
-                'duration' => $duration . ' minutes'
-            ];
+            $freshSession = $activeSession->fresh();
+
+            return $this->success(AttendanceMessage::CheckOutSuccess->value, [
+                'session'  => $freshSession,
+                'duration' => ($freshSession->duration_minutes ?? 0) . ' minutes',
+            ]);
         } catch (Exception $e) {
             DB::rollBack();
-            return [
-                'success' => false,
-                'message' => 'Failed to check out: ' . $e->getMessage()
-            ];
+
+            return $this->error(AttendanceMessage::CheckOutFailed->value);
         }
     }
 
-    /**
-     * Start a break
-     */
-    public function startBreak(Employee $employee, string $ip, string $breakType = 'personal', string $reason = null): array
+    // ─── Start Break ─────────────────────────────────────────────
+
+    public function startBreak(Employee $employee, string $ip, string $breakType = 'personal', ?string $reason = null): array
     {
         try {
             DB::beginTransaction();
 
-            // Check for active session
-            $activeSession = AttendanceSession::forEmployee($employee->id)
-                ->today()
-                ->active()
-                ->first();
+            // Step 1: Ensure active session exists
+            $activeSession = $this->findActiveSession($employee);
 
             if (!$activeSession) {
-                return [
-                    'success' => false,
-                    'message' => 'No active session found. Please check in first.'
-                ];
+                return $this->error(AttendanceMessage::NoActiveSessionBreak->value);
             }
 
-            // Check for existing active break
-            $activeBreak = AttendanceBreak::where('employee_id', $employee->id)
-                ->whereDate('attendance_date', today())
-                ->active()
-                ->first();
-
-            if ($activeBreak) {
-                return [
-                    'success' => false,
-                    'message' => 'You already have an active break.'
-                ];
+            // Step 2: Ensure no active break
+            if ($this->findActiveBreak($employee)) {
+                return $this->error(AttendanceMessage::AlreadyOnBreak->value);
             }
 
-            // Create break
+            // Step 3: Create break record
             $break = AttendanceBreak::create([
-                'employee_id' => $employee->id,
+                'employee_id'           => $employee->id,
                 'attendance_session_id' => $activeSession->id,
-                'attendance_date' => today(),
-                'break_start' => now(),
-                'break_start_ip' => $ip,
-                'break_type' => $breakType,
-                'reason' => $reason,
-                'status' => 'active',
+                'attendance_date'       => today(),
+                'break_start'           => now(),
+                'break_start_ip'        => $ip,
+                'break_type'            => $breakType,
+                'reason'                => $reason,
+                'status'                => BreakStatus::Active,
             ]);
 
             DB::commit();
 
-            return [
-                'success' => true,
-                'message' => 'Break started successfully',
-                'break' => $break
-            ];
+            return $this->success(AttendanceMessage::BreakStartSuccess->value, ['break' => $break]);
         } catch (Exception $e) {
             DB::rollBack();
-            return [
-                'success' => false,
-                'message' => 'Failed to start break: ' . $e->getMessage()
-            ];
+
+            return $this->error(AttendanceMessage::BreakStartFailed->value);
         }
     }
 
-    /**
-     * End a break
-     */
+    // ─── End Break ───────────────────────────────────────────────
+
     public function endBreak(Employee $employee, string $ip): array
     {
         try {
             DB::beginTransaction();
 
-            // Find active break
-            $activeBreak = AttendanceBreak::where('employee_id', $employee->id)
-                ->whereDate('attendance_date', today())
-                ->active()
-                ->first();
+            // Step 1: Find active break
+            $activeBreak = $this->findActiveBreak($employee);
 
             if (!$activeBreak) {
-                return [
-                    'success' => false,
-                    'message' => 'No active break found.'
-                ];
+                return $this->error(AttendanceMessage::NoActiveBreak->value);
             }
 
-            // End the break
+            // Step 2: End the break
             $activeBreak->endBreak($ip);
 
-            // Update daily summary for break time
+            // Step 3: Update daily summary
             $this->updateDailySummary($employee, $ip);
 
             DB::commit();
 
-            return [
-                'success' => true,
-                'message' => 'Break ended successfully',
-                'break' => $activeBreak->fresh(),
-                'duration' => $activeBreak->duration_minutes . ' minutes'
-            ];
+            return $this->success(AttendanceMessage::BreakEndSuccess->value, [
+                'break'    => $activeBreak->fresh(),
+                'duration' => $activeBreak->duration_minutes . ' minutes',
+            ]);
         } catch (Exception $e) {
             DB::rollBack();
-            return [
-                'success' => false,
-                'message' => 'Failed to end break: ' . $e->getMessage()
-            ];
+
+            return $this->error(AttendanceMessage::BreakEndFailed->value);
         }
     }
 
-    /**
-     * Get today's attendance status for an employee
-     */
+    // ─── Today Status ────────────────────────────────────────────
+
     public function getTodayStatus(Employee $employee): array
     {
-        $today = today();
-
-        // Get active session
-        $activeSession = AttendanceSession::forEmployee($employee->id)
-            ->today()
-            ->active()
-            ->first();
-
-        // Get active break
-        $activeBreak = AttendanceBreak::where('employee_id', $employee->id)
-            ->whereDate('attendance_date', $today)
-            ->active()
-            ->first();
-
-        // Get all sessions today
-        $todaySessions = AttendanceSession::forEmployee($employee->id)
-            ->today()
-            ->orderBy('session_number')
-            ->get();
-
-        // Get summary
-        $summary = AttendanceSummary::where('employee_id', $employee->id)
-            ->where('attendance_date', $today)
-            ->first();
+        $activeSession = $this->findActiveSession($employee);
+        $activeBreak   = $this->findActiveBreak($employee);
+        $todaySessions = $this->getTodaySessions($employee);
+        $summary       = $this->getTodaySummary($employee);
 
         return [
             'has_active_session' => !is_null($activeSession),
-            'active_session' => $activeSession,
-            'has_active_break' => !is_null($activeBreak),
-            'active_break' => $activeBreak,
-            'today_sessions' => $todaySessions,
-            'summary' => $summary,
-            'can_check_in' => is_null($activeSession) && is_null($activeBreak),
-            'can_check_out' => !is_null($activeSession),
-            'can_start_break' => !is_null($activeSession) && is_null($activeBreak),
-            'can_end_break' => !is_null($activeBreak),
+            'active_session'     => $activeSession,
+            'has_active_break'   => !is_null($activeBreak),
+            'active_break'       => $activeBreak,
+            'today_sessions'     => $todaySessions,
+            'summary'            => $summary,
+            'can_check_in'       => is_null($activeSession) && is_null($activeBreak),
+            'can_check_out'      => !is_null($activeSession),
+            'can_start_break'    => !is_null($activeSession) && is_null($activeBreak),
+            'can_end_break'      => !is_null($activeBreak),
         ];
     }
 
-    /**
-     * Get today's complete data (for replacing localStorage)
-     */
+    // ─── Today Complete Data (for frontend) ──────────────────────
+
     public function getTodayCompleteData(Employee $employee): array
     {
-        $today = today();
+        $sessions      = $this->getTodaySessions($employee);
+        $activeSession = $sessions->where('status', SessionStatus::Active)->first();
+        $activeBreak   = $this->findActiveBreak($employee);
+        $summary       = $this->getTodaySummary($employee);
 
-        // Get all sessions for today
-        $sessions = AttendanceSession::where('employee_id', $employee->id)
-            ->whereDate('attendance_date', $today)
-            ->orderBy('session_number')
+        // Calculate total worked seconds from completed sessions
+        $totalWorkedSeconds = $this->calculateTotalWorkedSeconds($sessions);
+
+        // Calculate current active session duration
+        $currentSessionSeconds = $activeSession
+            ? (int) abs($activeSession->check_in_time->diffInSeconds(now()))
+            : 0;
+
+        return [
+            'sessions'           => $this->formatSessionsForFrontend($sessions),
+            'totalWorkedSeconds' => $totalWorkedSeconds,
+            'currentSession'     => $this->formatActiveSession($activeSession, $currentSessionSeconds),
+            'currentBreak'       => $this->formatActiveBreak($activeBreak),
+            'summary'            => $this->formatSummary($summary, $sessions, $totalWorkedSeconds + $currentSessionSeconds),
+        ];
+    }
+
+    // ─── Auto Close Stale Sessions ──────────────────────────────
+
+    public function autoCloseActiveSessions(): int
+    {
+        $activeSessions = AttendanceSession::where('status', SessionStatus::Active)
+            ->whereDate('attendance_date', '<', today())
             ->get();
 
-        // Get active session
-        $activeSession = $sessions->where('status', 'active')->first();
+        $count = 0;
 
-        // Get active break
-        $activeBreak = AttendanceBreak::where('employee_id', $employee->id)
-            ->whereDate('attendance_date', $today)
-            ->where('status', 'active')
-            ->first();
+        foreach ($activeSessions as $session) {
+            $session->autoClose();
+            $count++;
 
-        // Get summary
-        $summary = AttendanceSummary::where('employee_id', $employee->id)
-            ->where('attendance_date', $today)
-            ->first();
-
-        // Calculate total worked seconds
-        $totalWorkedSeconds = 0;
-        $completedSessions = $sessions->where('status', 'completed');
-
-        foreach ($completedSessions as $session) {
-            if ($session->duration_minutes) {
-                $totalWorkedSeconds += ($session->duration_minutes * 60);
+            if ($employee = $session->employee) {
+                $this->updateDailySummary($employee, $session->check_in_ip, $session->check_in_location);
             }
         }
 
-        // If there's an active session, calculate current session time
-        $currentSessionSeconds = 0;
-        if ($activeSession) {
-            $currentSessionSeconds = $activeSession->check_in_time->diffInSeconds(now());
-        }
+        return $count;
+    }
 
-        // Get first check in time from sessions (not just summary)
-        $firstCheckInTime = null;
-        if ($sessions->isNotEmpty()) {
-            $firstSession = $sessions->first();
-            $firstCheckInTime = $firstSession->check_in_time->format('h:i A');
-        }
+    // ─── Monthly Report ─────────────────────────────────────────
 
-        // Get last check out time
-        $lastCheckOutTime = null;
-        $completedSessionsWithCheckout = $sessions->whereNotNull('check_out_time');
-        if ($completedSessionsWithCheckout->isNotEmpty()) {
-            $lastSession = $completedSessionsWithCheckout->last();
-            $lastCheckOutTime = $lastSession->check_out_time->format('h:i A');
-        }
-
-        // Format sessions for frontend
-        $formattedSessions = $sessions->map(function ($session) {
-            return [
-                'id' => $session->id,
-                'startTime' => $session->check_in_time->toIso8601String(),
-                'endTime' => $session->check_out_time ? $session->check_out_time->toIso8601String() : null,
-                'duration' => $session->duration_minutes ? $session->duration_minutes * 60 : 0,
-                'status' => $session->status,
-                'sessionNumber' => $session->session_number
-            ];
-        })->toArray();
+    public function getMonthlyReport(Employee $employee, int $year, int $month): array
+    {
+        $summaries = AttendanceSummary::where('employee_id', $employee->id)
+            ->forMonth($year, $month)
+            ->orderBy('attendance_date')
+            ->get();
 
         return [
-            'sessions' => $formattedSessions,
-            'totalWorkedSeconds' => $totalWorkedSeconds,
-            'currentSession' => $activeSession ? [
-                'startTime' => $activeSession->check_in_time->toIso8601String(),
-                'isWorking' => true,
-                'sessionId' => $activeSession->id,
-                'currentDuration' => $currentSessionSeconds
-            ] : null,
-            'currentBreak' => $activeBreak ? [
-                'startTime' => $activeBreak->break_start->toIso8601String(),
-                'breakType' => $activeBreak->break_type,
-                'breakId' => $activeBreak->id
-            ] : null,
-            'summary' => [
-                'firstCheckIn' => $firstCheckInTime ?? '--:--',
-                'lastCheckOut' => $lastCheckOutTime ?? '--:--',
-                'totalHours' => $this->formatDuration($totalWorkedSeconds + $currentSessionSeconds),
-                'status' => $summary ? $summary->status : 'absent'
-            ]
+            'summaries' => $summaries,
+            'stats'     => $this->calculateMonthlyStats($summaries),
         ];
     }
 
-    /**
-     * Format duration from seconds
-     */
-    private function formatDuration($seconds): string
+    // ═══════════════════════════════════════════════════════════════
+    // Validation Methods
+    // ═══════════════════════════════════════════════════════════════
+
+    // Validate all check-in preconditions
+    private function validateCheckIn(Employee $employee, Carbon $today): ?array
     {
-        $hours = floor($seconds / 3600);
-        $minutes = floor(($seconds % 3600) / 60);
-        return "{$hours}h {$minutes}m";
+        // Check if today is a holiday
+        if ($holiday = $this->findHolidayForDate($employee, $today)) {
+            return $this->error(AttendanceMessage::HolidayRestricted->with($holiday->name));
+        }
+
+        // Check if employee is on approved leave
+        if ($leave = $this->findApprovedLeaveForDate($employee, $today)) {
+            return $this->error(AttendanceMessage::LeaveRestricted->with($leave->leaveType?->name ?? 'Leave'));
+        }
+
+        // Check for active session (already checked in)
+        if ($this->findActiveSession($employee)) {
+            return $this->error(AttendanceMessage::ActiveSessionExists->value);
+        }
+
+        // Check for active break
+        if ($this->findActiveBreak($employee)) {
+            return $this->error(AttendanceMessage::ActiveBreakExists->value);
+        }
+
+        return null;
     }
 
-    /**
-     * Update daily summary
-     */
+    // Check if given date falls on a holiday
+    private function findHolidayForDate(Employee $employee, Carbon $date): ?Holiday
+    {
+        return Holiday::where('company_id', $employee->company_id)
+            ->where('status', true)
+            ->where('start_date', '<=', $date)
+            ->where('end_date', '>=', $date)
+            ->first();
+    }
+
+    // Check if employee has approved leave for given date
+    private function findApprovedLeaveForDate(Employee $employee, Carbon $date): ?LeaveRequest
+    {
+        return LeaveRequest::where('employee_id', $employee->id)
+            ->where('status', LeaveRequestStatus::Approved)
+            ->where('started_at', '<=', $date)
+            ->where('ended_at', '>=', $date)
+            ->first();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Query Helper Methods
+    // ═══════════════════════════════════════════════════════════════
+
+    // Find active session for employee today
+    private function findActiveSession(Employee $employee): ?AttendanceSession
+    {
+        return AttendanceSession::forEmployee($employee->id)
+            ->today()
+            ->active()
+            ->first();
+    }
+
+    // Find active break for employee today
+    private function findActiveBreak(Employee $employee): ?AttendanceBreak
+    {
+        return AttendanceBreak::where('employee_id', $employee->id)
+            ->whereDate('attendance_date', today())
+            ->where('status', BreakStatus::Active)
+            ->first();
+    }
+
+    // Get all sessions for employee today
+    private function getTodaySessions(Employee $employee)
+    {
+        return AttendanceSession::where('employee_id', $employee->id)
+            ->whereDate('attendance_date', today())
+            ->orderBy('session_number')
+            ->get();
+    }
+
+    // Get today's attendance summary
+    private function getTodaySummary(Employee $employee): ?AttendanceSummary
+    {
+        return AttendanceSummary::where('employee_id', $employee->id)
+            ->where('attendance_date', today())
+            ->first();
+    }
+
+    // Get next session number for today
+    private function getNextSessionNumber(Employee $employee): int
+    {
+        return AttendanceSession::forEmployee($employee->id)
+                ->today()
+                ->max('session_number') + 1;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Schedule & Session Methods
+    // ═══════════════════════════════════════════════════════════════
+
+    // Get schedule info from employee's company
+    private function getScheduleInfo(Employee $employee): array
+    {
+        $company = $employee->company;
+
+        return [
+            'start_time'   => $company?->office_start_time,
+            'end_time'     => $company?->office_end_time,
+            'late_minutes' => $company
+                ? $this->scheduleService->calculateLateMinutes($employee, now())
+                : 0,
+        ];
+    }
+
+    // Create a new attendance session
+    private function createSession(Employee $employee, string $ip, array $data, string $sessionType, array $schedule, bool $isWorkingDay, int $lateMinutes): AttendanceSession
+    {
+        return AttendanceSession::create([
+            'employee_id'          => $employee->id,
+            'company_id'           => $employee->company_id,
+            'department_id'        => $employee->department_id,
+            'attendance_date'      => today(),
+            'session_number'       => $this->getNextSessionNumber($employee),
+            'check_in_time'        => now(),
+            'scheduled_start_time' => data_get($schedule, 'start_time'),
+            'scheduled_end_time'   => data_get($schedule, 'end_time'),
+            'check_in_ip'          => $ip,
+            'check_in_location'    => data_get($data, 'location', 'office'),
+            'check_in_lat'         => data_get($data, 'lat'),
+            'check_in_long'        => data_get($data, 'long'),
+            'check_in_note'        => data_get($data, 'note'),
+            'session_type'         => $sessionType,
+            'status'               => SessionStatus::Active,
+            'is_late'              => $lateMinutes > 0,
+            'is_overtime'          => !$isWorkingDay,
+        ]);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Summary Methods
+    // ═══════════════════════════════════════════════════════════════
+
+    // Update or create daily attendance summary
     private function updateDailySummary(Employee $employee, string $ip, string $location = 'office'): void
     {
-        $today        = today();
         $company      = $employee->company;
-        $isWorkingDay = $this->scheduleService->isWorkingDay($employee, $today);
+        $isWorkingDay = $this->scheduleService->isWorkingDay($employee, today());
 
         $summary = AttendanceSummary::firstOrCreate(
             [
-                'employee_id'   => $employee->id,
-                'attendance_date' => $today,
+                'employee_id'     => $employee->id,
+                'attendance_date' => today(),
             ],
             [
                 'company_id'           => $employee->company_id,
@@ -463,84 +429,110 @@ class AttendanceService
             ]
         );
 
-        // Add IP and location to the arrays
         $summary->addIpAddress($ip);
         $summary->addLocation($location);
-
-        // Recalculate all metrics
         $summary->recalculate();
     }
 
-    /**
-     * Determine session type based on time
-     */
-    private function determineSessionType(Employee $employee): string
+    // Calculate monthly attendance stats
+    private function calculateMonthlyStats($summaries): array
     {
-        $company = $employee->company;
+        $count = $summaries->count();
 
-        if (!$company || !$company->office_start_time) {
-            $hour = now()->hour;
-            if ($hour >= 18 || $hour < 8) {
-                return 'overtime';
-            }
-            return 'regular';
-        }
-
-        return 'regular';
-    }
-
-    /**
-     * Auto close all active sessions at end of day
-     */
-    public function autoCloseActiveSessions(): int
-    {
-        $activeSessions = AttendanceSession::where('status', 'active')
-            ->whereDate('attendance_date', '<', today())
-            ->get();
-
-        $count = 0;
-        foreach ($activeSessions as $session) {
-            $session->autoClose();
-            $count++;
-
-            // Update summary
-            $employee = $session->employee;
-            if ($employee) {
-                $this->updateDailySummary($employee, $session->check_in_ip, $session->check_in_location);
-            }
-        }
-
-        return $count;
-    }
-
-    /**
-     * Get monthly attendance report
-     */
-    public function getMonthlyReport(Employee $employee, int $year, int $month): array
-    {
-        $summaries = AttendanceSummary::where('employee_id', $employee->id)
-            ->forMonth($year, $month)
-            ->orderBy('attendance_date')
-            ->get();
-
-        $stats = [
-            'total_days' => $summaries->count(),
-            'present_days' => $summaries->where('status', 'present')->count(),
-            'absent_days' => $summaries->where('status', 'absent')->count(),
-            'half_days' => $summaries->where('status', 'half_day')->count(),
-            'late_days' => $summaries->where('status', 'late')->count(),
-            'holidays' => $summaries->where('status', 'holiday')->count(),
-            'leaves' => $summaries->where('status', 'leave')->count(),
-            'total_working_hours' => round($summaries->sum('total_working_minutes') / 60, 2),
-            'total_overtime_hours' => round($summaries->sum('overtime_minutes') / 60, 2),
-            'average_working_hours' => $summaries->count() > 0
+        return [
+            'total_days'            => $count,
+            'present_days'          => $summaries->where('status', AttendanceStatus::Present)->count(),
+            'absent_days'           => $summaries->where('status', AttendanceStatus::Absent)->count(),
+            'half_days'             => $summaries->where('status', AttendanceStatus::HalfDay)->count(),
+            'late_days'             => $summaries->where('status', AttendanceStatus::Late)->count(),
+            'holidays'              => $summaries->where('status', AttendanceStatus::Holiday)->count(),
+            'leaves'                => $summaries->where('status', AttendanceStatus::Leave)->count(),
+            'total_working_hours'   => round($summaries->sum('total_working_minutes') / 60, 2),
+            'total_overtime_hours'  => round($summaries->sum('overtime_minutes') / 60, 2),
+            'average_working_hours' => $count > 0
                 ? round($summaries->avg('total_working_minutes') / 60, 2)
                 : 0,
         ];
+    }
 
+    // ═══════════════════════════════════════════════════════════════
+    // Formatting Methods (for frontend)
+    // ═══════════════════════════════════════════════════════════════
+
+    // Calculate total worked seconds from completed sessions
+    private function calculateTotalWorkedSeconds($sessions): int
+    {
+        return $sessions
+            ->whereIn('status', [SessionStatus::Completed, SessionStatus::AutoClosed])
+            ->sum(fn($session) => ($session->duration_minutes ?? 0) * 60);
+    }
+
+    // Format sessions collection for frontend response
+    private function formatSessionsForFrontend($sessions): array
+    {
+        return $sessions->map(fn($session) => [
+            'id'            => $session->id,
+            'startTime'     => $session->check_in_time->toIso8601String(),
+            'endTime'       => $session->check_out_time?->toIso8601String(),
+            'duration'      => ($session->duration_minutes ?? 0) * 60,
+            'status'        => $session->status,
+            'sessionNumber' => $session->session_number,
+        ])->toArray();
+    }
+
+    // Format active session for frontend response
+    private function formatActiveSession(?AttendanceSession $session, int $currentSeconds): ?array
+    {
+        return $session ? [
+            'startTime'       => $session->check_in_time->toIso8601String(),
+            'isWorking'       => true,
+            'sessionId'       => $session->id,
+            'currentDuration' => $currentSeconds,
+        ] : null;
+    }
+
+    // Format active break for frontend response
+    private function formatActiveBreak(?AttendanceBreak $break): ?array
+    {
+        return $break ? [
+            'startTime' => $break->break_start->toIso8601String(),
+            'breakType' => $break->break_type,
+            'breakId'   => $break->id,
+        ] : null;
+    }
+
+    // Format summary for frontend response
+    private function formatSummary(?AttendanceSummary $summary, $sessions, int $totalSeconds): array
+    {
         return [
-            'summaries' => $summaries,
-            'stats' => $stats
+            'firstCheckIn' => $sessions->isNotEmpty()
+                ? $sessions->first()->check_in_time->format('h:i A')
+                : '--:--',
+            'lastCheckOut'  => optional($sessions->whereNotNull('check_out_time')->last())?->check_out_time?->format('h:i A') ?? '--:--',
+            'totalHours'    => $this->formatDuration($totalSeconds),
+            'status'        => $summary?->status ?? 'absent',
         ];
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Response & Utility Methods
+    // ═══════════════════════════════════════════════════════════════
+
+    // Format duration from seconds to human-readable
+    private function formatDuration(int $seconds): string
+    {
+        return floor($seconds / 3600) . 'h ' . floor(($seconds % 3600) / 60) . 'm';
+    }
+
+    // Build success response
+    private function success(string $message, array $extra = []): array
+    {
+        return collect(['success' => true, 'message' => $message])->merge($extra)->toArray();
+    }
+
+    // Build error response
+    private function error(string $message, array $extra = []): array
+    {
+        return collect(['success' => false, 'message' => $message])->merge($extra)->toArray();
     }
 }

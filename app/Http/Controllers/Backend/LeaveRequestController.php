@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers\Company;
+namespace App\Http\Controllers\Backend;
 
+use App\Exports\LeaveRequestExport;
 use App\Http\Controllers\Controller;
 use App\Enums\LeaveRequestStatus;
 use App\Models\Employee;
@@ -9,41 +10,36 @@ use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Services\Backend\LeaveApprovalService;
 use App\Services\Backend\LeaveRequestService;
-use App\Traits\CompanyAuth;
+use App\Services\Backend\SharedService;
+use App\Traits\ResolvesApprover;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
 
 class LeaveRequestController extends Controller
 {
-    use CompanyAuth;
-
+    use ResolvesApprover;
     public function __construct(
         protected readonly LeaveRequestService $requestService,
-        protected readonly LeaveApprovalService $approvalService
+        protected readonly LeaveApprovalService $approvalService,
+        protected readonly SharedService $shared
     ) {}
 
     public function index(): Response
     {
-        $companyId = $this->activeCompanyId();
+        $companies = $this->shared->companies();
 
-        $employees = Employee::where('company_id', $companyId)
-            ->where('status', true)
-            ->get(['id', 'first_name', 'last_name']);
-
-        $leaveTypes = LeaveType::where('company_id', $companyId)
-            ->where('status', true)
-            ->get(['id', 'name']);
-
-        return Inertia::render('Company/LeaveRequest/index', [
-            'employees'     => $employees,
-            'leaveTypes'    => $leaveTypes,
-            'statusOptions' => collect(LeaveRequestStatus::cases())->map(fn($s) => [
+        return Inertia::render('Backend/LeaveRequest/index', [
+            'companies'        => $companies,
+            'defaultCompanyId' => $companies->first()?->id,
+            'employees'        => Employee::where('status', true)->get(['id', 'first_name', 'last_name']),
+            'leaveTypes'       => LeaveType::where('status', true)->get(['id', 'name']),
+            'statusOptions'    => collect(LeaveRequestStatus::cases())->map(fn($s) => [
                 'label' => ucfirst(str_replace('_', ' ', $s->value)),
                 'value' => $s->value,
             ]),
@@ -52,9 +48,14 @@ class LeaveRequestController extends Controller
 
     public function get(Request $request): JsonResponse
     {
-        $request->merge(['company_id' => $this->activeCompanyId()]);
-
         return response()->json($this->requestService->list($request));
+    }
+
+    public function export(Request $request)
+    {
+        $filename = 'leave_requests_' . now()->format('Y-m-d') . '.xlsx';
+
+        return Excel::download(new LeaveRequestExport($request), $filename);
     }
 
     public function show(LeaveRequest $leaveRequest): Response
@@ -67,29 +68,27 @@ class LeaveRequestController extends Controller
             'approvals.approver:id,first_name,last_name',
         ]);
 
-        $currentEmployee = Auth::user()->employee;
-        $isCurrentApprover = $leaveRequest->current_approver_id === $currentEmployee->id;
-        $approverLevel = $currentEmployee->designation?->level ?? 99;
+        [$isCurrentApprover, $approverLevel] = $this->resolveApproverContext($leaveRequest);
 
-        return Inertia::render('Company/LeaveRequest/show', [
-            'leaveRequest'     => $leaveRequest,
+        return Inertia::render('Backend/LeaveRequest/show', [
+            'leaveRequest'      => $leaveRequest,
             'isCurrentApprover' => $isCurrentApprover,
-            'approverLevel'    => $approverLevel,
+            'approverLevel'     => $approverLevel,
         ]);
     }
 
     public function approve(Request $request, LeaveRequest $leaveRequest): RedirectResponse
     {
         try {
-            $employee = Auth::user()->employee;
-
-            if ($leaveRequest->current_approver_id !== $employee->id) {
-                return back()->withErrors(['error' => 'You are not the current approver.']);
+            if (!$this->canActOnLeaveRequest($leaveRequest)) {
+                return back()->withErrors(['error' => 'You are not authorized to approve this request.']);
             }
+
+            $approver = $this->getApproverEmployee($leaveRequest);
 
             $result = $this->approvalService->approve(
                 $leaveRequest,
-                $employee,
+                $approver,
                 $request->input('remarks'),
                 $request->boolean('forward')
             );
@@ -105,15 +104,15 @@ class LeaveRequestController extends Controller
     public function reject(Request $request, LeaveRequest $leaveRequest): RedirectResponse
     {
         try {
-            $employee = Auth::user()->employee;
-
-            if ($leaveRequest->current_approver_id !== $employee->id) {
-                return back()->withErrors(['error' => 'You are not the current approver.']);
+            if (!$this->canActOnLeaveRequest($leaveRequest)) {
+                return back()->withErrors(['error' => 'You are not authorized to reject this request.']);
             }
+
+            $approver = $this->getApproverEmployee($leaveRequest);
 
             $result = $this->approvalService->reject(
                 $leaveRequest,
-                $employee,
+                $approver,
                 $request->input('remarks')
             );
 

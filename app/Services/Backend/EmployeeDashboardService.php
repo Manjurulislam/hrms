@@ -2,6 +2,7 @@
 
 namespace App\Services\Backend;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\LeaveRequestStatus;
 use App\Models\AttendanceSummary;
 use App\Models\Employee;
@@ -31,9 +32,9 @@ class EmployeeDashboardService
             ->whereMonth('attendance_date', $now->month)
             ->get();
 
-        $presentCount = $monthAttendance->whereIn('status', ['present', 'late', 'work_from_home'])->count();
-        $absentCount = $monthAttendance->where('status', 'absent')->count();
-        $lateCount = $monthAttendance->where('status', 'late')->count();
+        $presentCount = $monthAttendance->whereIn('status', [AttendanceStatus::Present, AttendanceStatus::Late, AttendanceStatus::WorkFromHome])->count();
+        $absentCount = $monthAttendance->where('status', AttendanceStatus::Absent)->count();
+        $lateCount = $monthAttendance->where('status', AttendanceStatus::Late)->count();
         $totalWorkingDays = $monthAttendance->where('is_working_day', true)->count();
         $attendanceRate = $totalWorkingDays > 0
             ? round(($presentCount / $totalWorkingDays) * 100)

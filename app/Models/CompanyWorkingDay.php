@@ -11,6 +11,7 @@ class CompanyWorkingDay extends Model
     protected $fillable = [
         'company_id',
         'day_of_week',
+        'day_label',
         'is_working',
     ];
 

@@ -25,12 +25,12 @@ const rejectForm = useForm({
 const approve = (forward = false) => {
     approveForm.remarks = remarks.value;
     approveForm.forward = forward;
-    approveForm.post(route('company.leave-requests.approve', props.leaveRequest.id));
+    approveForm.post(route('leave-requests.approve', props.leaveRequest.id));
 };
 
 const reject = () => {
     rejectForm.remarks = remarks.value;
-    rejectForm.post(route('company.leave-requests.reject', props.leaveRequest.id), {
+    rejectForm.post(route('leave-requests.reject', props.leaveRequest.id), {
         onSuccess: () => {
             showRejectDialog.value = false;
         },
@@ -89,7 +89,7 @@ const formatDateTime = (date) => {
             <v-col cols="12" md="8" offset-md="2">
                 <v-card>
                     <CardTitle
-                        :extra-route="{title: 'Back', route: 'company.leave-requests.index', icon: 'mdi-arrow-left-bold'}"
+                        :extra-route="{title: 'Back', route: 'leave-requests.index', icon: 'mdi-arrow-left-bold'}"
                         icon="mdi-calendar-check"
                         title="Leave Request Details"
                     />
@@ -117,8 +117,8 @@ const formatDateTime = (date) => {
                                     <div>
                                         <v-chip
                                             :color="getStatusColor(leaveRequest.status)"
-                                            size="small"
-                                            variant="flat"
+                                            size="x-small"
+                                            variant="tonal"
                                         >
                                             {{ getStatusLabel(leaveRequest.status) }}
                                         </v-chip>
@@ -241,7 +241,7 @@ const formatDateTime = (date) => {
                                     Approve & Forward to CEO
                                 </v-btn>
 
-                                <!-- Level 1 (CEO): Final Approve -->
+                                <!-- Level 1 (CEO/Super Admin): Final Approve -->
                                 <v-btn
                                     v-if="approverLevel === 1"
                                     :loading="approveForm.processing"

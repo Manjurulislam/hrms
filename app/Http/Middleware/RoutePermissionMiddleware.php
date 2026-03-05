@@ -58,8 +58,7 @@ class RoutePermissionMiddleware
             'login',
             'logout',
             'dashboard',
-            'company.dashboard',
-            'company.switch',
+            'dashboard.data',
             'attendance-records.get', // API for attendance data table
             'attendance-records.export', // API for attendance export
             'emp-attendance.start-work', // API for attendance check-in
@@ -68,11 +67,16 @@ class RoutePermissionMiddleware
             'emp-attendance.end-break', // API for break end
             'emp-attendance.current-status', // API for current status
             'emp-attendance.monthly-data', // API for monthly data
-            'company.attendance.get', // API for company attendance data
-            'company.attendance.export', // API for company attendance export
-            'company.attendance.records', // API for employee attendance records
+            'attendance.get', // API for admin attendance data
+            'attendance.export', // API for admin attendance export
+            'attendance.records', // API for employee attendance records
             'emp-leave.get', // API for employee leave data
-            'company.leave-requests.get', // API for company leave requests data
+            'emp-leave.approvals.get', // API for pending approvals data
+            'emp-leave.approvals.show', // View approval detail
+            'emp-leave.approvals.approve', // Approve leave request
+            'emp-leave.approvals.reject', // Reject leave request
+            'leave-requests.get', // API for leave requests data
+            'leave-requests.export', // API for leave requests export
         ];
 
         // Also skip any routes starting with 'api.'
@@ -109,23 +113,6 @@ class RoutePermissionMiddleware
             return false;
         }
 
-        // Handle nested resource routes like 'company.departments.create'
-        $parts = explode('.', $route);
-
-        if (count($parts) >= 3) {
-            // e.g., company.departments.create → prefix = company.departments
-            $prefix = implode('.', array_slice($parts, 0, -1));
-            $resourceRoutes = collect([
-                "{$prefix}.index", "{$prefix}.get", "{$prefix}.create",
-                "{$prefix}.store", "{$prefix}.show", "{$prefix}.edit",
-                "{$prefix}.update", "{$prefix}.destroy", "{$prefix}.toggle-status",
-            ]);
-
-            if ($allowedRoutes->intersect($resourceRoutes)->isNotEmpty()) {
-                return true;
-            }
-        }
-
         // Standard resource routes (e.g., users.create)
         [$resource] = explode('.', $route, 2);
         $resourceRoutes = collect([
@@ -139,12 +126,9 @@ class RoutePermissionMiddleware
 
     private function getMenusForUser($user): array
     {
-        if ($user->hasRole('super_admin')) {
+        // Admin roles get full admin menus
+        if ($user->hasRole('super_admin') || $user->hasRole('admin') || $user->hasRole('hr') || $user->hasRole('manager')) {
             return config('services.menus', []);
-        }
-
-        if ($user->hasRole('admin') || $user->hasRole('hr') || $user->hasRole('manager')) {
-            return config('services.company-menus', []);
         }
 
         return config('services.emp-menus', []);

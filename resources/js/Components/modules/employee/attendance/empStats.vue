@@ -45,6 +45,7 @@ const props = defineProps({
                 <v-chip
                     :color="statusColor"
                     class="status-chip"
+                    size="x-small"
                 >
                     {{ userStatus }}
                 </v-chip>

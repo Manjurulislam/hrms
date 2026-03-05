@@ -6,7 +6,7 @@
                     <div class="d-flex align-center">
                         <v-icon class="mr-2" color="primary">mdi-magnify</v-icon>
                         <span class="font-weight-medium">Search</span>
-                        <v-chip v-if="activeFilterCount > 0" class="ml-3" color="primary" size="small" variant="flat">
+                        <v-chip v-if="activeFilterCount > 0" class="ml-3" color="primary" size="x-small" variant="tonal">
                             {{ activeFilterCount }} active
                         </v-chip>
                     </div>

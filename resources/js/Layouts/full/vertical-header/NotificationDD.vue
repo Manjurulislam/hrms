@@ -15,7 +15,7 @@ import {Icon} from '@iconify/vue';
             <div class="px-6 pt-6 pb-4">
                 <div class="d-flex align-center justify-space-between">
                     <h6 class="text-h5">Notifications</h6>
-                    <v-chip class="text-white rounded-sm" color="primary" size="small" variant="flat">5 New</v-chip>
+                    <v-chip class="text-white rounded-sm" color="primary" size="x-small" variant="tonal">5 New</v-chip>
                 </div>
             </div>
             <perfect-scrollbar style="height: 350px">

@@ -26,6 +26,11 @@ Route::controller(LeaveController::class)->name('emp-leave.')
         Route::get('create', 'create')->name('create');
         Route::post('store', 'store')->name('store');
         Route::post('{leaveRequest}/cancel', 'cancel')->name('cancel');
+        Route::get('approvals', 'approvals')->name('approvals');
+        Route::get('approvals/get', 'getApprovals')->name('approvals.get');
+        Route::get('approvals/{leaveRequest}', 'showApproval')->name('approvals.show');
+        Route::post('approvals/{leaveRequest}/approve', 'approve')->name('approvals.approve');
+        Route::post('approvals/{leaveRequest}/reject', 'reject')->name('approvals.reject');
     });
 
 // API routes for attendance records data table

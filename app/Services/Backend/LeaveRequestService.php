@@ -60,7 +60,7 @@ class LeaveRequestService
                 LeaveApproval::create([
                     'leave_request_id' => $leaveRequest->id,
                     'approver_id'      => $employee->manager_id,
-                    'level'            => $manager?->designation?->level ?? 99,
+                    'level'            => $manager?->designation?->level?->value ?? 99,
                     'status'           => LeaveApprovalStatus::Pending,
                 ]);
             }

@@ -10,7 +10,8 @@ const toast = useToast();
 const props = defineProps({
     item: Object,
     companies: Array,
-    parentDesignations: Array
+    parentDesignations: Array,
+    levelOptions: Array,
 });
 
 let form = useForm({
@@ -83,16 +84,14 @@ onMounted(() => {
 
                             <v-row>
                                 <v-col cols="12" md="6">
-                                    <v-text-field
+                                    <v-select
                                         v-model="form.level"
                                         :error-messages="form.errors.level"
+                                        :items="levelOptions"
                                         density="compact"
-                                        hint="1 = Highest (CEO), 5 = Lowest (Developer)"
+                                        item-title="title"
+                                        item-value="value"
                                         label="Level"
-                                        max="10"
-                                        min="1"
-                                        persistent-hint
-                                        type="number"
                                         variant="outlined"
                                     />
                                 </v-col>

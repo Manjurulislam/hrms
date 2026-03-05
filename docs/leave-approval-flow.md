@@ -4,6 +4,8 @@
 
 The HRMS leave management system allows employees to apply for leave, which then flows through a hierarchical approval chain based on the company's designation structure. Any approver in the chain can reject the request (which stops the flow), while approvals move up the chain until a final approver closes it.
 
+Super admins can act as top-level approvers on any pending/in-review request, regardless of the approval chain.
+
 ---
 
 ## Designation Hierarchy
@@ -68,6 +70,11 @@ Employee submits leave request
      ▼         ▼
   APPROVED   REJECTED
   (closed)   (flow stops)
+
+──────────────────────────────
+Super Admin can intervene at
+any step (acts as Level 1)
+──────────────────────────────
 ```
 
 ---
@@ -178,15 +185,15 @@ cancelled
 | POST   | /leave/store                     | emp-leave.store  | Submit leave request     |
 | POST   | /leave/{leaveRequest}/cancel     | emp-leave.cancel | Cancel pending request   |
 
-### Company Portal
+### Admin Panel
 
-| Method | URI                                          | Name                          | Description              |
-|--------|----------------------------------------------|-------------------------------|--------------------------|
-| GET    | /company/leave-requests                      | company.leave-requests.index  | All requests list        |
-| GET    | /company/leave-requests/get                  | company.leave-requests.get    | JSON paginated data      |
-| GET    | /company/leave-requests/{leaveRequest}/show  | company.leave-requests.show   | Detail + approval history|
-| POST   | /company/leave-requests/{leaveRequest}/approve| company.leave-requests.approve| Approve (with optional forward) |
-| POST   | /company/leave-requests/{leaveRequest}/reject | company.leave-requests.reject | Reject with remarks      |
+| Method | URI                                          | Name                    | Description              |
+|--------|----------------------------------------------|-------------------------|--------------------------|
+| GET    | /leave-requests                              | leave-requests.index    | All requests list        |
+| GET    | /leave-requests/get                          | leave-requests.get      | JSON paginated data      |
+| GET    | /leave-requests/{leaveRequest}/show          | leave-requests.show     | Detail + approval history|
+| POST   | /leave-requests/{leaveRequest}/approve       | leave-requests.approve  | Approve (with optional forward) |
+| POST   | /leave-requests/{leaveRequest}/reject        | leave-requests.reject   | Reject with remarks      |
 
 ---
 
@@ -234,6 +241,27 @@ public function approve(LeaveRequest $leaveRequest, Employee $approver, ?string 
 
 ---
 
+## Traits
+
+### ResolvesApprover
+
+Located at `app/Traits/ResolvesApprover.php`
+
+Used by `LeaveRequestController` to handle approver resolution logic.
+
+| Method                     | Description                                                      |
+|----------------------------|------------------------------------------------------------------|
+| `resolveApproverContext()` | Returns `[isCurrentApprover, approverLevel]` for the show page   |
+| `getApproverEmployee()`   | Resolves the correct Employee record for approval/rejection      |
+| `canActOnLeaveRequest()`  | Authorization check — is the user allowed to approve/reject?     |
+
+**Super admin handling:**
+- `resolveApproverContext()` checks if the request status is `pending` or `in_review` using `collect()->contains()` — if so, super admin is treated as level 1 approver
+- `getApproverEmployee()` returns the super admin's own employee record if they have one, otherwise falls back to the `current_approver_id` employee
+- `canActOnLeaveRequest()` allows super admin to act on any actionable request
+
+---
+
 ## Frontend Pages
 
 ### Employee Portal
@@ -243,22 +271,22 @@ public function approve(LeaveRequest $leaveRequest, Employee $approver, ?string 
 | `Employee/Leave/index.vue`         | Data table of employee's leave requests with status filter. Cancel button for pending requests. |
 | `Employee/Leave/create.vue`        | Leave application form with clickable balance cards, date pickers, balance validation alert.    |
 
-### Company Portal
+### Admin Panel
 
 | Page                               | Description                                          |
 |------------------------------------|------------------------------------------------------|
-| `Company/LeaveRequest/index.vue`   | All company leave requests with employee/type/status filters. View action links to detail page. |
-| `Company/LeaveRequest/show.vue`    | Leave detail card, approval timeline, and action buttons based on approver level.               |
+| `Backend/LeaveRequest/index.vue`   | All leave requests with company/employee/type/status filters. View action links to detail page. |
+| `Backend/LeaveRequest/show.vue`    | Leave detail card, approval timeline, and action buttons based on approver level.               |
 
 #### Action Buttons (show.vue)
 
-Only visible when the logged-in user is the `current_approver`:
+Only visible when the logged-in user is the `current_approver` or a super admin:
 
 | Approver Level | Buttons Available                           |
 |----------------|---------------------------------------------|
 | > 2 (TL/PM)   | **Approve** (auto-forwards) + **Reject**    |
 | 2 (CTO)       | **Final Approve** + **Approve & Forward to CEO** + **Reject** |
-| 1 (CEO)       | **Final Approve** + **Reject**              |
+| 1 (CEO/Super Admin) | **Final Approve** + **Reject**        |
 
 ---
 
@@ -272,12 +300,12 @@ Leave
 └── Apply Leave  → emp-leave.create
 ```
 
-### Company Menu (`config/services/company-menus.php`)
+### Admin Menu (`config/services/menus.php`)
 
 ```
 Leave
-├── Leave Requests → company.leave-requests.index
-└── Leave Types    → company.leave-types.index
+├── Leave Requests → leave-requests.index
+└── Leave Types    → leave-types.index
 ```
 
 ---
@@ -297,17 +325,19 @@ app/
 ├── Services/Backend/
 │   ├── LeaveRequestService.php     # CRUD + balance management
 │   └── LeaveApprovalService.php    # Approval chain logic
+├── Traits/
+│   └── ResolvesApprover.php        # Approver resolution logic
 ├── Http/
 │   ├── Controllers/
 │   │   ├── Employee/LeaveController.php
-│   │   └── Company/LeaveRequestController.php
+│   │   └── Backend/LeaveRequestController.php
 │   └── Requests/
 │       └── LeaveRequestFormRequest.php
 resources/js/Pages/
 ├── Employee/Leave/
 │   ├── index.vue                    # My leaves list
 │   └── create.vue                   # Apply leave form
-└── Company/LeaveRequest/
+└── Backend/LeaveRequest/
     ├── index.vue                    # All requests list
     └── show.vue                     # Detail + approve/reject
 ```
@@ -340,3 +370,5 @@ resources/js/Pages/
    - Request status → `approved`, balance deducted, done
 
 6. **At any step**: If an approver clicks **Reject** → request status = `rejected`, chain stops immediately
+
+7. **Super Admin** can intervene at any step on pending/in_review requests — acts as Level 1 (final approver)

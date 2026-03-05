@@ -39,14 +39,11 @@ class HolidaySeeder extends Seeder
             ['name' => 'Christmas Day',                      'description' => 'Birth of Jesus Christ',                                      'start_date' => '2026-12-25', 'end_date' => '2026-12-25'],
         ];
 
-        // Seed for both companies
-        foreach ([1, 2] as $companyId) {
-            foreach ($bdHolidays as $holiday) {
-                Holiday::create(array_merge($holiday, [
-                    'company_id' => $companyId,
-                    'status'     => true,
-                ]));
-            }
+        foreach ($bdHolidays as $holiday) {
+            Holiday::create(array_merge($holiday, [
+                'company_id' => 1,
+                'status'     => true,
+            ]));
         }
     }
 }

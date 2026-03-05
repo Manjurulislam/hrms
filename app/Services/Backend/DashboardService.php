@@ -2,6 +2,7 @@
 
 namespace App\Services\Backend;
 
+use App\Enums\AttendanceStatus;
 use App\Enums\LeaveRequestStatus;
 use App\Models\AttendanceSummary;
 use App\Models\Department;
@@ -10,40 +11,41 @@ use App\Models\LeaveRequest;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
-class CompanyDashboardService
+class DashboardService
 {
-    public function getData(int $companyId): array
+    public function getData(?int $companyId = null): array
     {
         $today = today();
 
         return [
             'stats'                => $this->getStats($companyId, $today),
+            'monthlyAttendance'    => $this->getMonthlyAttendance($companyId, $today),
             'departmentAttendance' => $this->getDepartmentAttendance($companyId, $today),
-            'statusDistribution'   => $this->getStatusDistribution($companyId, $today),
+
             'recentAttendance'     => $this->getRecentAttendance($companyId, $today),
             'pendingLeaves'        => $this->getPendingLeaves($companyId),
         ];
     }
 
-    private function getStats(int $companyId, $today): array
+    private function getStats(?int $companyId, $today): array
     {
-        $totalEmployees = Employee::where('company_id', $companyId)
+        $totalEmployees = Employee::when($companyId, fn($q) => $q->where('company_id', $companyId))
             ->where('status', true)
             ->count();
 
-        $todayAttendance = AttendanceSummary::where('company_id', $companyId)
+        $todayAttendance = AttendanceSummary::when($companyId, fn($q) => $q->where('company_id', $companyId))
             ->whereDate('attendance_date', $today)
             ->get();
 
-        $presentCount = $todayAttendance->whereIn('status', ['present', 'late', 'work_from_home'])->count();
-        $absentCount = $todayAttendance->where('status', 'absent')->count();
-        $onLeaveCount = $todayAttendance->where('status', 'leave')->count();
+        $presentCount = $todayAttendance->whereIn('status', [AttendanceStatus::Present, AttendanceStatus::Late, AttendanceStatus::WorkFromHome])->count();
+        $absentCount = $todayAttendance->where('status', AttendanceStatus::Absent)->count();
+        $onLeaveCount = $todayAttendance->where('status', AttendanceStatus::Leave)->count();
 
         $avgWorkingHours = $todayAttendance->count() > 0
             ? round($todayAttendance->avg('total_working_minutes') / 60, 1)
             : 0;
 
-        $pendingLeaves = LeaveRequest::where('company_id', $companyId)
+        $pendingLeaves = LeaveRequest::when($companyId, fn($q) => $q->where('company_id', $companyId))
             ->whereIn('status', [LeaveRequestStatus::Pending, LeaveRequestStatus::InReview])
             ->count();
 
@@ -57,13 +59,44 @@ class CompanyDashboardService
         ];
     }
 
-    private function getDepartmentAttendance(int $companyId, $today): array
+    private function getMonthlyAttendance(?int $companyId, $today): array
     {
-        $departments = Department::where('company_id', $companyId)
+        $startOfMonth = $today->copy()->startOfMonth();
+        $endOfMonth = $today->copy()->endOfMonth();
+
+        $records = AttendanceSummary::when($companyId, fn($q) => $q->where('company_id', $companyId))
+            ->whereBetween('attendance_date', [$startOfMonth, $endOfMonth])
+            ->select('attendance_date', 'status', DB::raw('COUNT(*) as count'))
+            ->groupBy('attendance_date', 'status')
+            ->orderBy('attendance_date')
+            ->get();
+
+        $grouped = $records->groupBy(fn($item) => Carbon::parse($item->attendance_date)->format('Y-m-d'));
+
+        $result = [];
+        for ($date = $startOfMonth->copy(); $date->lte($endOfMonth); $date->addDay()) {
+            $key = $date->format('Y-m-d');
+            $dayRecords = $grouped->get($key, collect());
+
+            $result[] = [
+                'date'    => $date->format('d M'),
+                'present' => $dayRecords->whereIn('status', [AttendanceStatus::Present, AttendanceStatus::Late, AttendanceStatus::WorkFromHome])->sum('count'),
+                'absent'  => $dayRecords->where('status', AttendanceStatus::Absent)->sum('count'),
+                'late'    => $dayRecords->where('status', AttendanceStatus::Late)->sum('count'),
+                'leave'   => $dayRecords->where('status', AttendanceStatus::Leave)->sum('count'),
+            ];
+        }
+
+        return $result;
+    }
+
+    private function getDepartmentAttendance(?int $companyId, $today): array
+    {
+        $departments = Department::when($companyId, fn($q) => $q->where('company_id', $companyId))
             ->where('status', true)
             ->get(['id', 'name']);
 
-        $attendance = AttendanceSummary::where('company_id', $companyId)
+        $attendance = AttendanceSummary::when($companyId, fn($q) => $q->where('company_id', $companyId))
             ->whereDate('attendance_date', $today)
             ->select('department_id', 'status', DB::raw('COUNT(*) as count'))
             ->groupBy('department_id', 'status')
@@ -74,34 +107,19 @@ class CompanyDashboardService
             $deptAttendance = $attendance->where('department_id', $dept->id);
             $result[] = [
                 'department' => $dept->name,
-                'present'    => $deptAttendance->whereIn('status', ['present', 'late', 'work_from_home'])->sum('count'),
-                'absent'     => $deptAttendance->where('status', 'absent')->sum('count'),
-                'late'       => $deptAttendance->where('status', 'late')->sum('count'),
-                'leave'      => $deptAttendance->where('status', 'leave')->sum('count'),
+                'present'    => $deptAttendance->whereIn('status', [AttendanceStatus::Present, AttendanceStatus::Late, AttendanceStatus::WorkFromHome])->sum('count'),
+                'absent'     => $deptAttendance->where('status', AttendanceStatus::Absent)->sum('count'),
+                'late'       => $deptAttendance->where('status', AttendanceStatus::Late)->sum('count'),
+                'leave'      => $deptAttendance->where('status', AttendanceStatus::Leave)->sum('count'),
             ];
         }
 
         return $result;
     }
 
-    private function getStatusDistribution(int $companyId, $today): array
+    private function getRecentAttendance(?int $companyId, $today): array
     {
-        return AttendanceSummary::where('company_id', $companyId)
-            ->whereDate('attendance_date', $today)
-            ->select('status', DB::raw('COUNT(*) as count'))
-            ->groupBy('status')
-            ->get()
-            ->map(fn($item) => [
-                'status' => $this->getStatusLabel($item->status),
-                'count'  => $item->count,
-            ])
-            ->values()
-            ->toArray();
-    }
-
-    private function getRecentAttendance(int $companyId, $today): array
-    {
-        return AttendanceSummary::where('company_id', $companyId)
+        return AttendanceSummary::when($companyId, fn($q) => $q->where('company_id', $companyId))
             ->whereDate('attendance_date', $today)
             ->with('employee:id,first_name,last_name,id_no')
             ->orderBy('first_check_in', 'desc')
@@ -126,9 +144,9 @@ class CompanyDashboardService
             ->toArray();
     }
 
-    private function getPendingLeaves(int $companyId): array
+    private function getPendingLeaves(?int $companyId): array
     {
-        return LeaveRequest::where('company_id', $companyId)
+        return LeaveRequest::when($companyId, fn($q) => $q->where('company_id', $companyId))
             ->whereIn('status', [LeaveRequestStatus::Pending, LeaveRequestStatus::InReview])
             ->with([
                 'employee:id,first_name,last_name',

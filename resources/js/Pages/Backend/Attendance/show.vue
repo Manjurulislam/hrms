@@ -1,7 +1,7 @@
 <script setup>
 import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head} from '@inertiajs/vue3';
-import {reactive, onMounted} from 'vue';
+import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 
 const props = defineProps({
@@ -55,7 +55,7 @@ const setLimit = (obj) => {
 const getData = (obj) => {
     setLimit(obj);
     state.loading = true;
-    axios.get(route('company.attendance.records', props.employee.id), {params: state.filters}).then(({data}) => {
+    axios.get(route('attendance.records', props.employee.id), {params: state.filters}).then(({data}) => {
         state.loading = false;
         state.serverItems = data.data;
         state.pagination.totalItems = data.total;
@@ -75,7 +75,7 @@ const exportData = () => {
     if (state.filters.status) {
         params.status = state.filters.status;
     }
-    window.location.href = route('company.attendance.export', params);
+    window.location.href = route('attendance.export', params);
 };
 
 const getStatusColor = (status) => {
@@ -109,7 +109,7 @@ const statCards = [
             <v-col cols="12">
                 <v-card>
                     <CardTitle
-                        :extra-route="{title: 'Back', route: 'company.attendance.index', icon: 'mdi-arrow-left-bold'}"
+                        :extra-route="{title: 'Back', route: 'attendance.index', icon: 'mdi-arrow-left-bold'}"
                         icon="mdi-account-clock"
                         :title="`Attendance - ${employee.name}`"
                     >
@@ -215,7 +215,7 @@ const statCards = [
                                 <v-chip
                                     :color="getStatusColor(item.status_label)"
                                     class="font-weight-regular"
-                                    size="small"
+                                    size="x-small"
                                     variant="tonal"
                                 >
                                     {{ item.status_label }}

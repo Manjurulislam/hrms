@@ -22,8 +22,11 @@ class DepartmentController extends Controller
 
     public function index(): Response
     {
+        $companies = $this->service->formData()['companies'];
+
         return Inertia::render('Backend/Department/index', [
-            'companies' => $this->service->formData()['companies'],
+            'companies'        => $companies,
+            'defaultCompanyId' => $companies->first()?->id,
         ]);
     }
 

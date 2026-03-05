@@ -13,7 +13,7 @@ class RoleService
 
     public function list(Request $request): array
     {
-        $query = Role::query()->orderBy('name');
+        $query = Role::query()->where('slug', '!=', 'super_admin')->orderBy('name');
         $query = $this->roleQuery($query, $request);
 
         return $this->paginateOrFetchAll($query, $request->integer('per_page', 10));

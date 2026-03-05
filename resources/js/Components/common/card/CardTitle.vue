@@ -6,6 +6,9 @@
         </v-toolbar-title>
         <v-spacer></v-spacer>
 
+        <!-- Custom Action Slot -->
+        <slot name="action"></slot>
+
         <!-- Multiple Extra Routes (New Dynamic Approach) -->
         <template v-if="extraRoutes && extraRoutes.length > 0">
             <Link

@@ -1,14 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\Company;
+namespace App\Http\Controllers\Backend;
 
 use App\Enums\AttendanceStatus;
 use App\Exports\CompanyAttendanceExport;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
-use App\Services\Backend\CompanyAttendanceService;
+use App\Services\Backend\AttendanceManagementService;
 use App\Services\Backend\SharedService;
-use App\Traits\CompanyAuth;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,21 +16,21 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class AttendanceController extends Controller
 {
-    use CompanyAuth;
-
     public function __construct(
-        protected readonly CompanyAttendanceService $service,
+        protected readonly AttendanceManagementService $service,
         protected readonly SharedService $shared
     ) {}
 
     public function index(): Response
     {
-        $companyId = $this->activeCompanyId();
+        $companies = $this->shared->companies();
 
-        return Inertia::render('Company/Attendance/index', [
-            'departments'   => $this->shared->departments($companyId),
-            'employees'     => $this->shared->employees(null, $companyId),
-            'statusOptions' => collect(AttendanceStatus::cases())->map(fn($s) => [
+        return Inertia::render('Backend/Attendance/index', [
+            'companies'        => $companies,
+            'departments'      => $this->shared->departments(),
+            'employees'        => $this->shared->employees(),
+            'defaultCompanyId' => $companies->first()?->id,
+            'statusOptions'    => collect(AttendanceStatus::cases())->map(fn($s) => [
                 'label' => ucwords(str_replace('_', ' ', $s->value)),
                 'value' => $s->value,
             ]),
@@ -40,15 +39,11 @@ class AttendanceController extends Controller
 
     public function get(Request $request): JsonResponse
     {
-        $request->merge(['company_id' => $this->activeCompanyId()]);
-
         return response()->json($this->service->list($request));
     }
 
     public function export(Request $request)
     {
-        $request->merge(['company_id' => $this->activeCompanyId()]);
-
         $filename = 'attendance_' . ($request->input('date') ?: $request->input('month', now()->format('Y-m-d'))) . '.xlsx';
 
         return Excel::download(new CompanyAttendanceExport($request), $filename);
@@ -58,7 +53,7 @@ class AttendanceController extends Controller
     {
         $employee->load(['department:id,name', 'designation:id,title']);
 
-        return Inertia::render('Company/Attendance/show', [
+        return Inertia::render('Backend/Attendance/show', [
             'employee' => [
                 'id'          => $employee->id,
                 'name'        => $employee->full_name,
@@ -75,10 +70,7 @@ class AttendanceController extends Controller
 
     public function records(Request $request, Employee $employee): JsonResponse
     {
-        $request->merge([
-            'employee_id' => $employee->id,
-            'company_id'  => $this->activeCompanyId(),
-        ]);
+        $request->merge(['employee_id' => $employee->id]);
 
         return response()->json($this->service->employeeAttendance($request));
     }

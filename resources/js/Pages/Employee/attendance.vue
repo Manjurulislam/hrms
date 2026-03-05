@@ -4,7 +4,7 @@ import AttendantRecords from "@/Components/modules/employee/attendance/attendant
 import TrackerClock from "@/Components/modules/employee/attendance/trackerClock.vue";
 import EmpStats from "@/Components/modules/employee/attendance/empStats.vue";
 
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 import {Head} from "@inertiajs/vue3";
 
 // Props from Inertia backend
@@ -31,41 +31,18 @@ const props = defineProps({
     }
 })
 
-// Emits
-const emit = defineEmits(['work-started', 'work-ended', 'attendance-updated'])
-
-// Track current attendance state from trackerClock
-const isWorking = ref(false)
-const endTime = ref('--:--')
-
-// Computed properties
+// Computed properties based on todayData from server
 const userStatus = computed(() => {
-    if (isWorking.value) return 'Working'
-    if (endTime.value !== '--:--') return 'Work Completed'
+    if (props.todayData?.currentSession) return 'Working'
+    if (props.todayData?.totalWorkedSeconds > 0) return 'Work Completed'
     return 'Ready to Start'
 })
 
 const statusColor = computed(() => {
-    if (isWorking.value) return 'success'
-    if (endTime.value !== '--:--') return 'info'
+    if (props.todayData?.currentSession) return 'success'
+    if (props.todayData?.totalWorkedSeconds > 0) return 'info'
     return 'primary'
 })
-
-// Handle events from tracker-clock
-const handleWorkStarted = (data) => {
-    isWorking.value = true
-    emit('work-started', {...data, user: props.userInfo})
-}
-
-const handleWorkEnded = (data) => {
-    isWorking.value = false
-    endTime.value = data.endTime
-    emit('work-ended', {...data, user: props.userInfo})
-}
-
-const handleAttendanceUpdated = (data) => {
-    emit('attendance-updated', data)
-}
 </script>
 
 <template>
@@ -77,9 +54,6 @@ const handleAttendanceUpdated = (data) => {
                 <tracker-clock
                     :office-hours="officeHours"
                     :today-data="todayData"
-                    @work-started="handleWorkStarted"
-                    @work-ended="handleWorkEnded"
-                    @attendance-updated="handleAttendanceUpdated"
                 />
             </v-col>
 

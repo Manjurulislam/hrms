@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { useToast } from 'vue-toastification'
 
@@ -17,6 +17,19 @@ const props = defineProps({
     }
 })
 
+// Status options
+const statusOptions = [
+    { title: 'All', value: '' },
+    { title: 'Present', value: 'present' },
+    { title: 'Absent', value: 'absent' },
+    { title: 'Late', value: 'late' },
+    { title: 'Half Day', value: 'half_day' },
+    { title: 'Leave', value: 'leave' },
+    { title: 'Holiday', value: 'holiday' },
+    { title: 'Weekend', value: 'weekend' },
+    { title: 'WFH', value: 'work_from_home' },
+]
+
 // State
 const state = reactive({
     headers: [
@@ -31,14 +44,15 @@ const state = reactive({
     ],
     serverItems: [],
     pagination: {
-        itemsPerPage: 15,
+        itemsPerPage: 50,
         totalItems: 0
     },
     filters: {
-        search: '',
         month: getCurrentYearMonth(),
+        status: '',
+        date: null,
         employee_id: props.employeeId,
-        per_page: 15,
+        per_page: 50,
         page: 1
     },
     loading: true
@@ -46,7 +60,9 @@ const state = reactive({
 
 // Month selector
 const selectedMonth = ref(getCurrentYearMonth())
-const isCalendarOpen = ref(false)
+
+// Debounce timer
+let debounceTimer = null
 
 // Get current year-month
 function getCurrentYearMonth() {
@@ -67,30 +83,48 @@ const setLimit = (obj) => {
 // Fetch data from server
 const getData = (obj) => {
     setLimit(obj)
+    state.loading = true
     axios.get('/api/attendance-records', { params: state.filters }).then(({ data }) => {
-        state.loading = false
         state.serverItems = data.data
         state.pagination.totalItems = data.total
-    }).catch(error => {
-        state.loading = false
+    }).catch(() => {
         toast.error('Failed to load attendance records')
-        console.error('Error:', error)
+    }).finally(() => {
+        state.loading = false
     })
+}
+
+// Reload with page reset
+const reload = () => {
+    getData({ page: 1, itemsPerPage: state.filters.per_page, sortBy: [] })
 }
 
 // Handle month change
 const handleMonthChange = (value) => {
     selectedMonth.value = value
     state.filters.month = value
-    state.loading = true
-    getData({ page: 1, itemsPerPage: state.filters.per_page, sortBy: [] })
+    state.filters.date = null
+    reload()
 }
 
-// Handle search
-const handleSearch = (value) => {
-    state.filters.search = value
-    state.loading = true
-    getData({ page: 1, itemsPerPage: state.filters.per_page, sortBy: [] })
+// Handle status change
+const handleStatusChange = () => {
+    reload()
+}
+
+// Handle date change
+const handleDateChange = (value) => {
+    state.filters.date = value
+    if (value) {
+        // When a specific date is selected, clear month filter
+        state.filters.month = null
+        selectedMonth.value = null
+    } else {
+        // When date is cleared, revert to current month
+        state.filters.month = getCurrentYearMonth()
+        selectedMonth.value = getCurrentYearMonth()
+    }
+    reload()
 }
 
 // Get status color
@@ -110,9 +144,10 @@ const getStatusColor = (status) => {
 
 // Export data
 const exportData = () => {
+    const month = state.filters.month || getCurrentYearMonth()
     axios.get('/api/attendance-records/export', {
         params: {
-            month: state.filters.month,
+            month,
             employee_id: state.filters.employee_id
         },
         responseType: 'blob'
@@ -120,24 +155,30 @@ const exportData = () => {
         const url = window.URL.createObjectURL(new Blob([response.data]))
         const link = document.createElement('a')
         link.href = url
-        link.setAttribute('download', `attendance_${state.filters.month}.csv`)
+        link.setAttribute('download', `attendance_${month}.xlsx`)
         document.body.appendChild(link)
         link.click()
         link.remove()
+        window.URL.revokeObjectURL(url)
         toast.success('Attendance records exported successfully')
-    }).catch(error => {
+    }).catch(() => {
         toast.error('Failed to export attendance records')
     })
 }
 
 // Format month for display
 const formatMonthDisplay = (monthString) => {
-    if (!monthString) return 'Select Month'
+    if (!monthString) return 'All'
     const [year, month] = monthString.split('-')
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                        'July', 'August', 'September', 'October', 'November', 'December']
     return `${monthNames[parseInt(month) - 1]} ${year}`
 }
+
+// Cleanup
+onUnmounted(() => {
+    clearTimeout(debounceTimer)
+})
 
 // Initialize on mount
 onMounted(() => {
@@ -152,61 +193,71 @@ onMounted(() => {
                 <v-icon class="me-2">mdi-calendar-check</v-icon>
                 <span>Attendance Records</span>
             </div>
-            <div class="d-flex align-center gap-2">
-                <!-- Export Button -->
-                <v-btn
-                    @click="exportData"
-                    color="primary"
-                    variant="tonal"
-                    size="small"
-                    prepend-icon="mdi-download"
-                >
-                    Export
-                </v-btn>
-
-                <!-- Month Selector -->
-                <v-menu
-                    v-model="isCalendarOpen"
-                    :close-on-content-click="false"
-                    offset-y
-                >
-                    <template v-slot:activator="{ props }">
-                        <v-btn
-                            v-bind="props"
-                            variant="outlined"
-                            prepend-icon="mdi-calendar"
-                            size="small"
-                        >
-                            {{ formatMonthDisplay(selectedMonth) }}
-                            <v-icon end>mdi-chevron-down</v-icon>
-                        </v-btn>
-                    </template>
-                    <v-card min-width="250">
-                        <v-card-text>
-                            <input
-                                type="month"
-                                v-model="selectedMonth"
-                                @change="handleMonthChange(selectedMonth)"
-                                class="month-picker"
-                            />
-                        </v-card-text>
-                    </v-card>
-                </v-menu>
-            </div>
+            <v-btn
+                @click="exportData"
+                color="primary"
+                variant="tonal"
+                size="small"
+                prepend-icon="mdi-download"
+            >
+                Export
+            </v-btn>
         </v-card-title>
 
         <v-card-text>
-            <!-- Search Bar -->
-            <v-row class="mb-3">
-                <v-col cols="12" md="4">
+            <!-- Filters -->
+            <v-row class="mb-3" dense>
+                <!-- Month Selector -->
+                <v-col cols="12" sm="4" md="3">
+                    <v-menu :close-on-content-click="false" offset-y>
+                        <template v-slot:activator="{ props }">
+                            <v-text-field
+                                v-bind="props"
+                                :model-value="formatMonthDisplay(selectedMonth)"
+                                label="Month"
+                                prepend-inner-icon="mdi-calendar"
+                                variant="outlined"
+                                density="compact"
+                                readonly
+                                hide-details
+                            />
+                        </template>
+                        <v-card min-width="250">
+                            <v-card-text>
+                                <input
+                                    type="month"
+                                    v-model="selectedMonth"
+                                    @change="handleMonthChange(selectedMonth)"
+                                    class="month-picker"
+                                />
+                            </v-card-text>
+                        </v-card>
+                    </v-menu>
+                </v-col>
+
+                <!-- Date Picker -->
+                <v-col cols="12" sm="4" md="3">
                     <v-text-field
-                        v-model="state.filters.search"
-                        @update:model-value="handleSearch"
-                        prepend-inner-icon="mdi-magnify"
-                        placeholder="Search by date or status..."
+                        v-model="state.filters.date"
+                        @update:model-value="handleDateChange"
+                        label="Specific Date"
+                        type="date"
                         variant="outlined"
                         density="compact"
                         clearable
+                        hide-details
+                    />
+                </v-col>
+
+                <!-- Status Filter -->
+                <v-col cols="12" sm="4" md="3">
+                    <v-select
+                        v-model="state.filters.status"
+                        @update:model-value="handleStatusChange"
+                        :items="statusOptions"
+                        label="Status"
+                        variant="outlined"
+                        density="compact"
                         hide-details
                     />
                 </v-col>
@@ -263,7 +314,7 @@ onMounted(() => {
                 <template v-slot:item.status="{ item }">
                     <v-chip
                         :color="getStatusColor(item.status)"
-                        size="small"
+                        size="x-small"
                         label
                     >
                         {{ item.status_label }}

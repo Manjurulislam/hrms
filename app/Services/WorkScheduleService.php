@@ -136,7 +136,7 @@ class WorkScheduleService
             return 0;
         }
 
-        return $checkInTime->diffInMinutes($scheduledStart);
+        return (int) abs($checkInTime->diffInMinutes($scheduledStart));
     }
 
     public function calculateEarlyLeaveMinutes(Employee $employee, Carbon $checkOutTime): int
@@ -157,6 +157,6 @@ class WorkScheduleService
             return 0;
         }
 
-        return $scheduledEnd->diffInMinutes($checkOutTime);
+        return (int) abs($scheduledEnd->diffInMinutes($checkOutTime));
     }
 }

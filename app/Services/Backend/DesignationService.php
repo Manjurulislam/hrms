@@ -2,6 +2,7 @@
 
 namespace App\Services\Backend;
 
+use App\Enums\DesignationLevel;
 use App\Models\Designation;
 use App\Traits\PaginateQuery;
 use App\Traits\QueryParams;
@@ -56,6 +57,7 @@ class DesignationService
         $data = [
             'companies'          => $this->shared->companies(),
             'parentDesignations' => $this->shared->designations($designation?->id),
+            'levelOptions'       => DesignationLevel::options(),
         ];
 
         if ($designation) {

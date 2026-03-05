@@ -22,8 +22,11 @@ class LeaveTypeController extends Controller
 
     public function index(): Response
     {
+        $companies = $this->service->formData()['companies'];
+
         return Inertia::render('Backend/LeaveType/index', [
-            'companies' => $this->service->formData()['companies'],
+            'companies'        => $companies,
+            'defaultCompanyId' => $companies->first()?->id,
         ]);
     }
 

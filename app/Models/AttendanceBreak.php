@@ -72,7 +72,7 @@ class AttendanceBreak extends Model
         }
 
         $breakEnd = now();
-        $duration = $this->break_start->diffInMinutes($breakEnd);
+        $duration = (int) abs($this->break_start->diffInMinutes($breakEnd));
 
         $this->update([
             'break_end' => $breakEnd,

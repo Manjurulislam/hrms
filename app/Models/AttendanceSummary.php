@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\SessionStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -122,8 +123,8 @@ class AttendanceSummary extends Model
         // Get ALL sessions for the day (including active ones for first_check_in)
         $allSessions = $this->sessions()->get();
 
-        // Get only completed sessions for duration calculations
-        $completedSessions = $allSessions->where('status', 'completed');
+        // Get finished sessions (completed + auto-closed) for duration calculations
+        $completedSessions = $allSessions->whereIn('status', [SessionStatus::Completed, SessionStatus::AutoClosed]);
 
         if ($allSessions->isEmpty()) {
             $this->update([
@@ -152,7 +153,7 @@ class AttendanceSummary extends Model
             $currentCheckIn = $sortedCompletedSessions[$i]->check_in_time;
 
             if ($previousCheckOut && $currentCheckIn) {
-                $breakMinutes += $previousCheckOut->diffInMinutes($currentCheckIn);
+                $breakMinutes += (int) abs($previousCheckOut->diffInMinutes($currentCheckIn));
             }
         }
 

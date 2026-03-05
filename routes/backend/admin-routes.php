@@ -1,11 +1,13 @@
 <?php
 
 
+use App\Http\Controllers\Backend\AttendanceController;
 use App\Http\Controllers\Backend\CompanyController;
 use App\Http\Controllers\Backend\DepartmentController;
 use App\Http\Controllers\Backend\DesignationController;
 use App\Http\Controllers\Backend\EmployeeController;
 use App\Http\Controllers\Backend\HolidayController;
+use App\Http\Controllers\Backend\LeaveRequestController;
 use App\Http\Controllers\Backend\LeaveTypeController;
 use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\UserController;
@@ -108,4 +110,23 @@ Route::controller(RoleController::class)->name('roles.')
         Route::put('update/{role}', 'update')->name('update');
         Route::post('{role}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::delete('delete/{role}', 'destroy')->name('destroy');
+    });
+
+Route::controller(AttendanceController::class)->name('attendance.')
+    ->prefix('attendance')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('get', 'get')->name('get');
+        Route::get('export', 'export')->name('export');
+        Route::get('{employee}/show', 'show')->name('show');
+        Route::get('{employee}/records', 'records')->name('records');
+    });
+
+Route::controller(LeaveRequestController::class)->name('leave-requests.')
+    ->prefix('leave-requests')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('get', 'get')->name('get');
+        Route::get('export', 'export')->name('export');
+        Route::get('{leaveRequest}/show', 'show')->name('show');
+        Route::post('{leaveRequest}/approve', 'approve')->name('approve');
+        Route::post('{leaveRequest}/reject', 'reject')->name('reject');
     });

@@ -2,12 +2,13 @@
 
 namespace App\Services\Backend;
 
+use App\Enums\AttendanceStatus;
 use App\Models\AttendanceSummary;
 use App\Traits\PaginateQuery;
 use App\Traits\QueryParams;
 use Illuminate\Http\Request;
 
-class CompanyAttendanceService
+class AttendanceManagementService
 {
     use PaginateQuery, QueryParams;
 
@@ -26,7 +27,7 @@ class CompanyAttendanceService
     {
         $query = AttendanceSummary::query()
             ->where('employee_id', $request->input('employee_id'))
-            ->where('company_id', $request->input('company_id'))
+            ->when($request->filled('company_id'), fn($q) => $q->where('company_id', $request->input('company_id')))
             ->orderBy('attendance_date', 'desc');
 
         // Filter by month (default current)
@@ -45,11 +46,11 @@ class CompanyAttendanceService
 
         // Compute summary stats
         $stats = [
-            'present'   => $records->whereIn('status', ['present', 'late', 'work_from_home'])->count(),
-            'absent'    => $records->where('status', 'absent')->count(),
-            'late'      => $records->where('status', 'late')->count(),
-            'half_day'  => $records->where('status', 'half_day')->count(),
-            'wfh'       => $records->where('status', 'work_from_home')->count(),
+            'present'   => $records->whereIn('status', [AttendanceStatus::Present, AttendanceStatus::Late, AttendanceStatus::WorkFromHome])->count(),
+            'absent'    => $records->where('status', AttendanceStatus::Absent)->count(),
+            'late'      => $records->where('status', AttendanceStatus::Late)->count(),
+            'half_day'  => $records->where('status', AttendanceStatus::HalfDay)->count(),
+            'wfh'       => $records->where('status', AttendanceStatus::WorkFromHome)->count(),
             'avg_hours' => $records->count() > 0
                 ? round($records->avg('total_working_minutes') / 60, 1)
                 : 0,

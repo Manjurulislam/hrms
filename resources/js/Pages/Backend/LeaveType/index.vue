@@ -9,6 +9,7 @@ import {useToast} from 'vue-toastification';
 
 const props = defineProps({
     companies: Array,
+    defaultCompanyId: Number,
 });
 
 const toast = useToast();
@@ -22,14 +23,14 @@ const state = reactive({
         {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
     ],
     pagination: {
-        itemsPerPage: 10,
+        itemsPerPage: 50,
         totalItems: 0
     },
     filters: {
         search: '',
-        company_id: null,
+        company_id: props.defaultCompanyId,
         status: null,
-        per_page: 10
+        per_page: 50
     },
     serverItems: [],
     loading: true
@@ -121,7 +122,7 @@ const getDaysLabel = (days) => {
                                     v-if="item.company"
                                     class="font-weight-regular"
                                     color="primary"
-                                    size="small"
+                                    size="x-small"
                                     variant="tonal"
                                 >
                                     {{ item.company.name }}
@@ -132,8 +133,8 @@ const getDaysLabel = (days) => {
                                 <v-chip
                                     :color="getDaysColor(item.max_per_year)"
                                     class="font-weight-medium"
-                                    size="small"
-                                    variant="flat"
+                                    size="x-small"
+                                    variant="tonal"
                                 >
                                     <v-icon size="small" start>mdi-calendar-clock</v-icon>
                                     {{ getDaysLabel(item.max_per_year) }}

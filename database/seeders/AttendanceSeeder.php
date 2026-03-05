@@ -65,7 +65,7 @@ class AttendanceSeeder extends Seeder
                 // Generate check-in/out times based on scenario
                 $times = $this->generateTimes($scenario, $date);
 
-                $workingMinutes = $times['check_out']->diffInMinutes($times['check_in']);
+                $workingMinutes = (int) abs($times['check_out']->diffInMinutes($times['check_in']));
                 $breakMinutes   = rand(30, 60);
                 $workingMinutes -= $breakMinutes;
                 $lateMinutes    = $scenario === 'late' ? rand(10, 45) : 0;
@@ -104,7 +104,7 @@ class AttendanceSeeder extends Seeder
                     'check_in_location' => 'office',
                     'check_out_ip'      => '192.168.1.' . rand(10, 200),
                     'check_out_location' => 'office',
-                    'duration_minutes'  => $times['check_out']->diffInMinutes($times['check_in']),
+                    'duration_minutes'  => (int) abs($times['check_out']->diffInMinutes($times['check_in'])),
                     'attendance_date'   => $date->toDateString(),
                     'status'            => 'completed',
                 ]);

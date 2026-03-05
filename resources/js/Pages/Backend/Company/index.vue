@@ -15,18 +15,17 @@ const state = reactive({
         {title: 'Code', key: 'code'},
         {title: 'Email', key: 'email'},
         {title: 'Phone', key: 'phone'},
-        {title: 'Website', key: 'website'},
         {title: 'Status', key: 'status', sortable: false, width: '8%'},
         {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
     ],
     pagination: {
-        itemsPerPage: 10,
+        itemsPerPage: 50,
         totalItems: 0
     },
     filters: {
         search: '',
         status: null,
-        per_page: 10
+        per_page: 50
     },
     serverItems: [],
     loading: true
@@ -96,18 +95,6 @@ const handleSearch = (filters) => {
                                     hide-details
                                     @change="() => toggleStatus(item)"
                                 />
-                            </template>
-                            <template v-slot:item.website="{ item }">
-                                <a
-                                    v-if="item.website"
-                                    :href="item.website"
-                                    class="text-decoration-none text-primary"
-                                    target="_blank"
-                                >
-                                    <v-icon size="small">mdi-open-in-new</v-icon>
-                                    Visit
-                                </a>
-                                <span v-else class="text-muted">-</span>
                             </template>
                             <template v-slot:item.actions="{ item }">
                                 <btn-link

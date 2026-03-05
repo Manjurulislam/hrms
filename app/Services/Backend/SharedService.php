@@ -13,7 +13,7 @@ class SharedService
     {
         return Company::select('id', 'name')
             ->where('status', true)
-            ->orderBy('name')
+            ->orderBy('id')
             ->get();
     }
 

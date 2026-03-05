@@ -20,14 +20,11 @@ class LeaveTypeSeeder extends Seeder
             ['name' => 'Unpaid Leave',        'max_per_year' => 30],
         ];
 
-        // Seed for both companies
-        foreach ([1, 2] as $companyId) {
-            foreach ($bdLeaveTypes as $leaveType) {
-                LeaveType::create(array_merge($leaveType, [
-                    'company_id' => $companyId,
-                    'status'     => true,
-                ]));
-            }
+        foreach ($bdLeaveTypes as $leaveType) {
+            LeaveType::create(array_merge($leaveType, [
+                'company_id' => 1,
+                'status'     => true,
+            ]));
         }
     }
 }

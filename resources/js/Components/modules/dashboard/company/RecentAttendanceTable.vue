@@ -7,10 +7,8 @@ defineProps({
 
 const headers = [
     {title: 'Employee', key: 'employee_name'},
-    {title: 'Emp ID', key: 'emp_id'},
     {title: 'Check In', key: 'check_in'},
     {title: 'Check Out', key: 'check_out'},
-    {title: 'Working', key: 'working_hours'},
     {title: 'Status', key: 'status', sortable: false},
 ];
 
@@ -35,9 +33,9 @@ const getStatusColor = (status) => {
             <div class="d-flex align-center justify-space-between">
                 <div class="d-flex align-center">
                     <v-icon class="me-2" color="grey-darken-1">mdi-clipboard-list</v-icon>
-                    <span class="text-h6 font-weight-medium">Today's Attendance</span>
+                    <span class="text-subtitle-1 font-weight-light">Attendance</span>
                 </div>
-                <Link :href="route('company.attendance.index')">
+                <Link :href="route('attendance.index')">
                     <v-btn
                         append-icon="mdi-arrow-right"
                         color="primary"
@@ -57,6 +55,10 @@ const getStatusColor = (status) => {
                 hide-default-footer
                 items-per-page="-1"
             >
+                <template v-slot:item.employee_name="{ item }">
+                    <div>{{ item.employee_name }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ item.emp_id }}</div>
+                </template>
                 <template v-slot:item.status="{ item }">
                     <v-chip
                         :color="getStatusColor(item.status)"

@@ -20,9 +20,7 @@ class DatabaseSeeder extends Seeder
             LeaveTypeSeeder::class,
             RoleSeeder::class,
             EmployeeSeeder::class,
-            CompanyEmployeeSeeder::class,
             UserSeeder::class,
-            AttendanceSeeder::class,
         ]);
 
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');

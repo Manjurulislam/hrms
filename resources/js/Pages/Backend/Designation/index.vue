@@ -9,6 +9,7 @@ import {useToast} from 'vue-toastification';
 
 const props = defineProps({
     companies: Array,
+    defaultCompanyId: Number,
 });
 
 const toast = useToast();
@@ -24,14 +25,14 @@ const state = reactive({
         {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
     ],
     pagination: {
-        itemsPerPage: 10,
+        itemsPerPage: 50,
         totalItems: 0
     },
     filters: {
         search: '',
-        company_id: null,
+        company_id: props.defaultCompanyId,
         status: null,
-        per_page: 10
+        per_page: 50
     },
     serverItems: [],
     loading: true
@@ -116,7 +117,7 @@ const truncateText = (text, length = 40) => {
                                     v-if="item.company"
                                     class="font-weight-regular"
                                     color="primary"
-                                    size="small"
+                                    size="x-small"
                                     variant="tonal"
                                 >
                                     {{ item.company.name }}
@@ -127,10 +128,10 @@ const truncateText = (text, length = 40) => {
                                 <v-chip
                                     class="font-weight-medium"
                                     color="secondary"
-                                    size="small"
+                                    size="x-small"
                                     variant="tonal"
                                 >
-                                    {{ item.level }}
+                                    {{ item.level_label }}
                                 </v-chip>
                             </template>
                             <template v-slot:item.parent="{ item }">
@@ -138,7 +139,7 @@ const truncateText = (text, length = 40) => {
                                     v-if="item.parent"
                                     class="font-weight-regular"
                                     color="info"
-                                    size="small"
+                                    size="x-small"
                                     variant="tonal"
                                 >
                                     {{ item.parent.title }}

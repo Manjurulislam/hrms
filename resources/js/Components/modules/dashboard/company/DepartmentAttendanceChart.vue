@@ -31,7 +31,7 @@ const chartSeries = computed(() => [
         <v-card-title class="pa-4 pb-2">
             <div class="d-flex align-center">
                 <v-icon class="me-2" color="grey-darken-1">mdi-chart-bar</v-icon>
-                <span class="text-h6 font-weight-medium">Department Attendance (Today)</span>
+                <span class="text-subtitle-1 font-weight-light">Department Attendance (Today)</span>
             </div>
         </v-card-title>
         <v-card-text class="pa-4">

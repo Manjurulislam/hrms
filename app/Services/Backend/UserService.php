@@ -63,7 +63,7 @@ class UserService
     {
         $data = [
             'roles' => Role::select('id', 'name')
-                ->whereNot('slug', 'employee')
+                ->whereNotIn('slug', ['super_admin', 'employee'])
                 ->where('status', true)
                 ->get(),
         ];

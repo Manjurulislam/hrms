@@ -11,6 +11,7 @@ const props = defineProps({
     companies: Array,
     departments: Array,
     empStatusOptions: Array,
+    defaultCompanyId: Number,
 })
 
 const showImportDialog = ref(false);
@@ -30,16 +31,16 @@ const state = reactive({
         {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
     ],
     pagination: {
-        itemsPerPage: 10,
+        itemsPerPage: 50,
         totalItems: 0
     },
     filters: {
         search: '',
-        company_id: null,
+        company_id: props.defaultCompanyId,
         department_id: null,
         status: null,
         emp_status: null,
-        per_page: 10
+        per_page: 50
     },
     serverItems: [],
     loading: true
@@ -178,7 +179,7 @@ const handleImportSuccess = () => {
                                 <v-chip
                                     class="font-weight-medium"
                                     color="primary"
-                                    size="small"
+                                    size="x-small"
                                     variant="tonal"
                                 >
                                     {{ item.id_no || '-' }}
@@ -216,7 +217,7 @@ const handleImportSuccess = () => {
                                     v-if="item.department"
                                     class="font-weight-regular"
                                     color="primary"
-                                    size="small"
+                                    size="x-small"
                                     variant="tonal"
                                 >
                                     {{ item.department.name }}
@@ -228,7 +229,7 @@ const handleImportSuccess = () => {
                                     v-if="item.designation"
                                     class="font-weight-regular"
                                     color="secondary"
-                                    size="small"
+                                    size="x-small"
                                     variant="tonal"
                                 >
                                     {{ item.designation.title }}
@@ -240,7 +241,7 @@ const handleImportSuccess = () => {
                                     v-if="item.manager"
                                     class="font-weight-regular"
                                     color="info"
-                                    size="small"
+                                    size="x-small"
                                     variant="tonal"
                                 >
                                     {{ item.manager.first_name }} {{ item.manager.last_name }}
@@ -251,7 +252,7 @@ const handleImportSuccess = () => {
                                 <v-chip
                                     :color="getJoiningDateColor(item.joining_date)"
                                     class="font-weight-regular"
-                                    size="small"
+                                    size="x-small"
                                     variant="tonal"
                                 >
                                     {{ formatDate(item.joining_date) }}

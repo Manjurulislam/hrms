@@ -17,7 +17,7 @@ use Inertia\Response;
 class CompanyController extends Controller
 {
     public function __construct(
-        protected readonly CompanyService $service
+        protected readonly CompanyService $service,
     ) {}
 
     public function index(): Response

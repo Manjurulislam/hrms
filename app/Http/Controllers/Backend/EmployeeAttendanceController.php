@@ -9,6 +9,7 @@ use App\Http\Requests\Attendance\CheckInRequest;
 use App\Http\Requests\Attendance\CheckOutRequest;
 use App\Models\AttendanceSummary;
 use App\Services\AttendanceService;
+use App\Services\CatchIPService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,10 +20,12 @@ use Inertia\Response;
 class EmployeeAttendanceController extends Controller
 {
     protected AttendanceService $attendanceService;
+    protected CatchIPService $ipService;
 
-    public function __construct(AttendanceService $attendanceService)
+    public function __construct(AttendanceService $attendanceService, CatchIPService $ipService)
     {
         $this->attendanceService = $attendanceService;
+        $this->ipService = $ipService;
     }
 
     /**
@@ -68,7 +71,7 @@ class EmployeeAttendanceController extends Controller
         // Use validated and sanitized data
         $result = $this->attendanceService->checkIn(
             $employee,
-            $request->ip(),
+            $this->ipService->getPublicIp() ?? $request->ip(),
             $request->getSanitizedData()
         );
 
@@ -97,7 +100,7 @@ class EmployeeAttendanceController extends Controller
         // Use validated and sanitized data
         $result = $this->attendanceService->checkOut(
             $employee,
-            $request->ip(),
+            $this->ipService->getPublicIp() ?? $request->ip(),
             $request->getSanitizedData()
         );
 
@@ -126,7 +129,7 @@ class EmployeeAttendanceController extends Controller
 
         $result = $this->attendanceService->startBreak(
             $employee,
-            $request->ip(),
+            $this->ipService->getPublicIp() ?? $request->ip(),
             $request->input('break_type'),
             $request->input('reason')
         );

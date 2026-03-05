@@ -2,24 +2,19 @@
 
 namespace App\Http\Requests\Attendance;
 
-use App\Models\AttendanceSession;
+use App\Traits\AttendanceValidation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class CheckInRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+    use AttendanceValidation;
+
     public function authorize(): bool
     {
-        // Check if user has an employee profile
-        return $this->user() && $this->user()->employee;
+        return (bool) $this->getEmployee();
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
     public function rules(): array
     {
         return [
@@ -31,64 +26,86 @@ class CheckInRequest extends FormRequest
         ];
     }
 
-    /**
-     * Configure the validator instance.
-     */
     public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator) {
-            if ($this->user() && $this->user()->employee) {
-                $employee = $this->user()->employee;
+            $employee = $this->getEmployee();
+            if (!$employee) return;
 
-                // Check if there's already an active session
-                $activeSession = AttendanceSession::where('employee_id', $employee->id)
-                    ->whereDate('attendance_date', today())
-                    ->where('status', 'active')
-                    ->first();
-
-                if ($activeSession) {
-                    $validator->errors()->add('session', 'You already have an active session. Please check out first.');
-                }
-
-                // Check minimum gap between sessions (configurable)
-                $lastSession = AttendanceSession::where('employee_id', $employee->id)
-                    ->whereDate('attendance_date', today())
-                    ->where('status', 'completed')
-                    ->latest('check_out_time')
-                    ->first();
-
-                if ($lastSession && $lastSession->check_out_time) {
-                    $minutesSinceLastCheckout = $lastSession->check_out_time->diffInMinutes(now());
-                    $minimumGap = config('attendance.minimum_session_gap', 5); // Default 5 minutes
-
-                    if ($minutesSinceLastCheckout < $minimumGap) {
-                        $validator->errors()->add(
-                            'session',
-                            "Please wait at least {$minimumGap} minutes between sessions. {$minutesSinceLastCheckout} minutes have passed since last checkout."
-                        );
-                    }
-                }
-
-                // Check maximum sessions per day
-                $sessionsToday = AttendanceSession::where('employee_id', $employee->id)
-                    ->whereDate('attendance_date', today())
-                    ->count();
-
-                $maxSessions = config('attendance.max_sessions_per_day', 10); // Default 10 sessions
-
-                if ($sessionsToday >= $maxSessions) {
-                    $validator->errors()->add(
-                        'session',
-                        "Maximum {$maxSessions} sessions allowed per day."
-                    );
-                }
-            }
+            $this->validateOfficeHours($validator, $employee);
+            $this->validateOfficeHoursNotCompleted($validator, $employee);
+            $this->validateNoActiveSession($validator, $employee);
+            $this->validateSessionGap($validator, $employee);
+            $this->validateMaxSessions($validator, $employee);
         });
     }
 
-    /**
-     * Get custom error messages.
-     */
+    private function validateOfficeHours($validator, $employee): void
+    {
+        if ($validator->errors()->isNotEmpty()) return;
+
+        if (!$this->isWithinOfficeHours($employee)) {
+            $range = $this->getOfficeTimeRange($employee);
+            $validator->errors()->add(
+                'session',
+                "You can only start work during office hours ({$range['start']} - {$range['end']})."
+            );
+        }
+    }
+
+    private function validateOfficeHoursNotCompleted($validator, $employee): void
+    {
+        if ($validator->errors()->isNotEmpty()) return;
+
+        if ($this->hasCompletedOfficeHours($employee)) {
+            $totalMinutes = $this->getTotalOfficeMinutes($employee);
+            $hours = floor($totalMinutes / 60);
+            $mins = $totalMinutes % 60;
+            $validator->errors()->add(
+                'session',
+                "You have already completed your office hours ({$hours}h {$mins}m) for today."
+            );
+        }
+    }
+
+    private function validateNoActiveSession($validator, $employee): void
+    {
+        if ($validator->errors()->isNotEmpty()) return;
+
+        if ($this->findActiveSession($employee)) {
+            $validator->errors()->add('session', 'You already have an active session. Please check out first.');
+        }
+    }
+
+    private function validateSessionGap($validator, $employee): void
+    {
+        if ($validator->errors()->isNotEmpty()) return;
+
+        $lastSession = $this->findLastCompletedSession($employee);
+        if (!$lastSession?->check_out_time) return;
+
+        $minutesSince = (int) abs($lastSession->check_out_time->diffInMinutes(now()));
+        $minimumGap = config('attendance.minimum_session_gap', 5);
+
+        if ($minutesSince < $minimumGap) {
+            $validator->errors()->add(
+                'session',
+                "Please wait at least {$minimumGap} minutes between sessions. {$minutesSince} minutes have passed since last checkout."
+            );
+        }
+    }
+
+    private function validateMaxSessions($validator, $employee): void
+    {
+        if ($validator->errors()->isNotEmpty()) return;
+
+        $maxSessions = config('attendance.max_sessions_per_day', 10);
+
+        if ($this->getTodaySessionCount($employee) >= $maxSessions) {
+            $validator->errors()->add('session', "Maximum {$maxSessions} sessions allowed per day.");
+        }
+    }
+
     public function messages(): array
     {
         return [
@@ -99,9 +116,6 @@ class CheckInRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get sanitized data for processing
-     */
     public function getSanitizedData(): array
     {
         return [

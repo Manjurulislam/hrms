@@ -150,7 +150,7 @@ const getStatusLabel = (status) => {
                                 <v-chip
                                     :color="getStatusColor(item.status)"
                                     class="font-weight-regular"
-                                    size="small"
+                                    size="x-small"
                                     variant="tonal"
                                 >
                                     {{ getStatusLabel(item.status) }}

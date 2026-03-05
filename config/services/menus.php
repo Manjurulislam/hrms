@@ -16,7 +16,7 @@ return [
     [
         'title' => 'Attendance',
         'icon'  => 'clock-circle-bold-duotone',
-        'to'    => '',
+        'to'    => 'attendance.index',
     ],
 
     [
@@ -26,7 +26,7 @@ return [
             [
                 'title' => 'Leave Requests',
                 'icon'  => 'checklist-minimalistic-line-duotone',
-                'to'    => '',
+                'to'    => 'leave-requests.index',
             ],
             [
                 'title' => 'Leave Types',

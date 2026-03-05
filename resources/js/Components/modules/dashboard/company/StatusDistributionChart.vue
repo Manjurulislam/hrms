@@ -44,7 +44,7 @@ const chartSeries = computed(() => props.data.map(s => s.count));
         <v-card-title class="pa-4 pb-2">
             <div class="d-flex align-center">
                 <v-icon class="me-2" color="grey-darken-1">mdi-chart-donut</v-icon>
-                <span class="text-h6 font-weight-medium">Attendance Distribution (Today)</span>
+                <span class="text-subtitle-1 font-weight-light">Attendance Distribution (Today)</span>
             </div>
         </v-card-title>
         <v-card-text class="pa-4">

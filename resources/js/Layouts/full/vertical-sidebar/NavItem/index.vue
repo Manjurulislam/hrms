@@ -63,7 +63,7 @@ const navigate = () => {
                 :class="'sidebarchip hide-menu bg-' + item.chipBgColor"
                 :color="item.chipColor"
                 :prepend-icon="item.chipIcon"
-                :size="item.chipIcon ? 'small' : 'small'"
+                :size="item.chipIcon ? 'x-small' : 'x-small'"
                 :variant="item.chipVariant"
             >
                 {{ item.chip }}
@@ -93,7 +93,7 @@ const navigate = () => {
                 :class="'sidebarchip hide-menu bg-' + item.chipBgColor"
                 :color="item.chipColor"
                 :prepend-icon="item.chipIcon"
-                :size="item.chipIcon ? 'small' : 'small'"
+                :size="item.chipIcon ? 'x-small' : 'x-small'"
                 :variant="item.chipVariant"
             >
                 {{ item.chip }}

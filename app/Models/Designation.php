@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DesignationLevel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,8 +20,15 @@ class Designation extends Model
 
     protected $casts = [
         'status' => 'boolean',
-        'level'  => 'integer',
+        'level'  => DesignationLevel::class,
     ];
+
+    protected $appends = ['level_label'];
+
+    public function getLevelLabelAttribute(): string
+    {
+        return $this->level ? $this->level->label() : '-';
+    }
 
     public function company(): BelongsTo
     {

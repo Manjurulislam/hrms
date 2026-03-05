@@ -18,7 +18,7 @@ const props = defineProps({ item: Object, level: Number });
             <v-chip
                 :color="item.chipColor"
                 class="sidebarchip hide-menu ml-auto"
-                :size="item.chipIcon ? 'small' : 'small'"
+                :size="item.chipIcon ? 'x-small' : 'x-small'"
                 :variant="item.chipVariant"
                 :prepend-icon="item.chipIcon"
             >

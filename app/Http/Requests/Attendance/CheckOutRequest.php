@@ -3,23 +3,19 @@
 namespace App\Http\Requests\Attendance;
 
 use App\Models\AttendanceSession;
+use App\Traits\AttendanceValidation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class CheckOutRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+    use AttendanceValidation;
+
     public function authorize(): bool
     {
-        // Check if user has an employee profile
-        return $this->user() && $this->user()->employee;
+        return (bool) $this->getEmployee();
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
     public function rules(): array
     {
         return [
@@ -30,46 +26,45 @@ class CheckOutRequest extends FormRequest
         ];
     }
 
-    /**
-     * Configure the validator instance.
-     */
     public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator) {
-            if ($this->user() && $this->user()->employee) {
-                $employee = $this->user()->employee;
+            $employee = $this->getEmployee();
+            if (!$employee) return;
 
-                // Check if there's an active session to check out from
-                $activeSession = AttendanceSession::where('employee_id', $employee->id)
-                    ->whereDate('attendance_date', today())
-                    ->where('status', 'active')
-                    ->first();
-
-                if (!$activeSession) {
-                    $validator->errors()->add('session', 'No active check-in found. Please check in first.');
-                    return;
-                }
-
-                // Check minimum session duration
-                $minimumDuration = config('attendance.minimum_session_duration', 1); // Default 1 minute
-                $sessionDuration = $activeSession->check_in_time->diffInMinutes(now());
-
-                if ($sessionDuration < $minimumDuration) {
-                    $validator->errors()->add(
-                        'session',
-                        "Session too short. Minimum {$minimumDuration} minute(s) required. Current duration: {$sessionDuration} minute(s)."
-                    );
-                }
-
-                // Store active session for later use in controller
-                $this->merge(['active_session' => $activeSession]);
-            }
+            $this->validateHasActiveSession($validator, $employee);
+            $this->validateMinimumDuration($validator, $employee);
         });
     }
 
-    /**
-     * Get custom error messages.
-     */
+    private function validateHasActiveSession($validator, $employee): void
+    {
+        $activeSession = $this->findActiveSession($employee);
+
+        if (!$activeSession) {
+            $validator->errors()->add('session', 'No active check-in found. Please check in first.');
+            return;
+        }
+
+        $this->merge(['active_session' => $activeSession]);
+    }
+
+    private function validateMinimumDuration($validator, $employee): void
+    {
+        if ($validator->errors()->isNotEmpty()) return;
+
+        $activeSession = $this->input('active_session');
+        $sessionSeconds = (int) abs($activeSession->check_in_time->diffInSeconds(now()));
+
+        if ($sessionSeconds < 60) {
+            $remaining = 60 - $sessionSeconds;
+            $validator->errors()->add(
+                'session',
+                "Session too short. Please wait {$remaining} more second(s) before ending work."
+            );
+        }
+    }
+
     public function messages(): array
     {
         return [
@@ -80,9 +75,6 @@ class CheckOutRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get sanitized data for processing
-     */
     public function getSanitizedData(): array
     {
         return [
@@ -93,9 +85,6 @@ class CheckOutRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get the active session (set during validation)
-     */
     public function getActiveSession(): ?AttendanceSession
     {
         return $this->input('active_session');

@@ -37,9 +37,9 @@ const getStatusLabel = (status) => {
             <div class="d-flex align-center justify-space-between">
                 <div class="d-flex align-center">
                     <v-icon class="me-2" color="teal">mdi-file-document-outline</v-icon>
-                    <span class="text-h6 font-weight-medium">Pending Leave Requests</span>
+                    <span class="text-subtitle-1 font-weight-light">Leave Requests</span>
                 </div>
-                <Link :href="route('company.leave-requests.index')">
+                <Link :href="route('leave-requests.index')">
                     <v-btn
                         append-icon="mdi-arrow-right"
                         color="teal"
@@ -70,7 +70,7 @@ const getStatusLabel = (status) => {
                     </v-chip>
                 </template>
                 <template v-slot:item.actions="{ item }">
-                    <Link :href="route('company.leave-requests.show', item.id)">
+                    <Link :href="route('leave-requests.show', item.id)">
                         <v-icon color="primary" size="small">mdi-eye</v-icon>
                     </Link>
                 </template>

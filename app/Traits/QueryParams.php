@@ -267,6 +267,26 @@ trait QueryParams
         return $query;
     }
 
+    public function attendanceRecordQuery($query, Request $request)
+    {
+        $status = $request->input('status');
+        $date   = $request->input('date');
+        $month  = $request->input('month');
+
+        $query->when(filled($status), fn($q) => $q->where('status', $status));
+
+        if (filled($date)) {
+            $query->whereDate('attendance_date', $date);
+        } elseif (filled($month)) {
+            [$year, $m] = explode('-', $month);
+            $query->whereYear('attendance_date', $year)->whereMonth('attendance_date', $m);
+        } else {
+            $query->whereYear('attendance_date', now()->year)->whereMonth('attendance_date', now()->month);
+        }
+
+        return $query;
+    }
+
     public function employeeQuery($query, Request $request)
     {
         $search    = $request->input('search');

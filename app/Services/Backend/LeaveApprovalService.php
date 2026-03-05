@@ -22,7 +22,7 @@ class LeaveApprovalService
     public function approve(LeaveRequest $leaveRequest, Employee $approver, ?string $remarks = null, bool $forward = false): array
     {
         return DB::transaction(function () use ($leaveRequest, $approver, $remarks, $forward) {
-            $approverLevel = $approver->designation?->level ?? 99;
+            $approverLevel = $approver->designation?->level?->value ?? 99;
 
             // Update existing approval row
             $approval = LeaveApproval::where('leave_request_id', $leaveRequest->id)
@@ -76,7 +76,7 @@ class LeaveApprovalService
     public function reject(LeaveRequest $leaveRequest, Employee $approver, ?string $remarks = null): array
     {
         return DB::transaction(function () use ($leaveRequest, $approver, $remarks) {
-            $approverLevel = $approver->designation?->level ?? 99;
+            $approverLevel = $approver->designation?->level?->value ?? 99;
 
             // Update existing approval row
             $approval = LeaveApproval::where('leave_request_id', $leaveRequest->id)
@@ -122,7 +122,7 @@ class LeaveApprovalService
         LeaveApproval::create([
             'leave_request_id' => $leaveRequest->id,
             'approver_id'      => $nextApprover->id,
-            'level'            => $nextApprover->designation?->level ?? 99,
+            'level'            => $nextApprover->designation?->level?->value ?? 99,
             'status'           => LeaveApprovalStatus::Pending,
         ]);
 

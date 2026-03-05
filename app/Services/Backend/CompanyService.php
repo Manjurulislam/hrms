@@ -3,6 +3,7 @@
 namespace App\Services\Backend;
 
 use App\Models\Company;
+use App\Services\CatchIPService;
 use App\Traits\PaginateQuery;
 use App\Traits\QueryParams;
 use Illuminate\Http\Request;
@@ -10,6 +11,10 @@ use Illuminate\Http\Request;
 class CompanyService
 {
     use PaginateQuery, QueryParams;
+
+    public function __construct(
+        protected readonly CatchIPService $ipService,
+    ) {}
 
     public function list(Request $request): array
     {
@@ -21,11 +26,15 @@ class CompanyService
 
     public function create(array $data): Company
     {
+        $data['office_ip'] = $this->ipService->getPublicIp() ?? $data['office_ip'] ?? null;
+
         return Company::create($data);
     }
 
     public function update(Company $company, array $data): Company
     {
+        $data['office_ip'] = $this->ipService->getPublicIp() ?? $data['office_ip'] ?? $company->office_ip;
+
         $company->update($data);
 
         return $company;

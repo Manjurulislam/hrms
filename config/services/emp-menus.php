@@ -27,6 +27,11 @@ return [
                 'icon'  => 'checklist-minimalistic-line-duotone',
                 'to'    => 'emp-leave.create',
             ],
+            [
+                'title' => 'Pending Approvals',
+                'icon'  => 'checklist-minimalistic-line-duotone',
+                'to'    => 'emp-leave.approvals',
+            ],
         ]
     ],
 

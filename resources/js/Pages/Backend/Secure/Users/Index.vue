@@ -23,14 +23,14 @@ const state = reactive({
         {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
     ],
     pagination: {
-        itemsPerPage: 10,
+        itemsPerPage: 50,
         totalItems: 0
     },
     filters: {
         search: '',
         role_id: null,
         status: null,
-        per_page: 10
+        per_page: 50
     },
     serverItems: [],
     loading: true
@@ -110,10 +110,10 @@ const handleSearch = (filters) => {
                                     v-for="role in item.roles"
                                     :key="role"
                                     class="font-weight-regular mr-1"
-                                    size="small"
+                                    size="x-small"
                                     variant="tonal"
                                 >
-                                    {{ role }}
+                                    {{ role.name }}
                                 </v-chip>
                             </template>
                             <template v-slot:item.actions="{ item }">

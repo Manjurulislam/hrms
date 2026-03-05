@@ -30,6 +30,7 @@ class EmployeeController extends Controller
             'companies'        => $data['companies'],
             'departments'      => $data['departments'],
             'empStatusOptions' => $data['empStatusOptions'],
+            'defaultCompanyId' => $data['companies']->first()?->id,
         ]);
     }
 

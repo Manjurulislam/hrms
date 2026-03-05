@@ -40,6 +40,7 @@ const isLoading = ref(false)
 let clockInterval = null
 let workInterval = null
 let breakInterval = null
+let syncInterval = null
 
 // Initialize from server data
 const initializeFromServerData = () => {
@@ -91,8 +92,19 @@ const currentDateOnly = computed(() => {
     return parts.slice(1).join(', ')
 })
 
+const isOfficeHoursComplete = computed(() => {
+    const totalOfficeSeconds = getTotalOfficeHours()
+    let totalSeconds = totalWorkedSeconds.value
+    if (isWorking.value && workStartTime.value) {
+        totalSeconds += Math.floor((new Date() - workStartTime.value) / 1000)
+    }
+    return totalSeconds >= totalOfficeSeconds
+})
+
 const progressLabel = computed(() => {
-    if (isWorking.value) {
+    if (isOfficeHoursComplete.value && !isWorking.value) {
+        return 'Completed'
+    } else if (isWorking.value) {
         return 'Work Duration'
     } else if (totalWorkedSeconds.value > 0) {
         return 'Total Today'
@@ -464,21 +476,14 @@ onMounted(() => {
     initializeFromServerData()
 
     // Sync with server every 30 seconds
-    const syncInterval = setInterval(syncWithServer, 30000)
-
-    // Store sync interval for cleanup
-    window.attendanceSyncInterval = syncInterval
+    syncInterval = setInterval(syncWithServer, 30000)
 })
 
 onUnmounted(() => {
     clearInterval(clockInterval)
     clearInterval(workInterval)
     clearInterval(breakInterval)
-
-    // Clear sync interval
-    if (window.attendanceSyncInterval) {
-        clearInterval(window.attendanceSyncInterval)
-    }
+    clearInterval(syncInterval)
 })
 </script>
 
@@ -523,7 +528,13 @@ onUnmounted(() => {
                         <div class="progress-label">{{ progressLabel }}</div>
                     </div>
                 </div>
-                <div class="d-flex gap-2 mt-4 flex-wrap justify-center">
+                <div v-if="isOfficeHoursComplete && !isWorking" class="mt-4">
+                    <v-chip color="success" variant="flat" size="small">
+                        <v-icon start size="small">mdi-check-circle</v-icon>
+                        Office hours completed for today
+                    </v-chip>
+                </div>
+                <div v-else class="d-flex gap-2 mt-4 flex-wrap justify-center">
                     <v-btn
                         :color="isWorking ? 'error' : 'success'"
                         :disabled="isLoading || isOnBreak"

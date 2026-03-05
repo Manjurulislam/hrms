@@ -1,6 +1,6 @@
 <script setup>
 import {ref} from 'vue';
-import {useForm} from "@inertiajs/vue3";
+import {Link, useForm} from "@inertiajs/vue3";
 
 const isSubmitting = ref(false);
 const inputVisible = ref(false);
@@ -59,5 +59,10 @@ const submit = () => {
             </v-checkbox>
         </div>
         <v-btn :loading="isSubmitting" block color="darkgray" flat size="large" type="submit">Sign In</v-btn>
+
+        <div class="text-center mt-4">
+            <span class="textSecondary">Don't have an account?</span>
+            <Link :href="route('register')" class="text-primary font-weight-semibold ml-1">Register</Link>
+        </div>
     </v-form>
 </template>
