@@ -3,16 +3,15 @@ import {Head} from '@inertiajs/vue3';
 import BtnLink from '@/Components/common/utility/BtnLink.vue';
 import {reactive, ref} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
-import FilterWithoutTrash from '@/Components/common/filter/FilterWithoutTrash.vue';
+import EmployeeFilter from '@/Components/common/filter/EmployeeFilter.vue';
 import {useToast} from 'vue-toastification';
 import ImportEmployeeDialog from "@/Components/modules/employee/ImportEmployeeDialog.vue";
 
-
-defineProps([
-    'companies',
-    'departments',
-    'designations',
-])
+const props = defineProps({
+    companies: Array,
+    departments: Array,
+    empStatusOptions: Array,
+})
 
 const showImportDialog = ref(false);
 const toast = useToast();
@@ -24,7 +23,8 @@ const state = reactive({
         {title: 'Email', key: 'email'},
         {title: 'Phone', key: 'phone'},
         {title: 'Department', key: 'department'},
-        {title: 'Designations', key: 'designations', sortable: false},
+        {title: 'Designation', key: 'designation'},
+        {title: 'Manager', key: 'manager'},
         {title: 'Joined', key: 'joining_date'},
         {title: 'Status', key: 'status', sortable: false, width: '8%'},
         {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
@@ -35,8 +35,10 @@ const state = reactive({
     },
     filters: {
         search: '',
-        dateSearch: null,
-        isChecked: false,
+        company_id: null,
+        department_id: null,
+        status: null,
+        emp_status: null,
         per_page: 10
     },
     serverItems: [],
@@ -60,12 +62,11 @@ const getData = (obj) => {
 };
 
 const toggleStatus = (item) => {
-    axios.get(route('employees.toggle-status', item.id), {}, {preserveScroll: true})
+    axios.post(route('employees.toggle-status', item.id))
         .then(() => toast('Employee status has been updated.'));
 };
 
-const handleSearch = (filters) => {
-    state.filters = filters;
+const handleSearch = () => {
     state.loading = true;
     getData(state.filters);
 };
@@ -86,10 +87,10 @@ const getJoiningDateColor = (date) => {
     const diffTime = today.getTime() - joiningDate.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 30) return 'success'; // New employee (less than 1 month)
-    if (diffDays < 180) return 'info'; // Recent employee (less than 6 months)
-    if (diffDays < 365) return 'warning'; // Mid-tenure (less than 1 year)
-    return 'primary'; // Senior employee (1+ year)
+    if (diffDays < 30) return 'success';
+    if (diffDays < 180) return 'info';
+    if (diffDays < 365) return 'warning';
+    return 'primary';
 };
 
 const getFullName = (item) => {
@@ -142,7 +143,13 @@ const handleImportSuccess = () => {
                         </v-btn>
                     </v-toolbar>
 
-                    <FilterWithoutTrash :dateSearch="true" :filters="state.filters" @handleFilter="handleSearch"/>
+                    <EmployeeFilter
+                        :filters="state.filters"
+                        :companies="props.companies"
+                        :departments="props.departments"
+                        :empStatusOptions="props.empStatusOptions"
+                        @handleFilter="handleSearch"
+                    />
                     <v-card-text>
                         <v-data-table-server
                             :headers="state.headers"
@@ -216,29 +223,28 @@ const handleImportSuccess = () => {
                                 </v-chip>
                                 <span v-else class="text-muted">-</span>
                             </template>
-                            <template v-slot:item.designations="{ item }">
-                                <div v-if="item.designations && item.designations.length > 0"
-                                     class="d-flex flex-wrap ga-1">
-                                    <v-chip
-                                        v-for="designation in item.designations.slice(0, 2)"
-                                        :key="designation.id"
-                                        class="font-weight-regular"
-                                        color="secondary"
-                                        size="x-small"
-                                        variant="tonal"
-                                    >
-                                        {{ designation.title }}
-                                    </v-chip>
-                                    <v-chip
-                                        v-if="item.designations.length > 2"
-                                        class="font-weight-regular"
-                                        color="default"
-                                        size="x-small"
-                                        variant="tonal"
-                                    >
-                                        +{{ item.designations.length - 2 }}
-                                    </v-chip>
-                                </div>
+                            <template v-slot:item.designation="{ item }">
+                                <v-chip
+                                    v-if="item.designation"
+                                    class="font-weight-regular"
+                                    color="secondary"
+                                    size="small"
+                                    variant="tonal"
+                                >
+                                    {{ item.designation.title }}
+                                </v-chip>
+                                <span v-else class="text-muted">-</span>
+                            </template>
+                            <template v-slot:item.manager="{ item }">
+                                <v-chip
+                                    v-if="item.manager"
+                                    class="font-weight-regular"
+                                    color="info"
+                                    size="small"
+                                    variant="tonal"
+                                >
+                                    {{ item.manager.first_name }} {{ item.manager.last_name }}
+                                </v-chip>
                                 <span v-else class="text-muted">-</span>
                             </template>
                             <template v-slot:item.joining_date="{ item }">

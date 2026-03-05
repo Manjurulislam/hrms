@@ -4,94 +4,93 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DepartmentRequest;
-use App\Models\Company;
 use App\Models\Department;
-use App\Traits\PaginateQuery;
-use App\Traits\QueryParams;
-use App\Traits\ToggleStatus;
+use App\Services\Backend\DepartmentService;
 use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class DepartmentController extends Controller
 {
-    use QueryParams, PaginateQuery, ToggleStatus;
+    public function __construct(
+        protected readonly DepartmentService $service
+    ) {}
 
-    public function index()
+    public function index(): Response
     {
-        return Inertia::render('Backend/Department/index');
-    }
-
-    public function store(DepartmentRequest $request)
-    {
-        try {
-            Department::create($request->validated());
-            return to_route('departments.index');
-        } catch (Exception $e) {
-            Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
-        }
-    }
-
-    public function create()
-    {
-        $companies = Company::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        return Inertia::render('Backend/Department/create', [
-            'companies' => $companies
+        return Inertia::render('Backend/Department/index', [
+            'companies' => $this->service->formData()['companies'],
         ]);
     }
 
-    public function get(Request $request)
+    public function get(Request $request): JsonResponse
     {
-        $query  = Department::query()
-            ->with('company', 'schedule')
-            ->orderBy('name');
-        $query  = $this->commonQueryWithoutTrash($query, $request);
-        $rows   = $request->get('per_page', 10);
-        $result = $this->transformDepartment($query, $rows);
-        return response()->json($result);
+        return response()->json($this->service->list($request));
     }
 
-    public function edit(Department $department)
+    public function create(): Response
     {
-        $companies = Company::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        return Inertia::render('Backend/Department/edit', [
-            'item'      => $department->load('company:id,name'),
-            'companies' => $companies
-        ]);
+        return Inertia::render('Backend/Department/create', $this->service->formData());
     }
 
-    public function update(DepartmentRequest $request, Department $department)
+    public function store(DepartmentRequest $request): RedirectResponse
     {
         try {
-            $department->fill($request->validated())->save();
+            $this->service->create($request->validated());
+
             return to_route('departments.index');
         } catch (Exception $e) {
             Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
+
+            return back()->withErrors(['error' => 'Failed to create department.']);
         }
     }
 
-    public function destroy(Department $department)
+    public function edit(Department $department): Response
+    {
+        return Inertia::render('Backend/Department/edit', $this->service->formData($department));
+    }
+
+    public function update(DepartmentRequest $request, Department $department): RedirectResponse
     {
         try {
-            $department->delete();
-            return redirect()->back();
+            $this->service->update($department, $request->validated());
+
+            return to_route('departments.index');
         } catch (Exception $e) {
             Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
+
+            return back()->withErrors(['error' => 'Failed to update department.']);
         }
     }
 
-    public function toggleStatus(Department $department)
+    public function destroy(Department $department): RedirectResponse
     {
-        return $this->toggleModelStatus($department);
+        try {
+            $this->service->delete($department);
+
+            return to_route('departments.index');
+        } catch (Exception $e) {
+            Log::error(__METHOD__, [$e->getMessage()]);
+
+            return back()->withErrors(['error' => 'Failed to delete department.']);
+        }
+    }
+
+    public function toggleStatus(Department $department): JsonResponse
+    {
+        try {
+            $status = $this->service->toggle($department);
+
+            return response()->json(['success' => true, 'status' => $status]);
+        } catch (Exception $e) {
+            Log::error(__METHOD__, [$e->getMessage()]);
+
+            return response()->json(['success' => false], 500);
+        }
     }
 }

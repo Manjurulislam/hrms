@@ -4,96 +4,93 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LeaveTypeRequest;
-use App\Models\Company;
 use App\Models\LeaveType;
-use App\Traits\PaginateQuery;
-use App\Traits\QueryParams;
-use App\Traits\ToggleStatus;
+use App\Services\Backend\LeaveTypeService;
 use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class LeaveTypeController extends Controller
 {
-    use QueryParams, PaginateQuery, ToggleStatus;
+    public function __construct(
+        protected readonly LeaveTypeService $service
+    ) {}
 
-    public function index()
+    public function index(): Response
     {
-        return Inertia::render('Backend/LeaveType/index');
-    }
-
-    public function store(LeaveTypeRequest $request)
-    {
-        try {
-            LeaveType::create($request->validated());
-            return to_route('leave-types.index');
-        } catch (Exception $e) {
-            Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
-        }
-    }
-
-    public function create()
-    {
-        $companies = Company::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        return Inertia::render('Backend/LeaveType/create', [
-            'companies' => $companies
+        return Inertia::render('Backend/LeaveType/index', [
+            'companies' => $this->service->formData()['companies'],
         ]);
     }
 
-    public function get(Request $request)
+    public function get(Request $request): JsonResponse
     {
-        $query  = LeaveType::query()
-            ->with('company:id,name')
-            ->orderBy('name');
-        $query  = $this->commonQueryWithoutTrash($query, $request);
-        $rows   = $request->get('per_page', 10);
-        $result = $this->paginateOrFetchAll($query, $rows);
-        return response()->json($result);
+        return response()->json($this->service->list($request));
     }
 
-    public function edit(LeaveType $leaveType)
+    public function create(): Response
     {
-        $companies = Company::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        $leaveType->load('company:id,name');
-
-        return Inertia::render('Backend/LeaveType/edit', [
-            'item'      => $leaveType,
-            'companies' => $companies
-        ]);
+        return Inertia::render('Backend/LeaveType/create', $this->service->formData());
     }
 
-    public function update(LeaveTypeRequest $request, LeaveType $leaveType)
+    public function store(LeaveTypeRequest $request): RedirectResponse
     {
         try {
-            $leaveType->fill($request->validated())->save();
+            $this->service->create($request->validated());
+
             return to_route('leave-types.index');
         } catch (Exception $e) {
             Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
+
+            return back()->withErrors(['error' => 'Failed to create leave type.']);
         }
     }
 
-    public function destroy(LeaveType $leaveType)
+    public function edit(LeaveType $leaveType): Response
+    {
+        return Inertia::render('Backend/LeaveType/edit', $this->service->formData($leaveType));
+    }
+
+    public function update(LeaveTypeRequest $request, LeaveType $leaveType): RedirectResponse
     {
         try {
-            $leaveType->delete();
-            return redirect()->back();
+            $this->service->update($leaveType, $request->validated());
+
+            return to_route('leave-types.index');
         } catch (Exception $e) {
             Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
+
+            return back()->withErrors(['error' => 'Failed to update leave type.']);
         }
     }
 
-    public function toggleStatus(LeaveType $leaveType)
+    public function destroy(LeaveType $leaveType): RedirectResponse
     {
-        return $this->toggleModelStatus($leaveType);
+        try {
+            $this->service->delete($leaveType);
+
+            return to_route('leave-types.index');
+        } catch (Exception $e) {
+            Log::error(__METHOD__, [$e->getMessage()]);
+
+            return back()->withErrors(['error' => 'Failed to delete leave type.']);
+        }
+    }
+
+    public function toggleStatus(LeaveType $leaveType): JsonResponse
+    {
+        try {
+            $status = $this->service->toggle($leaveType);
+
+            return response()->json(['success' => true, 'status' => $status]);
+        } catch (Exception $e) {
+            Log::error(__METHOD__, [$e->getMessage()]);
+
+            return response()->json(['success' => false], 500);
+        }
     }
 }

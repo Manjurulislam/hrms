@@ -14,7 +14,7 @@ const props = defineProps({
 
 let form = useForm({
     name: '',
-    days: '',
+    max_per_year: '',
     company_id: null,
     status: true
 });
@@ -73,10 +73,10 @@ onMounted(() => {
                             <v-row>
                                 <v-col cols="12" md="6">
                                     <v-text-field
-                                        v-model="form.days"
-                                        :error-messages="form.errors.days"
+                                        v-model="form.max_per_year"
+                                        :error-messages="form.errors.max_per_year"
                                         density="compact"
-                                        label="Number of Days"
+                                        label="Max Days Per Year"
                                         min="0"
                                         placeholder="e.g., 21"
                                         required

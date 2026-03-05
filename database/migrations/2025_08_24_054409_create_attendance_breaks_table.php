@@ -23,7 +23,7 @@ return new class extends Migration
             $table->integer('duration_minutes')->nullable();
 
             // Break details
-            $table->enum('break_type', ['lunch', 'tea', 'personal', 'prayer', 'other'])->default('personal');
+            $table->string('break_type', 20)->default('personal');
             $table->text('reason')->nullable();
             $table->boolean('is_paid')->default(false);
             $table->integer('max_allowed_minutes')->nullable();
@@ -32,7 +32,7 @@ return new class extends Migration
             $table->ipAddress('break_start_ip')->nullable();
             $table->ipAddress('break_end_ip')->nullable();
 
-            $table->enum('status', ['active', 'completed'])->default('active');
+            $table->string('status', 20)->default('active');
 
             $table->timestamps();
 

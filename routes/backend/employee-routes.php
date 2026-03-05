@@ -2,6 +2,7 @@
 
 
 use App\Http\Controllers\Backend\EmployeeAttendanceController;
+use App\Http\Controllers\Employee\LeaveController;
 use App\Http\Controllers\Api\AttendanceRecordController;
 
 
@@ -16,6 +17,15 @@ Route::controller(EmployeeAttendanceController::class)->name('emp-attendance.')
         Route::post('/end-break', 'endBreak')->name('end-break');
         Route::get('/current-status', 'currentStatus')->name('current-status');
         Route::get('/monthly-data', 'monthlyData')->name('monthly-data');
+    });
+
+Route::controller(LeaveController::class)->name('emp-leave.')
+    ->prefix('leave')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('get', 'get')->name('get');
+        Route::get('create', 'create')->name('create');
+        Route::post('store', 'store')->name('store');
+        Route::post('{leaveRequest}/cancel', 'cancel')->name('cancel');
     });
 
 // API routes for attendance records data table

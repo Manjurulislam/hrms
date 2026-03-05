@@ -4,96 +4,93 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\HolidayRequest;
-use App\Models\Company;
 use App\Models\Holiday;
-use App\Traits\PaginateQuery;
-use App\Traits\QueryParams;
-use App\Traits\ToggleStatus;
+use App\Services\Backend\HolidayService;
 use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class HolidayController extends Controller
 {
-    use QueryParams, PaginateQuery, ToggleStatus;
+    public function __construct(
+        protected readonly HolidayService $service
+    ) {}
 
-    public function index()
+    public function index(): Response
     {
-        return Inertia::render('Backend/Holiday/index');
-    }
-
-    public function store(HolidayRequest $request)
-    {
-        try {
-            Holiday::create($request->validated());
-            return to_route('holidays.index');
-        } catch (Exception $e) {
-            Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
-        }
-    }
-
-    public function create()
-    {
-        $companies = Company::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        return Inertia::render('Backend/Holiday/create', [
-            'companies' => $companies
+        return Inertia::render('Backend/Holiday/index', [
+            'companies' => $this->service->formData()['companies'],
         ]);
     }
 
-    public function get(Request $request)
+    public function get(Request $request): JsonResponse
     {
-        $query  = Holiday::query()
-            ->with('company:id,name')
-            ->orderBy('day_at', 'desc');
-        $query  = $this->commonQueryWithoutTrash($query, $request);
-        $rows   = $request->get('per_page', 10);
-        $result = $this->paginateOrFetchAll($query, $rows);
-        return response()->json($result);
+        return response()->json($this->service->list($request));
     }
 
-    public function edit(Holiday $holiday)
+    public function create(): Response
     {
-        $companies = Company::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        $holiday->load('company:id,name');
-
-        return Inertia::render('Backend/Holiday/edit', [
-            'item'      => $holiday,
-            'companies' => $companies
-        ]);
+        return Inertia::render('Backend/Holiday/create', $this->service->formData());
     }
 
-    public function update(HolidayRequest $request, Holiday $holiday)
+    public function store(HolidayRequest $request): RedirectResponse
     {
         try {
-            $holiday->fill($request->validated())->save();
+            $this->service->create($request->validated());
+
             return to_route('holidays.index');
         } catch (Exception $e) {
             Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
+
+            return back()->withErrors(['error' => 'Failed to create holiday.']);
         }
     }
 
-    public function destroy(Holiday $holiday)
+    public function edit(Holiday $holiday): Response
+    {
+        return Inertia::render('Backend/Holiday/edit', $this->service->formData($holiday));
+    }
+
+    public function update(HolidayRequest $request, Holiday $holiday): RedirectResponse
     {
         try {
-            $holiday->delete();
-            return redirect()->back();
+            $this->service->update($holiday, $request->validated());
+
+            return to_route('holidays.index');
         } catch (Exception $e) {
             Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
+
+            return back()->withErrors(['error' => 'Failed to update holiday.']);
         }
     }
 
-    public function toggleStatus(Holiday $holiday)
+    public function destroy(Holiday $holiday): RedirectResponse
     {
-        return $this->toggleModelStatus($holiday);
+        try {
+            $this->service->delete($holiday);
+
+            return to_route('holidays.index');
+        } catch (Exception $e) {
+            Log::error(__METHOD__, [$e->getMessage()]);
+
+            return back()->withErrors(['error' => 'Failed to delete holiday.']);
+        }
+    }
+
+    public function toggleStatus(Holiday $holiday): JsonResponse
+    {
+        try {
+            $status = $this->service->toggle($holiday);
+
+            return response()->json(['success' => true, 'status' => $status]);
+        } catch (Exception $e) {
+            Log::error(__METHOD__, [$e->getMessage()]);
+
+            return response()->json(['success' => false], 500);
+        }
     }
 }

@@ -15,7 +15,8 @@ const props = defineProps({
 let form = useForm({
     name: '',
     description: '',
-    day_at: '',
+    start_date: '',
+    end_date: '',
     company_id: null,
 });
 
@@ -45,14 +46,14 @@ onMounted(() => {
                     <form @submit.prevent="submit">
                         <v-card-text class="mt-4 rounded-md">
                             <v-row>
-                                <v-col cols="12" md="4">
+                                <v-col cols="12" md="6">
                                     <TextInput
                                         v-model="form.name"
                                         :error-messages="form.errors.name"
                                         label="Name"
                                     />
                                 </v-col>
-                                <v-col cols="12" md="4">
+                                <v-col cols="12" md="6">
                                     <v-select
                                         v-model="form.company_id"
                                         :error-messages="form.errors.company_id"
@@ -65,20 +66,38 @@ onMounted(() => {
                                         variant="outlined"
                                     />
                                 </v-col>
+                            </v-row>
 
-                                <v-col cols="12" md="4">
+                            <v-row>
+                                <v-col cols="12" md="6">
                                     <div>
                                         <el-date-picker
-                                            v-model="form.day_at"
+                                            v-model="form.start_date"
                                             format="YYYY-MM-DD"
-                                            placeholder="Select holiday date"
+                                            placeholder="Start date"
                                             size="large"
                                             style="width: 100%"
                                             type="date"
                                             value-format="YYYY-MM-DD"
                                         />
-                                        <div v-if="form.errors.day_at" class="text-error text-caption mt-1">
-                                            {{ form.errors.day_at }}
+                                        <div v-if="form.errors.start_date" class="text-error text-caption mt-1">
+                                            {{ form.errors.start_date }}
+                                        </div>
+                                    </div>
+                                </v-col>
+                                <v-col cols="12" md="6">
+                                    <div>
+                                        <el-date-picker
+                                            v-model="form.end_date"
+                                            format="YYYY-MM-DD"
+                                            placeholder="End date"
+                                            size="large"
+                                            style="width: 100%"
+                                            type="date"
+                                            value-format="YYYY-MM-DD"
+                                        />
+                                        <div v-if="form.errors.end_date" class="text-error text-caption mt-1">
+                                            {{ form.errors.end_date }}
                                         </div>
                                     </div>
                                 </v-col>

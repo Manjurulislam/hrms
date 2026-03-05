@@ -5,129 +5,176 @@ namespace Database\Seeders;
 use App\Models\Employee;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class EmployeeSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-        Employee::truncate();
-
         $employees = [
+            // === Softwind Tech (company_id: 1) ===
+
+            // CEO - Moinur (no manager)
             [
-                'id_no'             => 'EMP001',
-                'first_name'        => 'Mohammad',
+                'id_no'             => 'SWT001',
+                'first_name'        => 'Moinur',
                 'last_name'         => 'Rahman',
-                'email'             => 'mohammad.rahman@company.com',
-                'phone'             => '+880-1712-345678',
-                'sec_phone'         => '+880-1856-123456',
-                'nid'               => '1234567890123',
+                'email'             => 'moinur@softwindtech.com',
+                'phone'             => '+880-1712-000001',
                 'gender'            => 'male',
-                'qualification'     => 'Bachelor of Science in Computer Science',
-                'emergency_contact' => '+880-1798-765432',
-                'blood_group'       => 'B+',
-                'marital_status'    => 'married',
-                'bank_account'      => '1234567890',
-                'address'           => 'House 15, Road 7, Dhanmondi, Dhaka-1205',
+                'company_id'        => 1,
+                'department_id'     => 1, // Backend (primary)
+                'designation_id'    => 1, // CEO
+                'manager_id'        => null,
+                'emp_status' => 'confirmed',
+                'status'            => true,
+                'joining_date'      => Carbon::parse('2020-01-01'),
+            ],
+            // CTO - Mafuz (reports to CEO)
+            [
+                'id_no'             => 'SWT002',
+                'first_name'        => 'Mafuz',
+                'last_name'         => 'Ahmed',
+                'email'             => 'mafuz@softwindtech.com',
+                'phone'             => '+880-1712-000002',
+                'gender'            => 'male',
+                'company_id'        => 1,
                 'department_id'     => 1,
-                'company_id'        => 1,
+                'designation_id'    => 2, // CTO
+                'manager_id'        => 1, // Moinur
+                'emp_status' => 'confirmed',
                 'status'            => true,
-                'date_of_birth'     => Carbon::parse('1990-05-15'),
-                'joining_date'      => Carbon::parse('2023-01-15'),
-                'probation_end_at'  => Carbon::parse('2023-07-15'),
+                'joining_date'      => Carbon::parse('2020-03-01'),
             ],
+            // PM - Kabir (reports to CTO)
             [
-                'id_no'             => 'EMP002',
-                'first_name'        => 'Fatima',
-                'last_name'         => 'Khatun',
-                'email'             => 'fatima.khatun@company.com',
-                'phone'             => '+880-1934-567890',
-                'sec_phone'         => null,
-                'nid'               => '2345678901234',
-                'gender'            => 'female',
-                'qualification'     => 'Master of Business Administration (MBA)',
-                'emergency_contact' => '+880-1678-234567',
-                'blood_group'       => 'A+',
-                'marital_status'    => 'single',
-                'bank_account'      => '2345678901',
-                'address'           => 'Flat 4B, Gulshan Avenue, Dhaka-1212',
-                'department_id'     => 2, // Human Resources
-                'company_id'        => 1,
-                'status'            => true,
-                'date_of_birth'     => Carbon::parse('1988-12-03'),
-                'joining_date'      => Carbon::parse('2022-03-01'),
-                'probation_end_at'  => Carbon::parse('2022-09-01'),
-            ],
-            [
-                'id_no'             => 'EMP003',
-                'first_name'        => 'Ahmed',
-                'last_name'         => 'Hassan',
-                'email'             => 'ahmed.hassan@company.com',
-                'phone'             => '+880-1645-789012',
-                'sec_phone'         => '+880-1723-456789',
-                'nid'               => '3456789012345',
+                'id_no'             => 'SWT003',
+                'first_name'        => 'Kabir',
+                'last_name'         => 'Hossain',
+                'email'             => 'kabir@softwindtech.com',
+                'phone'             => '+880-1712-000003',
                 'gender'            => 'male',
-                'qualification'     => 'Bachelor of Commerce in Accounting',
-                'emergency_contact' => '+880-1589-345678',
-                'blood_group'       => 'O+',
-                'marital_status'    => 'married',
-                'bank_account'      => '3456789012',
-                'address'           => 'Plot 25, Block C, Bashundhara R/A, Dhaka-1229',
-                'department_id'     => 3, // Finance & Accounting
                 'company_id'        => 1,
+                'department_id'     => 1,
+                'designation_id'    => 3, // Project Manager
+                'manager_id'        => 2, // Mafuz
+                'emp_status' => 'confirmed',
                 'status'            => true,
-                'date_of_birth'     => Carbon::parse('1985-08-22'),
-                'joining_date'      => Carbon::parse('2021-06-10'),
-                'probation_end_at'  => Carbon::parse('2021-12-10'),
+                'joining_date'      => Carbon::parse('2021-01-15'),
             ],
+            // TL Backend - Manjurul (reports to PM)
             [
-                'id_no'             => 'EMP004',
-                'first_name'        => 'Rashida',
-                'last_name'         => 'Begum',
-                'email'             => 'rashida.begum@company.com',
-                'phone'             => '+880-1756-890123',
-                'sec_phone'         => '+880-1634-567890',
-                'nid'               => '4567890123456',
-                'gender'            => 'female',
-                'qualification'     => 'Bachelor of Arts in Marketing',
-                'emergency_contact' => '+880-1490-234567',
-                'blood_group'       => 'AB+',
-                'marital_status'    => 'divorced',
-                'bank_account'      => '4567890123',
-                'address'           => 'House 8, Lane 3, Uttara Sector 12, Dhaka-1230',
-                'department_id'     => 4, // Marketing & Sales
+                'id_no'             => 'SWT004',
+                'first_name'        => 'Manjurul',
+                'last_name'         => 'Islam',
+                'email'             => 'manjurul@softwindtech.com',
+                'phone'             => '+880-1712-000004',
+                'gender'            => 'male',
                 'company_id'        => 1,
-                'status'            => false,
-                'date_of_birth'     => Carbon::parse('1992-11-18'),
-                'joining_date'      => Carbon::parse('2024-02-01'),
-                'probation_end_at'  => Carbon::parse('2024-08-01'),
+                'department_id'     => 1, // Backend
+                'designation_id'    => 4, // Team Lead
+                'manager_id'        => 3, // Kabir
+                'emp_status' => 'confirmed',
+                'status'            => true,
+                'joining_date'      => Carbon::parse('2021-06-01'),
             ],
+            // TL Frontend - Hasib (reports to PM)
             [
-                'id_no'             => 'EMP005',
-                'first_name'        => 'Karim',
+                'id_no'             => 'SWT005',
+                'first_name'        => 'Hasib',
+                'last_name'         => 'Khan',
+                'email'             => 'hasib@softwindtech.com',
+                'phone'             => '+880-1712-000005',
+                'gender'            => 'male',
+                'company_id'        => 1,
+                'department_id'     => 2, // Frontend
+                'designation_id'    => 4, // Team Lead
+                'manager_id'        => 3, // Kabir
+                'emp_status' => 'confirmed',
+                'status'            => true,
+                'joining_date'      => Carbon::parse('2021-06-15'),
+            ],
+            // Backend Developer 1 (reports to TL Manjurul)
+            [
+                'id_no'             => 'SWT006',
+                'first_name'        => 'Rahim',
                 'last_name'         => 'Uddin',
-                'email'             => 'karim.uddin@company.com',
-                'phone'             => '+880-1867-901234',
-                'sec_phone'         => null,
-                'nid'               => '5678901234567',
+                'email'             => 'rahim@softwindtech.com',
+                'phone'             => '+880-1712-000006',
                 'gender'            => 'male',
-                'qualification'     => 'Diploma in Operations Management',
-                'emergency_contact' => '+880-1745-345678',
-                'blood_group'       => 'O-',
-                'marital_status'    => 'single',
-                'bank_account'      => '5678901234',
-                'address'           => 'Apartment 12A, Banani DOHS, Dhaka-1213',
-                'department_id'     => 5, // Operations
                 'company_id'        => 1,
+                'department_id'     => 1, // Backend
+                'designation_id'    => 6, // Developer
+                'manager_id'        => 4, // Manjurul
+                'emp_status' => 'confirmed',
                 'status'            => true,
-                'date_of_birth'     => Carbon::parse('1995-03-10'),
-                'joining_date'      => Carbon::parse('2024-05-20'),
-                'probation_end_at'  => Carbon::parse('2024-11-20'),
+                'joining_date'      => Carbon::parse('2022-03-01'),
+            ],
+            // Frontend Developer 1 (reports to TL Hasib)
+            [
+                'id_no'             => 'SWT007',
+                'first_name'        => 'Nusrat',
+                'last_name'         => 'Jahan',
+                'email'             => 'nusrat@softwindtech.com',
+                'phone'             => '+880-1712-000007',
+                'gender'            => 'female',
+                'company_id'        => 1,
+                'department_id'     => 2, // Frontend
+                'designation_id'    => 6, // Developer
+                'manager_id'        => 5, // Hasib
+                'emp_status' => 'confirmed',
+                'status'            => true,
+                'joining_date'      => Carbon::parse('2022-05-01'),
+            ],
+
+            // === Aliede (company_id: 2) ===
+
+            // TL Backend - Aliede (reports to Kabir via company_employee)
+            [
+                'id_no'             => 'ALD001',
+                'first_name'        => 'Farhan',
+                'last_name'         => 'Alam',
+                'email'             => 'farhan@aliede.com',
+                'phone'             => '+880-1798-000001',
+                'gender'            => 'male',
+                'company_id'        => 2,
+                'department_id'     => 4, // Aliede Backend
+                'designation_id'    => 10, // Aliede Team Lead
+                'manager_id'        => null, // will be set via company_employee for cross-company
+                'emp_status' => 'confirmed',
+                'status'            => true,
+                'joining_date'      => Carbon::parse('2022-01-10'),
+            ],
+            // TL Frontend - Aliede
+            [
+                'id_no'             => 'ALD002',
+                'first_name'        => 'Tasnim',
+                'last_name'         => 'Akter',
+                'email'             => 'tasnim@aliede.com',
+                'phone'             => '+880-1798-000002',
+                'gender'            => 'female',
+                'company_id'        => 2,
+                'department_id'     => 5, // Aliede Frontend
+                'designation_id'    => 10, // Aliede Team Lead
+                'manager_id'        => null,
+                'emp_status' => 'confirmed',
+                'status'            => true,
+                'joining_date'      => Carbon::parse('2022-02-15'),
+            ],
+            // Developer - Aliede Backend
+            [
+                'id_no'             => 'ALD003',
+                'first_name'        => 'Sakib',
+                'last_name'         => 'Hasan',
+                'email'             => 'sakib@aliede.com',
+                'phone'             => '+880-1798-000003',
+                'gender'            => 'male',
+                'company_id'        => 2,
+                'department_id'     => 4,
+                'designation_id'    => 12, // Aliede Developer
+                'manager_id'        => 8,  // Farhan (TL)
+                'emp_status' => 'probation',
+                'status'            => true,
+                'joining_date'      => Carbon::parse('2024-01-10'),
             ],
         ];
 
@@ -135,6 +182,5 @@ class EmployeeSeeder extends Seeder
             Employee::create($employee);
         }
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
     }
 }

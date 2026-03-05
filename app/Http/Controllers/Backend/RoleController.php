@@ -5,82 +5,90 @@ namespace App\Http\Controllers\Backend;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RoleRequest;
 use App\Models\Role;
-use App\Traits\PaginateQuery;
-use App\Traits\QueryParams;
-use App\Traits\ToggleStatus;
+use App\Services\Backend\RoleService;
 use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class RoleController extends Controller
 {
-    use QueryParams, PaginateQuery, ToggleStatus;
+    public function __construct(
+        protected readonly RoleService $service
+    ) {}
 
-    public function index()
+    public function index(): Response
     {
         return Inertia::render('Backend/Secure/Role/Index');
     }
 
-
-    public function store(RoleRequest $request)
+    public function get(Request $request): JsonResponse
     {
-        try {
-            Role::create($request->validated());
-            return to_route('roles.index');
-        } catch (Exception $e) {
-            Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
-        }
+        return response()->json($this->service->list($request));
     }
 
-    public function create()
+    public function create(): Response
     {
         return Inertia::render('Backend/Secure/Role/Create');
     }
 
-    public function edit(Role $role)
+    public function store(RoleRequest $request): RedirectResponse
     {
-        return Inertia::render('Backend/Secure/Role/Edit', [
-            'item' => $role,
-        ]);
-    }
-
-
-    public function update(RoleRequest $request, Role $role)
-    {
-
         try {
-            $role->update($request->validated());
+            $this->service->create($request->validated());
+
             return to_route('roles.index');
         } catch (Exception $e) {
             Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
+
+            return back()->withErrors(['error' => 'Failed to create role.']);
         }
     }
 
-    public function get(Request $request)
+    public function edit(Role $role): Response
     {
-        $query  = Role::query();
-        $query  = $this->commonQueryWithoutTrash($query, $request);
-        $rows   = $request->get('per_page', 10);
-        $result = $this->paginateOrFetchAll($query, $rows);
-        return response()->json($result);
+        return Inertia::render('Backend/Secure/Role/Edit', $this->service->formData($role));
     }
 
-    public function destroy(Role $role)
+    public function update(RoleRequest $request, Role $role): RedirectResponse
     {
         try {
-            $role->delete();
-            return redirect()->back();
+            $this->service->update($role, $request->validated());
+
+            return to_route('roles.index');
         } catch (Exception $e) {
             Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
+
+            return back()->withErrors(['error' => 'Failed to update role.']);
         }
     }
 
-    public function toggleStatus(Role $role)
+    public function destroy(Role $role): RedirectResponse
     {
-        return $this->toggleModelStatus($role);
+        try {
+            $this->service->delete($role);
+
+            return to_route('roles.index');
+        } catch (Exception $e) {
+            Log::error(__METHOD__, [$e->getMessage()]);
+
+            return back()->withErrors(['error' => 'Failed to delete role.']);
+        }
+    }
+
+    public function toggleStatus(Role $role): JsonResponse
+    {
+        try {
+            $status = $this->service->toggle($role);
+
+            return response()->json(['success' => true, 'status' => $status]);
+        } catch (Exception $e) {
+            Log::error(__METHOD__, [$e->getMessage()]);
+
+            return response()->json(['success' => false], 500);
+        }
     }
 }

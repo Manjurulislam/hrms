@@ -5,9 +5,6 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('designations', function (Blueprint $table) {
@@ -15,16 +12,13 @@ return new class extends Migration {
             $table->string('title')->index();
             $table->text('description')->nullable();
             $table->unsignedBigInteger('parent_id')->nullable()->index();
-            $table->unsignedBigInteger('company_id')->nullable()->index();
-            $table->unsignedBigInteger('department_id')->index();
+            $table->foreignId('company_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->unsignedTinyInteger('level')->default(5)->index(); // 1=CEO, 2=CTO, 3=PM, 4=TL, 5=Employee
             $table->boolean('status')->default(true);
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('designations');

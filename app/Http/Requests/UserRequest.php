@@ -8,53 +8,34 @@ use Illuminate\Validation\Rules\Password;
 
 class UserRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return auth()->check();
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
     public function rules(): array
     {
+        $userId = $this->route('user')?->id;
+
         return [
             'name'     => ['required', 'string', 'max:255'],
-            'email'    => ['required', 'email', 'max:255', Rule::unique('users')->ignore($this->user)],
-            'password' => $this->getPasswordRules(),
+            'email'    => ['required', 'email', 'max:255', Rule::unique('users')->ignore($userId)],
+            'password' => [$userId ? 'nullable' : 'required', Password::min(6)->mixedCase()->numbers()->symbols()],
             'status'   => ['required', 'boolean'],
             'role'     => ['required', 'array', 'exists:roles,id'],
         ];
     }
 
-    protected function getPasswordRules(): array
-    {
-        $required      = $this->user ? 'nullable' : 'required';
-        $passwordRules = Password::min(6)->mixedCase()->numbers()->symbols();
-
-        return [$required, $passwordRules];
-    }
-
-    /**
-     * Get custom attributes for validator errors.
-     */
     public function attributes(): array
     {
         return [
-            'name'        => 'name',
-            'email'       => 'email address',
-            'password'    => 'password',
-            'employee_id' => 'employee',
-            'status'      => 'status',
+            'name'     => 'name',
+            'email'    => 'email address',
+            'password' => 'password',
+            'role'     => 'role',
         ];
     }
 
-    /**
-     * Get the error messages for the defined validation rules.
-     */
     public function messages(): array
     {
         return [
@@ -63,8 +44,7 @@ class UserRequest extends FormRequest
             'email.email'        => 'Please enter a valid email address.',
             'email.unique'       => 'This email address is already registered.',
             'password.required'  => 'Password is required.',
-            'password.min'       => 'Password must be at least 8 characters.',
-            'password.confirmed' => 'Password confirmation does not match.',
+            'password.min'       => 'Password must be at least 6 characters.',
         ];
     }
 }

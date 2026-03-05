@@ -4,7 +4,7 @@ import {Head} from '@inertiajs/vue3';
 import BtnLink from '@/Components/common/utility/BtnLink.vue';
 import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
-import FilterWithoutTrash from '@/Components/common/filter/FilterWithoutTrash.vue';
+import RoleFilter from '@/Components/common/filter/RoleFilter.vue';
 import {useToast} from 'vue-toastification';
 import BtnDelete from "@/Components/common/utility/BtnDelete.vue";
 
@@ -23,7 +23,7 @@ const state = reactive({
     },
     filters: {
         search: '',
-        dateSearch: null,
+        status: null,
         per_page: 10
     },
     serverItems: [],
@@ -47,7 +47,7 @@ const getData = (obj) => {
 };
 
 const toggleStatus = (item) => {
-    axios.get(route('roles.toggle-status', item.id), {}, {preserveScroll: true})
+    axios.post(route('roles.toggle-status', item.id))
         .then(() => toast('Status has been updated.'));
 };
 
@@ -70,7 +70,7 @@ const handleSearch = (filters) => {
                         title="Roles"
                     />
 
-                    <FilterWithoutTrash :dateSearch="false" :filters="state.filters" @handleFilter="handleSearch"/>
+                    <RoleFilter :filters="state.filters" @handleFilter="handleSearch"/>
                     <v-card-text>
                         <v-data-table-server
                             :headers="state.headers"
@@ -86,7 +86,6 @@ const handleSearch = (filters) => {
                             <template v-slot:item.id="{ index }">
                                 {{ index + 1 }}
                             </template>
-
 
                             <template v-slot:item.status="{ item }">
                                 <v-switch
@@ -118,4 +117,3 @@ const handleSearch = (filters) => {
         </v-row>
     </DefaultLayout>
 </template>
-

@@ -5,9 +5,6 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('employees', function (Blueprint $table) {
@@ -19,7 +16,7 @@ return new class extends Migration {
             $table->string('phone', 20)->unique()->nullable();
             $table->string('sec_phone', 20)->nullable();
             $table->string('nid')->nullable();
-            $table->enum('gender', ['male', 'female', 'other'])->nullable();
+            $table->string('gender', 20)->nullable();
 
             $table->longText('qualification')->nullable();
             $table->text('emergency_contact')->nullable();
@@ -29,20 +26,21 @@ return new class extends Migration {
 
             $table->text('address')->nullable();
 
-            $table->unsignedBigInteger('company_id')->index();
-            $table->unsignedBigInteger('department_id')->index();
+            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('department_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('designation_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedBigInteger('manager_id')->nullable()->index();
 
+            $table->string('emp_status', 20)->default('probation');
             $table->boolean('status')->default(true);
             $table->date('date_of_birth')->nullable();
             $table->date('joining_date')->nullable();
-            $table->date('probation_end_at')->nullable();
             $table->timestamps();
+
+            $table->foreign('manager_id')->references('id')->on('employees')->nullOnDelete();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('employees');

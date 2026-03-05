@@ -72,15 +72,15 @@ class AttendanceService
                 ->today()
                 ->max('session_number') + 1;
 
-            // Get schedule information
-            $schedule = $employee->department->schedule;
+            // Get schedule information from company
+            $company = $employee->company;
             $scheduledStartTime = null;
             $scheduledEndTime = null;
             $lateMinutes = 0;
 
-            if ($schedule) {
-                $scheduledStartTime = $schedule->work_start_time;
-                $scheduledEndTime = $schedule->work_end_time;
+            if ($company) {
+                $scheduledStartTime = $company->office_start_time;
+                $scheduledEndTime = $company->office_end_time;
 
                 // Calculate if late
                 $lateMinutes = $this->scheduleService->calculateLateMinutes($employee, now());
@@ -89,7 +89,7 @@ class AttendanceService
             // Create new session
             $session = AttendanceSession::create([
                 'employee_id' => $employee->id,
-                'company_id' => $employee->department->company_id,
+                'company_id' => $employee->company_id,
                 'department_id' => $employee->department_id,
                 'attendance_date' => today(),
                 'session_number' => $sessionNumber,
@@ -443,23 +443,23 @@ class AttendanceService
      */
     private function updateDailySummary(Employee $employee, string $ip, string $location = 'office'): void
     {
-        $today = today();
-        $schedule = $employee->department->schedule;
+        $today        = today();
+        $company      = $employee->company;
         $isWorkingDay = $this->scheduleService->isWorkingDay($employee, $today);
 
         $summary = AttendanceSummary::firstOrCreate(
             [
-                'employee_id' => $employee->id,
+                'employee_id'   => $employee->id,
                 'attendance_date' => $today,
             ],
             [
-                'company_id' => $employee->department->company_id,
-                'department_id' => $employee->department_id,
-                'scheduled_start_time' => $schedule ? $schedule->work_start_time : null,
-                'scheduled_end_time' => $schedule ? $schedule->work_end_time : null,
-                'grace_minutes' => $schedule ? ($schedule->delay ?? 15) : 15,
-                'is_working_day' => $isWorkingDay,
-                'shift_name' => $schedule ? 'Regular' : 'Default',
+                'company_id'           => $employee->company_id,
+                'department_id'        => $employee->department_id,
+                'scheduled_start_time' => $company?->office_start_time,
+                'scheduled_end_time'   => $company?->office_end_time,
+                'grace_minutes'        => config('attendance.late_grace_period', 15),
+                'is_working_day'       => $isWorkingDay,
+                'shift_name'           => $company ? 'Regular' : 'Default',
             ]
         );
 
@@ -476,11 +476,9 @@ class AttendanceService
      */
     private function determineSessionType(Employee $employee): string
     {
-        // Get department schedule if exists
-        $schedule = $employee->department->schedule;
+        $company = $employee->company;
 
-        if (!$schedule) {
-            // Default: overtime if after 6 PM or before 8 AM
+        if (!$company || !$company->office_start_time) {
             $hour = now()->hour;
             if ($hour >= 18 || $hour < 8) {
                 return 'overtime';
@@ -488,8 +486,6 @@ class AttendanceService
             return 'regular';
         }
 
-        // Check against department schedule
-        // This can be expanded based on your schedule implementation
         return 'regular';
     }
 

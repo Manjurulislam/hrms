@@ -37,8 +37,8 @@ return new class extends Migration {
 
             // Session details
             $table->integer('duration_minutes')->nullable();
-            $table->enum('session_type', ['regular', 'overtime', 'break_return'])->default('regular');
-            $table->enum('status', ['active', 'completed', 'auto_closed'])->default('active')->index();
+            $table->string('session_type', 20)->default('regular');
+            $table->string('status', 20)->default('active')->index();
 
             // Tracking flags
             $table->boolean('is_late')->default(false)->index();

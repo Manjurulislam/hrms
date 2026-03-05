@@ -4,8 +4,12 @@ import {Head} from '@inertiajs/vue3';
 import BtnLink from '@/Components/common/utility/BtnLink.vue';
 import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
-import FilterWithoutTrash from '@/Components/common/filter/FilterWithoutTrash.vue';
+import DesignationFilter from '@/Components/common/filter/DesignationFilter.vue';
 import {useToast} from 'vue-toastification';
+
+const props = defineProps({
+    companies: Array,
+});
 
 const toast = useToast();
 const state = reactive({
@@ -13,7 +17,7 @@ const state = reactive({
         {title: 'SL', align: 'start', sortable: false, key: 'id'},
         {title: 'Title', key: 'title'},
         {title: 'Company', key: 'company'},
-        {title: 'Department', key: 'department'},
+        {title: 'Level', key: 'level', align: 'center'},
         {title: 'Parent', key: 'parent'},
         {title: 'Description', key: 'description', sortable: false},
         {title: 'Status', key: 'status', sortable: false, width: '8%'},
@@ -25,8 +29,8 @@ const state = reactive({
     },
     filters: {
         search: '',
-        dateSearch: null,
-        isChecked: false,
+        company_id: null,
+        status: null,
         per_page: 10
     },
     serverItems: [],
@@ -50,7 +54,7 @@ const getData = (obj) => {
 };
 
 const toggleStatus = (item) => {
-    axios.get(route('designations.toggle-status', item.id), {}, {preserveScroll: true})
+    axios.post(route('designations.toggle-status', item.id))
         .then(() => toast('Designation status has been updated.'));
 };
 
@@ -78,7 +82,11 @@ const truncateText = (text, length = 40) => {
                         title="Designations"
                     />
 
-                    <FilterWithoutTrash :dateSearch="false" :filters="state.filters" @handleFilter="handleSearch"/>
+                    <DesignationFilter
+                        :filters="state.filters"
+                        :companies="props.companies"
+                        @handleFilter="handleSearch"
+                    />
                     <v-card-text>
                         <v-data-table-server
                             :headers="state.headers"
@@ -115,17 +123,15 @@ const truncateText = (text, length = 40) => {
                                 </v-chip>
                                 <span v-else class="text-muted">-</span>
                             </template>
-                            <template v-slot:item.department="{ item }">
+                            <template v-slot:item.level="{ item }">
                                 <v-chip
-                                    v-if="item.department"
-                                    class="font-weight-regular"
+                                    class="font-weight-medium"
                                     color="secondary"
                                     size="small"
                                     variant="tonal"
                                 >
-                                    {{ item.department.name }}
+                                    {{ item.level }}
                                 </v-chip>
-                                <span v-else class="text-muted">-</span>
                             </template>
                             <template v-slot:item.parent="{ item }">
                                 <v-chip

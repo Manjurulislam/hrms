@@ -3,7 +3,6 @@
 
 use App\Http\Controllers\Backend\CompanyController;
 use App\Http\Controllers\Backend\DepartmentController;
-use App\Http\Controllers\Backend\DepartmentScheduleController;
 use App\Http\Controllers\Backend\DesignationController;
 use App\Http\Controllers\Backend\EmployeeController;
 use App\Http\Controllers\Backend\HolidayController;
@@ -20,7 +19,7 @@ Route::controller(CompanyController::class)->name('companies.')
         Route::post('store', 'store')->name('store');
         Route::get('{company}/edit', 'edit')->name('edit');
         Route::put('update/{company}', 'update')->name('update');
-        Route::get('{company}/toggle-status', 'toggleStatus')->name('toggle-status');
+        Route::post('{company}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::delete('delete/{company}', 'destroy')->name('destroy');
     });
 
@@ -32,16 +31,8 @@ Route::controller(DepartmentController::class)->name('departments.')
         Route::post('store', 'store')->name('store');
         Route::get('{department}/edit', 'edit')->name('edit');
         Route::put('update/{department}', 'update')->name('update');
-        Route::get('{department}/toggle-status', 'toggleStatus')->name('toggle-status');
+        Route::post('{department}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::delete('delete/{department}', 'destroy')->name('destroy');
-    });
-
-Route::controller(DepartmentScheduleController::class)->name('department-schedules.')
-    ->prefix('department-schedules')->group(function () {
-        Route::post('{department}/store', 'store')->name('store');
-        Route::get('{department}/edit', 'edit')->name('edit');
-        Route::get('{department}/has-schedule', 'hasSchedule')->name('has-schedule');
-        Route::put('update/{department}', 'update')->name('update');
     });
 
 
@@ -53,7 +44,7 @@ Route::controller(DesignationController::class)->name('designations.')
         Route::post('store', 'store')->name('store');
         Route::get('{designation}/edit', 'edit')->name('edit');
         Route::put('update/{designation}', 'update')->name('update');
-        Route::get('{designation}/toggle-status', 'toggleStatus')->name('toggle-status');
+        Route::post('{designation}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::delete('delete/{designation}', 'destroy')->name('destroy');
     });
 
@@ -65,7 +56,7 @@ Route::controller(HolidayController::class)->name('holidays.')
         Route::post('store', 'store')->name('store');
         Route::get('{holiday}/edit', 'edit')->name('edit');
         Route::put('update/{holiday}', 'update')->name('update');
-        Route::get('{holiday}/toggle-status', 'toggleStatus')->name('toggle-status');
+        Route::post('{holiday}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::delete('delete/{holiday}', 'destroy')->name('destroy');
     });
 
@@ -77,7 +68,7 @@ Route::controller(LeaveTypeController::class)->name('leave-types.')
         Route::post('store', 'store')->name('store');
         Route::get('{leaveType}/edit', 'edit')->name('edit');
         Route::put('update/{leaveType}', 'update')->name('update');
-        Route::get('{leaveType}/toggle-status', 'toggleStatus')->name('toggle-status');
+        Route::post('{leaveType}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::delete('delete/{leaveType}', 'destroy')->name('destroy');
     });
 
@@ -90,7 +81,7 @@ Route::controller(EmployeeController::class)->name('employees.')
         Route::post('store', 'store')->name('store');
         Route::get('{employee}/edit', 'edit')->name('edit');
         Route::put('update/{employee}', 'update')->name('update');
-        Route::get('{employee}/toggle-status', 'toggleStatus')->name('toggle-status');
+        Route::post('{employee}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::delete('delete/{employee}', 'destroy')->name('destroy');
     });
 
@@ -103,7 +94,7 @@ Route::controller(UserController::class)->name('users.')
         Route::post('store', 'store')->name('store');
         Route::get('{user}/edit', 'edit')->name('edit');
         Route::put('update/{user}', 'update')->name('update');
-        Route::get('{user}/toggle-status', 'toggleStatus')->name('toggle-status');
+        Route::post('{user}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::delete('delete/{user}', 'destroy')->name('destroy');
     });
 
@@ -115,9 +106,6 @@ Route::controller(RoleController::class)->name('roles.')
         Route::post('store', 'store')->name('store');
         Route::get('{role}/edit', 'edit')->name('edit');
         Route::put('update/{role}', 'update')->name('update');
-        Route::get('{role}/toggle-status', 'toggleStatus')->name('toggle-status');
+        Route::post('{role}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::delete('delete/{role}', 'destroy')->name('destroy');
     });
-
-
-

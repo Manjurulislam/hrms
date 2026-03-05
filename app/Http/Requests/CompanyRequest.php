@@ -7,61 +7,46 @@ use Illuminate\Validation\Rule;
 
 class CompanyRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return auth()->check();
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
     public function rules(): array
     {
         $companyId = $this->route('company')?->id;
 
         return [
-            'name'    => ['required', 'string', 'max:255'],
-            'email'   => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('companies', 'email')->ignore($companyId)
-            ],
-            'phone'   => ['nullable', 'string', 'max:20'],
-            'address' => ['nullable', 'string', 'max:500'],
-            'website' => ['nullable', 'url', 'max:255'],
-            'status'  => ['boolean'],
+            'name'              => ['required', 'string', 'max:255'],
+            'email'             => ['required', 'email', 'max:255', Rule::unique('companies')->ignore($companyId)],
+            'phone'             => ['nullable', 'string', 'max:20'],
+            'address'           => ['nullable', 'string', 'max:500'],
+            'website'           => ['nullable', 'url', 'max:255'],
+            'office_start_time' => ['nullable', 'date_format:H:i'],
+            'office_end_time'   => ['nullable', 'date_format:H:i'],
+            'office_ip'         => ['nullable', 'string', 'max:45'],
+            'status'            => ['boolean'],
         ];
     }
 
-    /**
-     * Get custom attributes for validator errors.
-     */
     public function attributes(): array
     {
         return [
-            'name'    => 'company name',
-            'code'    => 'company code',
-            'email'   => 'email address',
-            'phone'   => 'phone number',
-            'address' => 'company address',
-            'website' => 'website URL',
-            'status'  => 'status',
+            'name'              => 'company name',
+            'email'             => 'email address',
+            'phone'             => 'phone number',
+            'address'           => 'company address',
+            'website'           => 'website URL',
+            'office_start_time' => 'office start time',
+            'office_end_time'   => 'office end time',
+            'office_ip'         => 'office IP',
         ];
     }
 
-    /**
-     * Get the error messages for the defined validation rules.
-     */
     public function messages(): array
     {
         return [
             'name.required'  => 'Company name is required.',
-            'code.required'  => 'Company code is required.',
-            'code.unique'    => 'This company code is already taken.',
             'email.required' => 'Email address is required.',
             'email.email'    => 'Please enter a valid email address.',
             'email.unique'   => 'This email address is already registered.',

@@ -4,8 +4,12 @@ import {Head} from '@inertiajs/vue3';
 import BtnLink from '@/Components/common/utility/BtnLink.vue';
 import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
-import FilterWithoutTrash from '@/Components/common/filter/FilterWithoutTrash.vue';
+import LeaveTypeFilter from '@/Components/common/filter/LeaveTypeFilter.vue';
 import {useToast} from 'vue-toastification';
+
+const props = defineProps({
+    companies: Array,
+});
 
 const toast = useToast();
 const state = reactive({
@@ -13,7 +17,7 @@ const state = reactive({
         {title: 'SL', align: 'start', sortable: false, key: 'id'},
         {title: 'Name', key: 'name'},
         {title: 'Company', key: 'company'},
-        {title: 'Days', key: 'days', align: 'center'},
+        {title: 'Max Days/Year', key: 'max_per_year', align: 'center'},
         {title: 'Status', key: 'status', sortable: false, width: '8%'},
         {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
     ],
@@ -23,8 +27,8 @@ const state = reactive({
     },
     filters: {
         search: '',
-        dateSearch: null,
-        isChecked: false,
+        company_id: null,
+        status: null,
         per_page: 10
     },
     serverItems: [],
@@ -48,7 +52,7 @@ const getData = (obj) => {
 };
 
 const toggleStatus = (item) => {
-    axios.get(route('leave-type.toggle-status', item.id), {}, {preserveScroll: true})
+    axios.post(route('leave-types.toggle-status', item.id))
         .then(() => toast('Leave type status has been updated.'));
 };
 
@@ -59,10 +63,10 @@ const handleSearch = (filters) => {
 };
 
 const getDaysColor = (days) => {
-    if (days <= 5) return 'error'; // Very few days
-    if (days <= 15) return 'warning'; // Moderate days
-    if (days <= 30) return 'info'; // Good amount
-    return 'success'; // Generous amount
+    if (days <= 5) return 'error';
+    if (days <= 15) return 'warning';
+    if (days <= 30) return 'info';
+    return 'success';
 };
 
 const getDaysLabel = (days) => {
@@ -83,7 +87,11 @@ const getDaysLabel = (days) => {
                         title="Leave Types"
                     />
 
-                    <FilterWithoutTrash :dateSearch="false" :filters="state.filters" @handleFilter="handleSearch"/>
+                    <LeaveTypeFilter
+                        :filters="state.filters"
+                        :companies="props.companies"
+                        @handleFilter="handleSearch"
+                    />
                     <v-card-text>
                         <v-data-table-server
                             :headers="state.headers"
@@ -120,15 +128,15 @@ const getDaysLabel = (days) => {
                                 </v-chip>
                                 <span v-else class="text-muted">-</span>
                             </template>
-                            <template v-slot:item.days="{ item }">
+                            <template v-slot:item.max_per_year="{ item }">
                                 <v-chip
-                                    :color="getDaysColor(item.days)"
+                                    :color="getDaysColor(item.max_per_year)"
                                     class="font-weight-medium"
                                     size="small"
                                     variant="flat"
                                 >
                                     <v-icon size="small" start>mdi-calendar-clock</v-icon>
-                                    {{ getDaysLabel(item.days) }}
+                                    {{ getDaysLabel(item.max_per_year) }}
                                 </v-chip>
                             </template>
                             <template v-slot:item.actions="{ item }">

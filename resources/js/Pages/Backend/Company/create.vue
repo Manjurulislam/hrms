@@ -13,6 +13,9 @@ const form = useForm({
     phone: '',
     address: '',
     website: '',
+    office_start_time: '',
+    office_end_time: '',
+    office_ip: '',
     status: true,
 });
 
@@ -98,6 +101,33 @@ const submit = () => {
                                             />
                                         </div>
                                     </div>
+                                </v-col>
+                            </v-row>
+
+                            <v-row>
+                                <v-col cols="12" md="4">
+                                    <TextInput
+                                        v-model="form.office_start_time"
+                                        :error-messages="form.errors.office_start_time"
+                                        label="Office Start Time"
+                                        type="time"
+                                    />
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <TextInput
+                                        v-model="form.office_end_time"
+                                        :error-messages="form.errors.office_end_time"
+                                        label="Office End Time"
+                                        type="time"
+                                    />
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <TextInput
+                                        v-model="form.office_ip"
+                                        :error-messages="form.errors.office_ip"
+                                        label="Office IP Address"
+                                        placeholder="192.168.1.1"
+                                    />
                                 </v-col>
                             </v-row>
 

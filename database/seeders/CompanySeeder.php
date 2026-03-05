@@ -7,33 +7,31 @@ use Illuminate\Database\Seeder;
 
 class CompanySeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        Company::truncate();
-
         $companies = [
             [
-                'name'    => 'Softwind Tech Ltd',
-                'code'    => 'TSL001',
-                'email'   => 'info@techsolutions.com',
-                'phone'   => '+880-1712-345678',
-                'address' => '123 Gulshan Avenue, Dhaka-1212',
-                'website' => 'https://www.techsolutions.com',
-                'status'  => true,
+                'name'              => 'Softwind Tech',
+                'code'              => 'SWT001',
+                'email'             => 'info@softwindtech.com',
+                'phone'             => '+880-1712-345678',
+                'address'           => '123 Gulshan Avenue, Dhaka-1212',
+                'website'           => 'https://www.softwindtech.com',
+                'office_start_time' => '09:00',
+                'office_end_time'   => '18:00',
+                'status'            => true,
             ],
             [
-                'name'    => 'Aliendie',
-                'code'    => 'DMP002',
-                'email'   => 'contact@digitalmarketingpro.com',
-                'phone'   => '+880-1798-765432',
-                'address' => '456 Dhanmondi Road, Dhaka-1205',
-                'website' => 'https://www.digitalmarketingpro.com',
-                'status'  => true,
+                'name'              => 'Aliede',
+                'code'              => 'ALD002',
+                'email'             => 'contact@aliede.com',
+                'phone'             => '+880-1798-765432',
+                'address'           => '456 Dhanmondi Road, Dhaka-1205',
+                'website'           => 'https://www.aliede.com',
+                'office_start_time' => '10:00',
+                'office_end_time'   => '19:00',
+                'status'            => true,
             ],
-
         ];
 
         foreach ($companies as $company) {

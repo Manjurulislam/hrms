@@ -14,6 +14,7 @@ Route::middleware(['auth', 'menu.permission'])->group(function () {
 
     //admin routes
     require __DIR__ . '/backend/admin-routes.php';
+    require __DIR__ . '/backend/company-routes.php';
     require __DIR__ . '/backend/employee-routes.php';
 
 });

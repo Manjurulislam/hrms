@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Enums\BloodGroup;
+use App\Enums\EmpStatus;
+use App\Enums\Gender;
+use App\Enums\MaritalStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Employee extends Model
 {
@@ -26,40 +29,54 @@ class Employee extends Model
         'marital_status',
         'bank_account',
         'address',
-        'department_id',
         'company_id',
+        'department_id',
+        'designation_id',
+        'manager_id',
+        'emp_status',
         'status',
         'date_of_birth',
         'joining_date',
-        'probation_end_at',
     ];
 
     protected $casts = [
-        'status'           => 'boolean',
-        'date_of_birth'    => 'date',
-        'joining_date'     => 'date',
-        'probation_end_at' => 'date',
+        'status'         => 'boolean',
+        'gender'         => Gender::class,
+        'emp_status'     => EmpStatus::class,
+        'blood_group'    => BloodGroup::class,
+        'marital_status' => MaritalStatus::class,
+        'date_of_birth'  => 'date',
+        'joining_date'   => 'date',
     ];
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
 
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
     }
 
-    public function designations(): BelongsToMany
+    public function designation(): BelongsTo
     {
-        return $this->belongsToMany(Designation::class, 'designation_employee')
-            ->withTimestamps();
+        return $this->belongsTo(Designation::class);
     }
 
-    public function attendances(): HasMany
+    public function manager(): BelongsTo
     {
-        return $this->hasMany(Attendance::class);
+        return $this->belongsTo(Employee::class, 'manager_id');
     }
 
-    public function company(): HasOneThrough
+    public function subordinates(): HasMany
     {
-        return $this->hasOneThrough(Company::class, Department::class, 'id', 'id', 'department_id', 'company_id');
+        return $this->hasMany(Employee::class, 'manager_id');
+    }
+
+    public function user(): HasOne
+    {
+        return $this->hasOne(User::class);
     }
 
     public function leaveRequests(): HasMany
@@ -67,13 +84,30 @@ class Employee extends Model
         return $this->hasMany(LeaveRequest::class);
     }
 
+    public function leaveBalances(): HasMany
+    {
+        return $this->hasMany(LeaveBalance::class);
+    }
+
+    public function attendanceSessions(): HasMany
+    {
+        return $this->hasMany(AttendanceSession::class);
+    }
+
+    public function attendanceSummaries(): HasMany
+    {
+        return $this->hasMany(AttendanceSummary::class);
+    }
+
+    public function managedCompanies(): BelongsToMany
+    {
+        return $this->belongsToMany(Company::class, 'company_employee')
+            ->withPivot('role', 'is_primary')
+            ->withTimestamps();
+    }
+
     public function getFullNameAttribute(): string
     {
         return trim($this->first_name . ' ' . $this->last_name);
-    }
-
-    public function user(): HasOne
-    {
-        return $this->hasOne(User::class);
     }
 }

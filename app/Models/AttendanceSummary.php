@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AttendanceStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -36,6 +37,7 @@ class AttendanceSummary extends Model
         'ip_addresses' => 'array',
         'locations' => 'array',
         'is_working_day' => 'boolean',
+        'status' => AttendanceStatus::class,
     ];
 
     public function employee(): BelongsTo
@@ -46,6 +48,11 @@ class AttendanceSummary extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     public function sessions(): HasMany
@@ -95,12 +102,12 @@ class AttendanceSummary extends Model
     // Scopes
     public function scopePresent($query)
     {
-        return $query->whereIn('status', ['present', 'late', 'work_from_home']);
+        return $query->whereIn('status', [AttendanceStatus::Present, AttendanceStatus::Late, AttendanceStatus::WorkFromHome]);
     }
 
     public function scopeAbsent($query)
     {
-        return $query->where('status', 'absent');
+        return $query->where('status', AttendanceStatus::Absent);
     }
 
     public function scopeForMonth($query, $year, $month)
@@ -120,7 +127,7 @@ class AttendanceSummary extends Model
 
         if ($allSessions->isEmpty()) {
             $this->update([
-                'status' => 'absent',
+                'status' => AttendanceStatus::Absent,
                 'total_working_minutes' => 0,
                 'total_sessions' => 0,
             ]);
@@ -186,19 +193,19 @@ class AttendanceSummary extends Model
         ]);
     }
 
-    private function determineStatus($netWorkingMinutes): string
+    private function determineStatus($netWorkingMinutes): AttendanceStatus
     {
         $hours = $netWorkingMinutes / 60;
 
         if ($hours >= 8) {
-            return 'present';
+            return AttendanceStatus::Present;
         } elseif ($hours >= 4) {
-            return 'half_day';
+            return AttendanceStatus::HalfDay;
         } elseif ($hours > 0) {
-            return 'late';
+            return AttendanceStatus::Late;
         }
 
-        return 'absent';
+        return AttendanceStatus::Absent;
     }
 
     public function addIpAddress($ip): void

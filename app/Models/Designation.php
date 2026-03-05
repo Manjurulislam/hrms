@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Designation extends Model
@@ -14,18 +13,14 @@ class Designation extends Model
         'description',
         'parent_id',
         'company_id',
-        'department_id',
+        'level',
         'status',
     ];
 
     protected $casts = [
         'status' => 'boolean',
+        'level'  => 'integer',
     ];
-
-    public function department(): BelongsTo
-    {
-        return $this->belongsTo(Department::class);
-    }
 
     public function company(): BelongsTo
     {
@@ -42,9 +37,8 @@ class Designation extends Model
         return $this->hasMany(Designation::class, 'parent_id');
     }
 
-    public function employees(): BelongsToMany
+    public function employees(): HasMany
     {
-        return $this->belongsToMany(Employee::class, 'designation_employee')
-            ->withTimestamps();
+        return $this->hasMany(Employee::class);
     }
 }

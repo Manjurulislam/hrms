@@ -1,0 +1,202 @@
+<script setup>
+import {Head, useForm} from "@inertiajs/vue3";
+import {useToast} from "vue-toastification";
+import DefaultLayout from "@/Layouts/DefaultLayout.vue";
+import CardTitle from "@/Components/common/card/CardTitle.vue";
+import TextInput from "@/Components/common/form/TextInput.vue";
+
+const toast = useToast();
+const props = defineProps({
+    departments: Array,
+    designations: Array,
+    employees: Array,
+    genderOptions: Array,
+    bloodGroupOptions: Array,
+    maritalStatusOptions: Array,
+    empStatusOptions: Array,
+});
+
+const form = useForm({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    sec_phone: '',
+    nid: '',
+    gender: null,
+    qualification: '',
+    emergency_contact: '',
+    blood_group: null,
+    marital_status: null,
+    bank_account: '',
+    address: '',
+    department_id: null,
+    designation_id: null,
+    manager_id: null,
+    emp_status: 'probation',
+    date_of_birth: '',
+    joining_date: '',
+    password: '',
+    status: true,
+});
+
+const managerList = () => {
+    return props.employees.map(e => ({...e, full_name: `${e.first_name} ${e.last_name}`}));
+};
+
+const submit = () => {
+    form.post(route('company.employees.store'), {
+        onSuccess: () => toast('Employee has been added successfully.'),
+        onError: () => toast.error('Something is wrong. Please try again.')
+    });
+};
+</script>
+
+<template>
+    <DefaultLayout>
+        <Head title="Create Employee"/>
+        <v-row no-gutters>
+            <v-col cols="12">
+                <v-card>
+                    <CardTitle
+                        :extra-route="{title: 'Back', route: 'company.employees.index', icon:'mdi-arrow-left-bold'}"
+                        icon="mdi-arrow-left-bold"
+                        title="Create Employee"
+                    />
+                    <form @submit.prevent="submit">
+                        <v-card-text>
+                            <v-row>
+                                <!-- Left Column -->
+                                <v-col cols="12" md="8">
+                                    <v-card variant="outlined" class="mb-5">
+                                        <v-toolbar density="compact" color="transparent" class="border-b">
+                                            <v-icon class="ml-4" size="small">mdi-account</v-icon>
+                                            <v-toolbar-title class="text-body-2 font-weight-bold">Personal Information</v-toolbar-title>
+                                        </v-toolbar>
+                                        <v-card-text>
+                                            <v-row dense>
+                                                <v-col cols="12" md="6">
+                                                    <TextInput v-model="form.first_name" :error-messages="form.errors.first_name" label="First Name" required/>
+                                                </v-col>
+                                                <v-col cols="12" md="6">
+                                                    <TextInput v-model="form.last_name" :error-messages="form.errors.last_name" label="Last Name"/>
+                                                </v-col>
+                                                <v-col cols="12" md="6">
+                                                    <TextInput v-model="form.email" :error-messages="form.errors.email" label="Email" required type="email"/>
+                                                </v-col>
+                                                <v-col cols="12" md="6">
+                                                    <TextInput v-model="form.phone" :error-messages="form.errors.phone" label="Phone" type="tel"/>
+                                                </v-col>
+                                                <v-col cols="12" md="6">
+                                                    <TextInput v-model="form.nid" :error-messages="form.errors.nid" label="National ID"/>
+                                                </v-col>
+                                                <v-col cols="12" md="6">
+                                                    <v-select v-model="form.gender" :error-messages="form.errors.gender" :items="genderOptions" clearable density="compact" item-title="label" item-value="value" label="Gender" variant="outlined"/>
+                                                </v-col>
+                                            </v-row>
+                                        </v-card-text>
+                                    </v-card>
+
+                                    <v-card variant="outlined" class="mb-5">
+                                        <v-toolbar density="compact" color="transparent" class="border-b">
+                                            <v-icon class="ml-4" size="small">mdi-briefcase</v-icon>
+                                            <v-toolbar-title class="text-body-2 font-weight-bold">Employment Information</v-toolbar-title>
+                                        </v-toolbar>
+                                        <v-card-text>
+                                            <v-row dense>
+                                                <v-col cols="12" md="6">
+                                                    <v-select v-model="form.department_id" :error-messages="form.errors.department_id" :items="departments" clearable density="compact" item-title="name" item-value="id" label="Department" required variant="outlined"/>
+                                                </v-col>
+                                                <v-col cols="12" md="6">
+                                                    <v-select v-model="form.designation_id" :error-messages="form.errors.designation_id" :items="designations" clearable density="compact" item-title="title" item-value="id" label="Designation" variant="outlined"/>
+                                                </v-col>
+                                                <v-col cols="12" md="6">
+                                                    <v-select v-model="form.manager_id" :error-messages="form.errors.manager_id" :items="managerList()" clearable density="compact" item-title="full_name" item-value="id" label="Reporting Manager" variant="outlined"/>
+                                                </v-col>
+                                                <v-col cols="12" md="6">
+                                                    <v-select v-model="form.emp_status" :error-messages="form.errors.emp_status" :items="empStatusOptions" density="compact" item-title="label" item-value="value" label="Employment Status" variant="outlined"/>
+                                                </v-col>
+                                            </v-row>
+                                        </v-card-text>
+                                    </v-card>
+
+                                    <v-card variant="outlined">
+                                        <v-toolbar density="compact" color="transparent" class="border-b">
+                                            <v-icon class="ml-4" size="small">mdi-card-account-details</v-icon>
+                                            <v-toolbar-title class="text-body-2 font-weight-bold">Additional Details</v-toolbar-title>
+                                        </v-toolbar>
+                                        <v-card-text>
+                                            <v-row dense>
+                                                <v-col cols="12" md="6">
+                                                    <TextInput v-model="form.emergency_contact" :error-messages="form.errors.emergency_contact" label="Emergency Contact" type="tel"/>
+                                                </v-col>
+                                                <v-col cols="12" md="6">
+                                                    <TextInput v-model="form.bank_account" :error-messages="form.errors.bank_account" label="Bank Account"/>
+                                                </v-col>
+                                                <v-col cols="12">
+                                                    <v-textarea v-model="form.address" :error-messages="form.errors.address" density="compact" label="Address" rows="3" variant="outlined"/>
+                                                </v-col>
+                                            </v-row>
+                                        </v-card-text>
+                                    </v-card>
+                                </v-col>
+
+                                <!-- Right Column -->
+                                <v-col cols="12" md="4">
+                                    <v-card variant="outlined" class="mb-5">
+                                        <v-toolbar density="compact" color="transparent" class="border-b">
+                                            <v-icon class="ml-4" size="small">mdi-calendar</v-icon>
+                                            <v-toolbar-title class="text-body-2 font-weight-bold">Dates</v-toolbar-title>
+                                        </v-toolbar>
+                                        <v-card-text>
+                                            <div class="mb-4">
+                                                <v-label class="text-caption mb-1">Date of Birth</v-label>
+                                                <el-date-picker v-model="form.date_of_birth" format="YYYY-MM-DD" placeholder="Select date" style="width: 100%" type="date" value-format="YYYY-MM-DD"/>
+                                                <div v-if="form.errors.date_of_birth" class="text-error text-caption mt-1">{{ form.errors.date_of_birth }}</div>
+                                            </div>
+                                            <div>
+                                                <v-label class="text-caption mb-1">Joining Date</v-label>
+                                                <el-date-picker v-model="form.joining_date" format="YYYY-MM-DD" placeholder="Select date" style="width: 100%" type="date" value-format="YYYY-MM-DD"/>
+                                                <div v-if="form.errors.joining_date" class="text-error text-caption mt-1">{{ form.errors.joining_date }}</div>
+                                            </div>
+                                        </v-card-text>
+                                    </v-card>
+
+                                    <v-card variant="outlined" class="mb-5">
+                                        <v-toolbar density="compact" color="transparent" class="border-b">
+                                            <v-icon class="ml-4" size="small">mdi-heart-pulse</v-icon>
+                                            <v-toolbar-title class="text-body-2 font-weight-bold">Personal Details</v-toolbar-title>
+                                        </v-toolbar>
+                                        <v-card-text>
+                                            <v-select v-model="form.marital_status" :error-messages="form.errors.marital_status" :items="maritalStatusOptions" clearable density="compact" item-title="label" item-value="value" label="Marital Status" variant="outlined"/>
+                                            <v-select v-model="form.blood_group" :error-messages="form.errors.blood_group" :items="bloodGroupOptions" clearable density="compact" item-title="label" item-value="value" label="Blood Group" variant="outlined"/>
+                                            <TextInput v-model="form.qualification" :error-messages="form.errors.qualification" label="Qualification"/>
+                                            <TextInput v-model="form.sec_phone" :error-messages="form.errors.sec_phone" label="Secondary Phone" type="tel"/>
+                                        </v-card-text>
+                                    </v-card>
+
+                                    <v-card variant="outlined">
+                                        <v-toolbar density="compact" color="transparent" class="border-b">
+                                            <v-icon class="ml-4" size="small">mdi-lock</v-icon>
+                                            <v-toolbar-title class="text-body-2 font-weight-bold">Account</v-toolbar-title>
+                                        </v-toolbar>
+                                        <v-card-text>
+                                            <TextInput v-model="form.password" :error-messages="form.errors.password" hint="Leave blank to skip account creation" label="Password" type="password"/>
+                                        </v-card-text>
+                                    </v-card>
+                                </v-col>
+                            </v-row>
+                        </v-card-text>
+
+                        <v-divider></v-divider>
+                        <v-card-actions>
+                            <v-btn :loading="form.processing" class="text-none mb-4 mx-auto" color="primary" type="submit" variant="flat">
+                                Create Employee
+                            </v-btn>
+                        </v-card-actions>
+                    </form>
+                </v-card>
+            </v-col>
+        </v-row>
+    </DefaultLayout>
+</template>

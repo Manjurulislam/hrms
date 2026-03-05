@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\SessionStatus;
+use App\Enums\SessionType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -50,6 +52,8 @@ class AttendanceSession extends Model
         'is_late' => 'boolean',
         'is_early_departure' => 'boolean',
         'is_overtime' => 'boolean',
+        'session_type' => SessionType::class,
+        'status' => SessionStatus::class,
     ];
 
     public function employee(): BelongsTo
@@ -76,12 +80,12 @@ class AttendanceSession extends Model
     // Scopes
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->where('status', SessionStatus::Active);
     }
 
     public function scopeCompleted($query)
     {
-        return $query->where('status', 'completed');
+        return $query->where('status', SessionStatus::Completed);
     }
 
     public function scopeToday($query)
@@ -105,7 +109,7 @@ class AttendanceSession extends Model
 
     public function getIsActiveAttribute(): bool
     {
-        return $this->status === 'active';
+        return $this->status === SessionStatus::Active;
     }
 
     // Methods
@@ -119,7 +123,7 @@ class AttendanceSession extends Model
 
     public function checkOut($ip, $location = 'office', $lat = null, $long = null, $note = null): bool
     {
-        if ($this->status !== 'active') {
+        if ($this->status !== SessionStatus::Active) {
             return false;
         }
 
@@ -130,7 +134,7 @@ class AttendanceSession extends Model
             'check_out_lat' => $lat,
             'check_out_long' => $long,
             'check_out_note' => $note,
-            'status' => 'completed',
+            'status' => SessionStatus::Completed,
         ]);
 
         $this->calculateDuration();
@@ -140,14 +144,13 @@ class AttendanceSession extends Model
 
     public function autoClose(): void
     {
-        if ($this->status === 'active') {
-            // Auto close at end of day (configurable)
+        if ($this->status === SessionStatus::Active) {
             $endOfDay = $this->check_in_time->copy()->endOfDay();
 
             $this->update([
                 'check_out_time' => $endOfDay,
                 'check_out_note' => 'Auto closed by system',
-                'status' => 'auto_closed',
+                'status' => SessionStatus::AutoClosed,
             ]);
 
             $this->calculateDuration();

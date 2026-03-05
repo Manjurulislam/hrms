@@ -4,128 +4,93 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DesignationRequest;
-use App\Models\Company;
-use App\Models\Department;
 use App\Models\Designation;
-use App\Traits\PaginateQuery;
-use App\Traits\QueryParams;
-use App\Traits\ToggleStatus;
+use App\Services\Backend\DesignationService;
 use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class DesignationController extends Controller
 {
-    use QueryParams, PaginateQuery, ToggleStatus;
+    public function __construct(
+        protected readonly DesignationService $service
+    ) {}
 
-    public function index()
+    public function index(): Response
     {
-        return Inertia::render('Backend/Designation/index');
+        return Inertia::render('Backend/Designation/index', [
+            'companies' => $this->service->formData()['companies'],
+        ]);
     }
 
-    public function store(DesignationRequest $request)
+    public function get(Request $request): JsonResponse
+    {
+        return response()->json($this->service->list($request));
+    }
+
+    public function create(): Response
+    {
+        return Inertia::render('Backend/Designation/create', $this->service->formData());
+    }
+
+    public function store(DesignationRequest $request): RedirectResponse
     {
         try {
-            Designation::create($request->validated());
+            $this->service->create($request->validated());
+
             return to_route('designations.index');
         } catch (Exception $e) {
             Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
+
+            return back()->withErrors(['error' => 'Failed to create designation.']);
         }
     }
 
-    public function create()
+    public function edit(Designation $designation): Response
     {
-        $companies = Company::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        $departments = Department::where('status', true)
-            ->with('company:id,name')
-            ->orderBy('name')
-            ->get(['id', 'name', 'company_id']);
-
-        $parentDesignations = Designation::where('status', true)
-            ->orderBy('title')
-            ->get(['id', 'title', 'company_id', 'department_id']);
-
-        return Inertia::render('Backend/Designation/create', [
-            'companies'          => $companies,
-            'departments'        => $departments,
-            'parentDesignations' => $parentDesignations
-        ]);
+        return Inertia::render('Backend/Designation/edit', $this->service->formData($designation));
     }
 
-    public function get(Request $request)
-    {
-        $query  = Designation::query()
-            ->with([
-                'company:id,name',
-                'department:id,name',
-                'parent:id,title'
-            ])
-            ->orderBy('title');
-        $query  = $this->commonQueryWithoutTrash($query, $request);
-        $rows   = $request->get('per_page', 10);
-        $result = $this->paginateOrFetchAll($query, $rows);
-        return response()->json($result);
-    }
-
-    public function edit(Designation $designation)
-    {
-        $companies = Company::where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        $departments = Department::where('status', true)
-            ->with('company:id,name')
-            ->orderBy('name')
-            ->get(['id', 'name', 'company_id']);
-
-        $parentDesignations = Designation::where('status', true)
-            ->where('id', '!=', $designation->id)
-            ->orderBy('title')
-            ->get(['id', 'title', 'company_id', 'department_id']);
-
-        $designation->load([
-            'company:id,name',
-            'department:id,name',
-            'parent:id,title'
-        ]);
-
-        return Inertia::render('Backend/Designation/edit', [
-            'item'               => $designation,
-            'companies'          => $companies,
-            'departments'        => $departments,
-            'parentDesignations' => $parentDesignations
-        ]);
-    }
-
-    public function update(DesignationRequest $request, Designation $designation)
+    public function update(DesignationRequest $request, Designation $designation): RedirectResponse
     {
         try {
-            $designation->fill($request->validated())->save();
+            $this->service->update($designation, $request->validated());
+
             return to_route('designations.index');
         } catch (Exception $e) {
             Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
+
+            return back()->withErrors(['error' => 'Failed to update designation.']);
         }
     }
 
-    public function destroy(Designation $designation)
+    public function destroy(Designation $designation): RedirectResponse
     {
         try {
-            $designation->delete();
-            return redirect()->back();
+            $this->service->delete($designation);
+
+            return to_route('designations.index');
         } catch (Exception $e) {
             Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
+
+            return back()->withErrors(['error' => 'Failed to delete designation.']);
         }
     }
 
-    public function toggleStatus(Designation $designation)
+    public function toggleStatus(Designation $designation): JsonResponse
     {
-        return $this->toggleModelStatus($designation);
+        try {
+            $status = $this->service->toggle($designation);
+
+            return response()->json(['success' => true, 'status' => $status]);
+        } catch (Exception $e) {
+            Log::error(__METHOD__, [$e->getMessage()]);
+
+            return response()->json(['success' => false], 500);
+        }
     }
 }

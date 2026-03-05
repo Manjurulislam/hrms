@@ -4,7 +4,7 @@ import {Head} from '@inertiajs/vue3';
 import BtnLink from '@/Components/common/utility/BtnLink.vue';
 import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
-import FilterWithoutTrash from '@/Components/common/filter/FilterWithoutTrash.vue';
+import CompanyFilter from '@/Components/common/filter/CompanyFilter.vue';
 import {useToast} from 'vue-toastification';
 
 const toast = useToast();
@@ -25,8 +25,7 @@ const state = reactive({
     },
     filters: {
         search: '',
-        dateSearch: null,
-        isChecked: false,
+        status: null,
         per_page: 10
     },
     serverItems: [],
@@ -50,7 +49,7 @@ const getData = (obj) => {
 };
 
 const toggleStatus = (item) => {
-    axios.get(route('companies.toggle-status', item.id), {}, {preserveScroll: true})
+    axios.post(route('companies.toggle-status', item.id))
         .then(() => toast('Company status has been updated.'));
 };
 
@@ -73,7 +72,7 @@ const handleSearch = (filters) => {
                         title="Companies"
                     />
 
-                    <FilterWithoutTrash :dateSearch="false" :filters="state.filters" @handleFilter="handleSearch"/>
+                    <CompanyFilter :filters="state.filters" @handleFilter="handleSearch"/>
                     <v-card-text>
                         <v-data-table-server
                             :headers="state.headers"

@@ -9,43 +9,31 @@ import TextInput from "@/Components/common/form/TextInput.vue";
 const toast = useToast();
 const props = defineProps({
     companies: Array,
-    departments: Array,
-    designations: Array
+    parentDesignations: Array
 });
 
 const form = useForm({
     title: '',
     description: '',
+    level: 5,
     company_id: null,
-    department_id: null,
     parent_id: null,
     status: true,
 });
 
-const filteredDepartments = computed(() => {
-    if (!form.company_id) return [];
-    return props.departments.filter(dept => dept.company_id == form.company_id);
-});
-
 const filteredDesignations = computed(() => {
     if (!form.company_id) return [];
-    return props.designations.filter(designation => designation.company_id == form.company_id);
+    return props.parentDesignations.filter(d => d.company_id == form.company_id);
 });
 
-// Reset department when company changes
 watch(() => form.company_id, () => {
-    form.department_id = null;
     form.parent_id = null;
 });
 
 const submit = () => {
     form.post(route('designations.store'), {
-        onSuccess: (success) => {
-            toast('Designation has been added successfully.');
-        },
-        onError: (error) => {
-            toast.error('Something is wrong. Please try again.');
-        }
+        onSuccess: () => toast('Designation has been added successfully.'),
+        onError: () => toast.error('Something is wrong. Please try again.')
     });
 };
 </script>
@@ -88,16 +76,16 @@ const submit = () => {
 
                             <v-row>
                                 <v-col cols="12" md="6">
-                                    <v-select
-                                        v-model="form.department_id"
-                                        :error-messages="form.errors.department_id"
-                                        :items="filteredDepartments"
-                                        clearable
+                                    <v-text-field
+                                        v-model="form.level"
+                                        :error-messages="form.errors.level"
                                         density="compact"
-                                        item-title="name"
-                                        item-value="id"
-                                        label="Department"
-                                        placeholder="Select company first"
+                                        hint="1 = Highest (CEO), 5 = Lowest (Developer)"
+                                        label="Level"
+                                        max="10"
+                                        min="1"
+                                        persistent-hint
+                                        type="number"
                                         variant="outlined"
                                     />
                                 </v-col>

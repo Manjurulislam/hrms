@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\LeaveRequestStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class LeaveRequest extends Model
@@ -13,9 +15,12 @@ class LeaveRequest extends Model
     protected $fillable = [
         'title',
         'notes',
+        'total_days',
         'company_id',
         'employee_id',
         'leave_type_id',
+        'current_approver_id',
+        'status',
         'started_at',
         'ended_at',
     ];
@@ -23,6 +28,8 @@ class LeaveRequest extends Model
     protected $casts = [
         'started_at' => 'date',
         'ended_at'   => 'date',
+        'total_days' => 'integer',
+        'status'     => LeaveRequestStatus::class,
     ];
 
     public function company(): BelongsTo
@@ -40,13 +47,13 @@ class LeaveRequest extends Model
         return $this->belongsTo(LeaveType::class);
     }
 
-    public function getTotalDaysAttribute(): int
+    public function currentApprover(): BelongsTo
     {
-        return $this->started_at->diffInDays($this->ended_at) + 1;
+        return $this->belongsTo(Employee::class, 'current_approver_id');
     }
 
-    public function getIsActiveAttribute(): bool
+    public function approvals(): HasMany
     {
-        return $this->started_at->isPast() && $this->ended_at->isFuture();
+        return $this->hasMany(LeaveApproval::class);
     }
 }

@@ -7,56 +7,37 @@ use Illuminate\Validation\Rule;
 
 class DepartmentRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return auth()->check();
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
     public function rules(): array
     {
         $departmentId = $this->route('department')?->id;
 
         return [
             'name'        => [
-                'required',
-                'string',
-                'max:255',
+                'required', 'string', 'max:255',
                 Rule::unique('departments', 'name')
                     ->where('company_id', $this->input('company_id'))
-                    ->ignore($departmentId)
+                    ->ignore($departmentId),
             ],
             'description' => ['nullable', 'string', 'max:1000'],
-            'company_id'  => [
-                'required',
-                'integer',
-                Rule::exists('companies', 'id')->where('status', true)
-            ],
+            'company_id'  => ['required', 'exists:companies,id'],
             'status'      => ['boolean'],
         ];
     }
 
-    /**
-     * Get custom attributes for validator errors.
-     */
     public function attributes(): array
     {
         return [
             'name'        => 'department name',
             'description' => 'description',
             'company_id'  => 'company',
-            'status'      => 'status',
         ];
     }
 
-    /**
-     * Get the error messages for the defined validation rules.
-     */
     public function messages(): array
     {
         return [

@@ -30,11 +30,16 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'auth'  => [
-                'user'  => $request->user(),
-                'menus' => $this->getMenus(),
+                'user'             => $user,
+                'menus'            => $this->getMenus($user),
+                'currentCompany'   => $this->getCurrentCompany($user),
+                'managedCompanies' => $this->getManagedCompanies($user),
+                'isSuperAdmin'     => $user?->hasRole('super_admin') ?? false,
             ],
             'ziggy' => fn() => [
                 ...(new Ziggy)->toArray(),
@@ -43,15 +48,49 @@ class HandleInertiaRequests extends Middleware
         ];
     }
 
-
-    protected function getMenus()
+    protected function getMenus($user): array
     {
-        $user = auth()->user();
-
-        if (auth()->check() && $user->isEmployee()) {
-            return config('services.emp-menus');
+        if (!$user) {
+            return [];
         }
 
-        return config('services.menus');
+        // Super Admin gets full admin menus (all companies, users, roles)
+        if ($user->hasRole('super_admin')) {
+            return config('services.menus');
+        }
+
+        // Company Admin, HR, Manager get company-scoped menus
+        if ($user->hasRole('admin') || $user->hasRole('hr') || $user->hasRole('manager')) {
+            return config('services.company-menus');
+        }
+
+        // Regular employees
+        return config('services.emp-menus');
+    }
+
+    protected function getCurrentCompany($user): ?array
+    {
+        if (!$user || !$user->employee) {
+            return null;
+        }
+
+        $companyId = session('active_company_id', $user->employee->company_id);
+        $company = \App\Models\Company::select('id', 'name')->find($companyId);
+
+        return $company?->toArray();
+    }
+
+    protected function getManagedCompanies($user): array
+    {
+        if (!$user || !$user->employee) {
+            return [];
+        }
+
+        $managed = $user->employee->managedCompanies()->select('companies.id', 'companies.name')->get();
+        $primary = $user->employee->company()->select('id', 'name')->first();
+
+        $all = collect([$primary])->merge($managed)->unique('id')->values();
+
+        return $all->toArray();
     }
 }

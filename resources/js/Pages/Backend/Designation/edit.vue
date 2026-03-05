@@ -2,7 +2,7 @@
 import TextInput from '@/Components/common/form/TextInput.vue';
 import {Head, useForm} from '@inertiajs/vue3';
 import CardTitle from '@/Components/common/card/CardTitle.vue';
-import {computed, onMounted} from 'vue';
+import {computed, onMounted, watch} from 'vue';
 import {useToast} from 'vue-toastification';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 
@@ -10,41 +10,20 @@ const toast = useToast();
 const props = defineProps({
     item: Object,
     companies: Array,
-    departments: Array,
     parentDesignations: Array
 });
 
 let form = useForm({
     title: '',
     description: '',
+    level: 5,
     company_id: null,
-    department_id: null,
     parent_id: null,
 });
 
-// Filter departments based on selected company
-const filteredDepartments = computed(() => {
-    if (!form.company_id) {
-        return props.departments;
-    }
-    return props.departments.filter(dept => dept.company_id === form.company_id);
-});
-
-// Filter parent designations based on selected company and department
 const filteredParentDesignations = computed(() => {
-    if (!form.company_id && !form.department_id) {
-        return props.parentDesignations;
-    }
-    return props.parentDesignations.filter(designation => {
-        let matches = true;
-        if (form.company_id) {
-            matches = matches && designation.company_id === form.company_id;
-        }
-        if (form.department_id) {
-            matches = matches && designation.department_id === form.department_id;
-        }
-        return matches;
-    });
+    if (!form.company_id) return props.parentDesignations;
+    return props.parentDesignations.filter(d => d.company_id === form.company_id);
 });
 
 const submit = () => {
@@ -54,14 +33,7 @@ const submit = () => {
     });
 };
 
-// Reset department and parent when company changes
 const onCompanyChange = () => {
-    form.department_id = null;
-    form.parent_id = null;
-};
-
-// Reset parent when department changes
-const onDepartmentChange = () => {
     form.parent_id = null;
 };
 
@@ -111,17 +83,17 @@ onMounted(() => {
 
                             <v-row>
                                 <v-col cols="12" md="6">
-                                    <v-select
-                                        v-model="form.department_id"
-                                        :error-messages="form.errors.department_id"
-                                        :items="filteredDepartments"
-                                        clearable
+                                    <v-text-field
+                                        v-model="form.level"
+                                        :error-messages="form.errors.level"
                                         density="compact"
-                                        item-title="name"
-                                        item-value="id"
-                                        label="Department"
+                                        hint="1 = Highest (CEO), 5 = Lowest (Developer)"
+                                        label="Level"
+                                        max="10"
+                                        min="1"
+                                        persistent-hint
+                                        type="number"
                                         variant="outlined"
-                                        @update:model-value="onDepartmentChange"
                                     />
                                 </v-col>
                                 <v-col cols="12" md="6">

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\BreakStatus;
+use App\Enums\BreakType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -27,7 +29,9 @@ class AttendanceBreak extends Model
         'attendance_date' => 'date',
         'break_start' => 'datetime',
         'break_end' => 'datetime',
-        'is_paid' => 'boolean',
+        'is_paid'    => 'boolean',
+        'break_type' => BreakType::class,
+        'status'     => BreakStatus::class,
     ];
 
     public function employee(): BelongsTo
@@ -43,12 +47,12 @@ class AttendanceBreak extends Model
     // Scopes
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->where('status', BreakStatus::Active);
     }
 
     public function scopeCompleted($query)
     {
-        return $query->where('status', 'completed');
+        return $query->where('status', BreakStatus::Completed);
     }
 
     // Accessors
@@ -63,7 +67,7 @@ class AttendanceBreak extends Model
     // Methods
     public function endBreak($ip): bool
     {
-        if ($this->status !== 'active') {
+        if ($this->status !== BreakStatus::Active) {
             return false;
         }
 
@@ -74,7 +78,7 @@ class AttendanceBreak extends Model
             'break_end' => $breakEnd,
             'break_end_ip' => $ip,
             'duration_minutes' => $duration,
-            'status' => 'completed',
+            'status' => BreakStatus::Completed,
         ]);
 
         return true;

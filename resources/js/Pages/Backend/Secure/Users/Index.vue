@@ -4,9 +4,13 @@ import {Head} from '@inertiajs/vue3';
 import BtnLink from '@/Components/common/utility/BtnLink.vue';
 import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
-import FilterWithoutTrash from '@/Components/common/filter/FilterWithoutTrash.vue';
+import UserFilter from '@/Components/common/filter/UserFilter.vue';
 import {useToast} from 'vue-toastification';
 import BtnDelete from "@/Components/common/utility/BtnDelete.vue";
+
+const props = defineProps({
+    roles: Array,
+});
 
 const toast = useToast();
 const state = reactive({
@@ -24,8 +28,8 @@ const state = reactive({
     },
     filters: {
         search: '',
-        dateSearch: null,
-        isChecked: false,
+        role_id: null,
+        status: null,
         per_page: 10
     },
     serverItems: [],
@@ -49,7 +53,7 @@ const getData = (obj) => {
 };
 
 const toggleStatus = (item) => {
-    axios.get(route('users.toggle-status', item.id), {}, {preserveScroll: true})
+    axios.post(route('users.toggle-status', item.id))
         .then(() => toast('Status has been updated.'));
 };
 
@@ -72,7 +76,11 @@ const handleSearch = (filters) => {
                         title="Users"
                     />
 
-                    <FilterWithoutTrash :dateSearch="false" :filters="state.filters" @handleFilter="handleSearch"/>
+                    <UserFilter
+                        :filters="state.filters"
+                        :roles="props.roles"
+                        @handleFilter="handleSearch"
+                    />
                     <v-card-text>
                         <v-data-table-server
                             :headers="state.headers"
@@ -129,4 +137,3 @@ const handleSearch = (filters) => {
         </v-row>
     </DefaultLayout>
 </template>
-

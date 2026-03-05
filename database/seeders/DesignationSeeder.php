@@ -4,66 +4,32 @@ namespace Database\Seeders;
 
 use App\Models\Designation;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class DesignationSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-        Designation::truncate();
-
         $designations = [
-            [
-                'title'         => 'CEO',
-                'description'   => 'Senior executive responsible for overseeing the technological development and strategy of the organization.',
-                'parent_id'     => null,
-                'company_id'    => 1, // Tech Solutions Ltd.
-                'department_id' => 1, // Information Technology
-                'status'        => true,
-            ],
-            [
-                'title'         => 'CTO',
-                'description'   => 'Manages human resources operations, employee relations, and organizational development initiatives.',
-                'parent_id'     => 1,
-                'company_id'    => 1, // Digital Marketing Pro
-                'department_id' => 1, // Human Resources
-                'status'        => true,
-            ],
-            [
-                'title'         => 'Project Manager',
-                'description'   => 'Develops and maintains software applications, leads technical projects, and mentors junior developers.',
-                'parent_id'     => 1, // Reports to CTO
-                'company_id'    => 1, // Tech Solutions Ltd.
-                'department_id' => 1, // Information Technology
-                'status'        => true,
-            ],
-            [
-                'title'         => 'Team Leader',
-                'description'   => 'Analyzes financial data, prepares reports, and provides insights for strategic financial decision-making.',
-                'parent_id'     => null,
-                'company_id'    => 1, // Financial Services Group
-                'department_id' => 1, // Finance & Accounting
-                'status'        => true,
-            ],
-            [
-                'title'         => 'Senior Software Engineer',
-                'description'   => 'Develops and executes marketing campaigns, manages social media presence, and analyzes market trends.',
-                'parent_id'     => null,
-                'company_id'    => 1, // Digital Marketing Pro
-                'department_id' => 1, // Marketing & Sales
-                'status'        => false,
-            ],
+            // Softwind Tech designations
+            ['title' => 'CEO',              'parent_id' => null, 'company_id' => 1, 'level' => 1, 'status' => true],
+            ['title' => 'CTO',              'parent_id' => 1,    'company_id' => 1, 'level' => 2, 'status' => true],
+            ['title' => 'Project Manager',  'parent_id' => 2,    'company_id' => 1, 'level' => 3, 'status' => true],
+            ['title' => 'Team Lead',        'parent_id' => 3,    'company_id' => 1, 'level' => 4, 'status' => true],
+            ['title' => 'Senior Developer', 'parent_id' => 4,    'company_id' => 1, 'level' => 5, 'status' => true],
+            ['title' => 'Developer',        'parent_id' => 4,    'company_id' => 1, 'level' => 5, 'status' => true],
+
+            // Aliede designations
+            ['title' => 'CEO',              'parent_id' => null, 'company_id' => 2, 'level' => 1, 'status' => true],
+            ['title' => 'CTO',              'parent_id' => 7,    'company_id' => 2, 'level' => 2, 'status' => true],
+            ['title' => 'Project Manager',  'parent_id' => 8,    'company_id' => 2, 'level' => 3, 'status' => true],
+            ['title' => 'Team Lead',        'parent_id' => 9,    'company_id' => 2, 'level' => 4, 'status' => true],
+            ['title' => 'Senior Developer', 'parent_id' => 10,   'company_id' => 2, 'level' => 5, 'status' => true],
+            ['title' => 'Developer',        'parent_id' => 10,   'company_id' => 2, 'level' => 5, 'status' => true],
         ];
 
         foreach ($designations as $designation) {
             Designation::create($designation);
         }
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
     }
 }

@@ -14,7 +14,8 @@ return new class extends Migration {
             $table->id();
             $table->string('name')->index();
             $table->text('description')->nullable();
-            $table->date('day_at')->index();
+            $table->date('start_date')->index();
+            $table->date('end_date')->index();
             
             $table->unsignedBigInteger('company_id')->index();
             $table->boolean('status')->default(1);

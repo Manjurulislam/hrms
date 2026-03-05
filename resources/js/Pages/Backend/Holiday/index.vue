@@ -4,8 +4,12 @@ import {Head} from '@inertiajs/vue3';
 import BtnLink from '@/Components/common/utility/BtnLink.vue';
 import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
-import FilterWithoutTrash from '@/Components/common/filter/FilterWithoutTrash.vue';
+import HolidayFilter from '@/Components/common/filter/HolidayFilter.vue';
 import {useToast} from 'vue-toastification';
+
+const props = defineProps({
+    companies: Array,
+});
 
 const toast = useToast();
 const state = reactive({
@@ -13,7 +17,8 @@ const state = reactive({
         {title: 'SL', align: 'start', sortable: false, key: 'id'},
         {title: 'Name', key: 'name'},
         {title: 'Company', key: 'company'},
-        {title: 'Holiday Date', key: 'day_at'},
+        {title: 'Start Date', key: 'start_date'},
+        {title: 'End Date', key: 'end_date'},
         {title: 'Description', key: 'description', sortable: false},
         {title: 'Status', key: 'status', sortable: false, width: '8%'},
         {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
@@ -24,8 +29,8 @@ const state = reactive({
     },
     filters: {
         search: '',
-        dateSearch: null,
-        isChecked: false,
+        company_id: null,
+        status: null,
         per_page: 10
     },
     serverItems: [],
@@ -49,7 +54,7 @@ const getData = (obj) => {
 };
 
 const toggleStatus = (item) => {
-    axios.get(route('holidays.toggle-status', item.id), {}, {preserveScroll: true})
+    axios.post(route('holidays.toggle-status', item.id))
         .then(() => toast('Holiday status has been updated.'));
 };
 
@@ -80,10 +85,10 @@ const getDateColor = (date) => {
     const diffTime = holidayDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return 'error'; // Past
-    if (diffDays <= 7) return 'warning'; // Within a week
-    if (diffDays <= 30) return 'info'; // Within a month
-    return 'success'; // Future
+    if (diffDays < 0) return 'error';
+    if (diffDays <= 7) return 'warning';
+    if (diffDays <= 30) return 'info';
+    return 'success';
 };
 </script>
 
@@ -99,7 +104,11 @@ const getDateColor = (date) => {
                         title="Holidays"
                     />
 
-                    <FilterWithoutTrash :dateSearch="true" :filters="state.filters" @handleFilter="handleSearch"/>
+                    <HolidayFilter
+                        :filters="state.filters"
+                        :companies="props.companies"
+                        @handleFilter="handleSearch"
+                    />
                     <v-card-text>
                         <v-data-table-server
                             :headers="state.headers"
@@ -136,14 +145,24 @@ const getDateColor = (date) => {
                                 </v-chip>
                                 <span v-else class="text-muted">-</span>
                             </template>
-                            <template v-slot:item.day_at="{ item }">
+                            <template v-slot:item.start_date="{ item }">
                                 <v-chip
-                                    :color="getDateColor(item.day_at)"
+                                    :color="getDateColor(item.start_date)"
                                     class="font-weight-regular"
                                     size="small"
                                     variant="tonal"
                                 >
-                                    {{ formatDate(item.day_at) }}
+                                    {{ formatDate(item.start_date) }}
+                                </v-chip>
+                            </template>
+                            <template v-slot:item.end_date="{ item }">
+                                <v-chip
+                                    :color="getDateColor(item.end_date)"
+                                    class="font-weight-regular"
+                                    size="small"
+                                    variant="tonal"
+                                >
+                                    {{ formatDate(item.end_date) }}
                                 </v-chip>
                             </template>
                             <template v-slot:item.description="{ item }">

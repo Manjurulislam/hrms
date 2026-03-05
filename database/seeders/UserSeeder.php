@@ -12,66 +12,33 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::truncate();
+        // System admin (not linked to employee)
+        $admin = User::create([
+            'name'     => 'System Admin',
+            'email'    => 'admin@mail.com',
+            'password' => Hash::make('pass234'),
+        ]);
+        $admin->roles()->attach(Role::where('name', 'Super Admin')->first());
 
-        // Normal Users (can have multiple roles)
-        $normalUsers = [
-            [
-                'name'     => 'System Admin',
-                'email'    => 'admin@mail.com',
-                'password' => Hash::make('pass234'),
-                'roles'    => ['Super Admin']
-            ],
-            [
-                'name'     => 'HR Manager',
-                'email'    => 'hr.manager@mail.com',
-                'password' => Hash::make('pass234'),
-                'roles'    => ['Analysis']
-            ],
-            [
-                'name'     => 'Operations Manager',
-                'email'    => 'ops.manager@mail.com',
-                'password' => Hash::make('pass234'),
-                'roles'    => ['Admin']
-            ],
-        ];
-
-        // Create normal users
-        foreach ($normalUsers as $userData) {
-            $roles = $userData['roles'];
-            unset($userData['roles']);
-
-            $user = User::create($userData);
-
-            // Assign multiple roles to normal users
-            foreach ($roles as $roleName) {
-                $role = Role::where('name', $roleName)->first();
-                if ($role) {
-                    $user->roles()->attach($role);
-                }
-            }
-        }
-
-        // Fetch employees and create user accounts for them
+        // Create user accounts for all employees
         $employees = Employee::all();
+        $employeeRole = Role::where('name', 'Employee')->first();
+        $managerRole = Role::where('name', 'Manager')->first();
 
         foreach ($employees as $employee) {
-            // Create user account for each employee
-            $userData = [
-                'name'        => $employee->first_name . ' ' . $employee->last_name,
+            $user = User::create([
+                'name'        => $employee->full_name,
                 'email'       => $employee->email,
-                'password'    => Hash::make('password'), // Default password
+                'password'    => Hash::make('password'),
                 'employee_id' => $employee->id,
                 'status'      => $employee->status,
-            ];
+            ]);
 
-            $user = User::create($userData);
-
-            // Assign default Employee role (employees can only have one role)
-            $role = Role::where('name', 'Employee')->first();
-
-            if ($role) {
-                $user->roles()->attach($role);
+            // Assign role based on designation level
+            if ($employee->designation && $employee->designation->level <= 3) {
+                $user->roles()->attach($managerRole);
+            } else {
+                $user->roles()->attach($employeeRole);
             }
         }
     }

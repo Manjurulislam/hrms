@@ -36,16 +36,7 @@ return new class extends Migration
             $table->integer('total_sessions')->default(0);
 
             // Status
-            $table->enum('status', [
-                'present',
-                'absent',
-                'half_day',
-                'late',
-                'holiday',
-                'weekend',
-                'leave',
-                'work_from_home'
-            ])->default('absent')->index();
+            $table->string('status', 20)->default('absent')->index();
 
             // Working day and shift info
             $table->boolean('is_working_day')->default(true)->index();

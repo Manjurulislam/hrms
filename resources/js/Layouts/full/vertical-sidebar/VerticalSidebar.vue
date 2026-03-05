@@ -7,7 +7,31 @@ import NavCollapse from './NavCollapse/NavCollapse.vue';
 import Logo from '../logo/Logo.vue';
 
 const page = usePage();
-const sidebarMenu = computed(() => page.props.auth.menus)
+const sidebarMenu = computed(() => page.props.auth.menus);
+
+const openedGroups = computed(() => {
+    const currentPath = page.url.split('?')[0];
+    const opened = [];
+
+    sidebarMenu.value?.forEach(item => {
+        if (item.children) {
+            const hasActiveChild = item.children.some(child => {
+                if (!child.to) return false;
+                try {
+                    const targetPath = new URL(route(child.to)).pathname;
+                    return currentPath === targetPath || (targetPath !== '/' && currentPath.startsWith(targetPath + '/'));
+                } catch {
+                    return false;
+                }
+            });
+            if (hasActiveChild) {
+                opened.push(item.title);
+            }
+        }
+    });
+
+    return opened;
+});
 </script>
 
 <template>
@@ -15,11 +39,9 @@ const sidebarMenu = computed(() => page.props.auth.menus)
     <div class="pa-4 pb-0">
         <Logo/>
     </div>
-    <!-- ---------------------------------------------- -->
-    <!---Navigation -->
-    <!-- ---------------------------------------------- -->
+    <!-- Navigation -->
     <perfect-scrollbar class="scrollnavbar">
-        <v-list class="px-4">
+        <v-list :opened="openedGroups" class="px-4">
             <!---Menu Loop -->
             <template v-for="(item, i) in sidebarMenu">
                 <!---Item Sub Header -->

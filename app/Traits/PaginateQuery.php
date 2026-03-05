@@ -120,17 +120,10 @@ trait PaginateQuery
         }
 
         $data = collect($data)->map(function ($item) {
-
-            $start = data_get($item, 'schedule.work_start_time');
-            $end   = data_get($item, 'schedule.work_end_time');
-
-
             return array_merge($item->toArray(), [
                 'name'        => $item->name,
                 'description' => $item->description,
                 'company'     => $item->company->name,
-                'start'       => $start ? Carbon::parse($start)->format('H:i A') : '',
-                'ended'       => $end ? Carbon::parse($end)->format('H:i A') : '',
                 'status'      => $item->status,
             ]);
         });
@@ -233,6 +226,7 @@ trait PaginateQuery
             'weekend' => 'Weekend',
             'work_from_home' => 'WFH'
         ];
-        return $labels[$status] ?? $status;
+        $key = $status instanceof \BackedEnum ? $status->value : $status;
+        return $labels[$key] ?? $key;
     }
 }

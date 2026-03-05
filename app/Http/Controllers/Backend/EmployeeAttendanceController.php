@@ -46,7 +46,7 @@ class EmployeeAttendanceController extends Controller
         return Inertia::render('Employee/attendance', [
             'userInfo' => [
                 'name' => $employee->full_name,
-                'position' => $employee->designations->first()->title ?? 'Employee',
+                'position' => $employee->designation?->title ?? 'Employee',
                 'department' => $employee->department->name,
                 'company' => $employee->department->company->name,
                 'employeeId' => $employee->id
@@ -267,15 +267,15 @@ class EmployeeAttendanceController extends Controller
      */
     private function getOfficeHours($employee): array
     {
-        $schedule = $employee->department->schedule ?? null;
+        $company = $employee->company;
 
-        if ($schedule && $schedule->work_start_time && $schedule->work_end_time) {
+        if ($company && $company->office_start_time && $company->office_end_time) {
             return [
-                'start' => Carbon::parse($schedule->work_start_time)->format('g:i A'),
-                'end' => Carbon::parse($schedule->work_end_time)->format('g:i A'),
-                'delay' => $schedule->delay ?? 0,
-                'office_ip' => $schedule->office_ip ?? null,
-                'company' => $employee->department->company->name ?? 'N/A',
+                'start' => Carbon::parse($company->office_start_time)->format('g:i A'),
+                'end' => Carbon::parse($company->office_end_time)->format('g:i A'),
+                'delay' => config('attendance.late_grace_period', 15),
+                'office_ip' => $company->office_ip ?? null,
+                'company' => $company->name ?? 'N/A',
                 'department' => $employee->department->name ?? 'N/A'
             ];
         }
@@ -285,7 +285,7 @@ class EmployeeAttendanceController extends Controller
             'end' => Carbon::parse(config('attendance.default_office_end', '18:00'))->format('g:i A'),
             'delay' => config('attendance.late_grace_period', 15),
             'office_ip' => null,
-            'company' => $employee->department->company->name ?? 'N/A',
+            'company' => $company->name ?? 'N/A',
             'department' => $employee->department->name ?? 'N/A'
         ];
     }
@@ -402,6 +402,8 @@ class EmployeeAttendanceController extends Controller
             'work_from_home' => 'WFH'
         ];
 
-        return $statusMap[$status] ?? 'Unknown';
+        $key = $status instanceof \BackedEnum ? $status->value : $status;
+
+        return $statusMap[$key] ?? 'Unknown';
     }
 }

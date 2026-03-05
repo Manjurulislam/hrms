@@ -2,31 +2,26 @@
 return [
 
     [
-        'title'    => 'Dashboard',
-        'icon'     => 'widget-add-line-duotone',
-        'to'       => 'dashboard',
-        'hasChild' => false,
+        'title' => 'Dashboard',
+        'icon'  => 'widget-add-line-duotone',
+        'to'    => 'dashboard',
     ],
 
     [
-        'title'    => 'Employees',
-        'icon'     => 'chat-square-2-outline',
-        'to'       => 'employees.index',
-        'hasChild' => false,
+        'title' => 'Employees',
+        'icon'  => 'users-group-rounded-bold-duotone',
+        'to'    => 'employees.index',
     ],
 
     [
-        'title'    => 'Attendance',
-        'icon'     => 'chat-square-2-outline',
-        'to'       => '',
-        'hasChild' => false,
+        'title' => 'Attendance',
+        'icon'  => 'clock-circle-bold-duotone',
+        'to'    => '',
     ],
 
     [
         'title'    => 'Leave',
-        'icon'     => 'chat-square-2-outline',
-        'to'       => '',
-        'hasChild' => false,
+        'icon'     => 'calendar-mark-bold-duotone',
         'children' => [
             [
                 'title' => 'Leave Requests',
@@ -41,12 +36,9 @@ return [
         ]
     ],
 
-
     [
         'title'    => 'Company',
-        'icon'     => 'chat-square-2-outline',
-        'to'       => '',
-        'hasChild' => false,
+        'icon'     => 'buildings-2-bold-duotone',
         'children' => [
             [
                 'title' => 'Companies',
@@ -68,9 +60,7 @@ return [
 
     [
         'title'    => 'Settings',
-        'icon'     => 'settings-outline',
-        'to'       => '',
-        'hasChild' => true,
+        'icon'     => 'settings-bold-duotone',
         'children' => [
             [
                 'title' => 'Holidays',
@@ -82,9 +72,7 @@ return [
 
     [
         'title'    => 'Secure',
-        'icon'     => 'settings-minimalistic-bold',
-        'to'       => '',
-        'hasChild' => true,
+        'icon'     => 'shield-keyhole-bold-duotone',
         'children' => [
             [
                 'title' => 'Users',
@@ -98,6 +86,5 @@ return [
             ]
         ]
     ],
-
 
 ];
