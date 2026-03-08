@@ -13,6 +13,7 @@ const state = reactive({
         {title: 'Start Date', key: 'started_at'},
         {title: 'End Date', key: 'ended_at'},
         {title: 'Days', key: 'total_days'},
+        {title: 'Notes', key: 'notes', sortable: false},
         {title: 'Status', key: 'status', sortable: false},
         {title: 'Actions', key: 'actions', sortable: false, width: '5%'},
     ],
@@ -91,6 +92,12 @@ const formatDate = (date) => {
                             </template>
                             <template v-slot:item.ended_at="{ item }">
                                 {{ formatDate(item.ended_at) }}
+                            </template>
+                            <template v-slot:item.notes="{ item }">
+                                <span v-if="item.notes" class="text-body-2" :title="item.notes">
+                                    {{ item.notes.length > 40 ? item.notes.substring(0, 40) + '...' : item.notes }}
+                                </span>
+                                <span v-else class="text-medium-emphasis">-</span>
                             </template>
                             <template v-slot:item.status="{ item }">
                                 <v-chip

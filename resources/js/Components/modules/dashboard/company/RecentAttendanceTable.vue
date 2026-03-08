@@ -16,7 +16,7 @@ const getStatusColor = (status) => {
     const colors = {
         'Present': 'success',
         'Absent': 'error',
-        'Late': 'warning',
+        'Late': 'deeporange',
         'Half Day': 'orange',
         'Leave': 'info',
         'Holiday': 'purple',

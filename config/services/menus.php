@@ -1,27 +1,35 @@
 <?php
 return [
 
+    // ─── Common ─────────────────────────────────────────
     [
-        'title' => 'Dashboard',
-        'icon'  => 'widget-add-line-duotone',
-        'to'    => 'dashboard',
+        'title'  => 'Dashboard',
+        'icon'   => 'widget-add-line-duotone',
+        'to'     => 'dashboard',
+        'access' => 'all',
+    ],
+
+    // ─── Admin ──────────────────────────────────────────
+    ['header' => 'Administration', 'access' => 'admin'],
+
+    [
+        'title'  => 'Employees',
+        'icon'   => 'users-group-rounded-bold-duotone',
+        'to'     => 'employees.index',
+        'access' => 'admin',
     ],
 
     [
-        'title' => 'Employees',
-        'icon'  => 'users-group-rounded-bold-duotone',
-        'to'    => 'employees.index',
-    ],
-
-    [
-        'title' => 'Attendance',
-        'icon'  => 'clock-circle-bold-duotone',
-        'to'    => 'attendance.index',
+        'title'  => 'Attendance',
+        'icon'   => 'clock-circle-bold-duotone',
+        'to'     => 'attendance.index',
+        'access' => 'admin',
     ],
 
     [
         'title'    => 'Leave',
         'icon'     => 'calendar-mark-bold-duotone',
+        'access'   => 'admin',
         'children' => [
             [
                 'title' => 'Leave Requests',
@@ -37,14 +45,16 @@ return [
     ],
 
     [
-        'title' => 'Notice Board',
-        'icon'  => 'clipboard-text-bold-duotone',
-        'to'    => 'notices.index',
+        'title'  => 'Notice Board',
+        'icon'   => 'clipboard-text-bold-duotone',
+        'to'     => 'notices.index',
+        'access' => 'admin',
     ],
 
     [
         'title'    => 'Company',
         'icon'     => 'buildings-2-bold-duotone',
+        'access'   => 'admin',
         'children' => [
             [
                 'title' => 'Companies',
@@ -67,6 +77,7 @@ return [
     [
         'title'    => 'Settings',
         'icon'     => 'settings-bold-duotone',
+        'access'   => 'admin',
         'children' => [
             [
                 'title' => 'Holidays',
@@ -79,6 +90,7 @@ return [
     [
         'title'    => 'Secure',
         'icon'     => 'shield-keyhole-bold-duotone',
+        'access'   => 'admin',
         'children' => [
             [
                 'title' => 'Users',
@@ -90,6 +102,42 @@ return [
                 'icon'  => 'checklist-minimalistic-line-duotone',
                 'to'    => 'roles.index',
             ]
+        ]
+    ],
+
+    // ─── Employee ───────────────────────────────────────
+    ['header' => 'My Workspace', 'access' => 'employee'],
+
+    [
+        'title'  => 'My Attendance',
+        'icon'   => 'clock-circle-bold-duotone',
+        'to'     => 'emp-attendance.index',
+        'access' => 'employee',
+    ],
+
+    [
+        'title'  => 'Notice Board',
+        'icon'   => 'clipboard-text-bold-duotone',
+        'to'     => 'emp-notices.index',
+        'access' => 'employee',
+    ],
+
+    [
+        'title'    => 'My Leave',
+        'icon'     => 'calendar-mark-bold-duotone',
+        'access'   => 'employee',
+        'children' => [
+            [
+                'title' => 'My Leaves',
+                'icon'  => 'checklist-minimalistic-line-duotone',
+                'to'    => 'emp-leave.index',
+            ],
+            [
+                'title'  => 'Pending Approvals',
+                'icon'   => 'checklist-minimalistic-line-duotone',
+                'to'     => 'emp-leave.approvals',
+                'access' => 'manager',
+            ],
         ]
     ],
 

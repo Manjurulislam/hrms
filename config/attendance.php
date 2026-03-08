@@ -13,7 +13,7 @@ return [
 
     // Session Configuration
     'minimum_session_duration' => env('ATTENDANCE_MIN_SESSION_DURATION', 1), // minutes
-    'minimum_session_gap' => env('ATTENDANCE_MIN_SESSION_GAP', 5), // minutes between sessions
+    'minimum_session_gap' => env('ATTENDANCE_MIN_SESSION_GAP', 2), // minutes between sessions
     'max_sessions_per_day' => env('ATTENDANCE_MAX_SESSIONS_PER_DAY', 10),
 
     // Break Configuration

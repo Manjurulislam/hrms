@@ -128,8 +128,11 @@ class EmployeeSeeder extends Seeder
             ],
         ];
 
+        $adminRole    = Role::where('slug', 'admin')->first();
         $employeeRole = Role::where('slug', 'employee')->first();
-        $managerRole  = Role::where('slug', 'manager')->first();
+
+        // CEO & CTO get admin + employee roles (admin panel + employee panel)
+        $adminEmployeeIds = ['SWT001', 'SWT002'];
 
         foreach ($employees as $data) {
             $employee = Employee::create($data);
@@ -142,9 +145,8 @@ class EmployeeSeeder extends Seeder
                 'status'      => true,
             ]);
 
-            // Level 1-3 get Manager role, others get Employee role
-            if ($employee->designation && $employee->designation->level?->value <= 3) {
-                $user->roles()->attach($managerRole);
+            if (in_array($employee->id_no, $adminEmployeeIds)) {
+                $user->roles()->attach([$adminRole->id, $employeeRole->id]);
             } else {
                 $user->roles()->attach($employeeRole);
             }

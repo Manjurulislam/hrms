@@ -25,6 +25,7 @@ export type ThemeTypes = {
         grey100?: string;
         grey200?: string;
         darkgray?: string;
+        deeporange?: string;
         light?:string;
         muted?:string;
     };

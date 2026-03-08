@@ -60,8 +60,8 @@ class CompanyAttendanceExport implements FromCollection, WithHeadings, WithMappi
 
         return [
             $record->employee ? trim($record->employee->first_name . ' ' . $record->employee->last_name) : '-',
-            $record->employee->id_no ?? '-',
-            $record->department->name ?? '-',
+            $record->employee?->id_no ?? '-',
+            $record->department?->name ?? '-',
             $date->format('Y-m-d'),
             $date->format('D'),
             $record->first_check_in ? Carbon::parse($record->first_check_in)->format('g:i a') : '--:--',

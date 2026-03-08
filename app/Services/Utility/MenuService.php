@@ -12,39 +12,47 @@ class MenuService
 
         $isAdmin    = $user->hasRole('super_admin') || $user->hasRole('admin') || $user->hasRole('hr');
         $isEmployee = $user->isEmployee();
+        $isManager  = $isEmployee && ($user->employee?->subordinates()->exists() ?? false);
 
-        if ($isAdmin && $isEmployee) {
-            return array_merge($this->adminMenus(), $this->employeeMenus($user));
-        }
+        $allMenus = config('services.menus', []);
 
-        if ($isAdmin) {
-            return $this->adminMenus();
-        }
-
-        return $this->employeeMenus($user);
+        return array_values(array_filter(
+            array_map(fn($menu) => $this->filterMenu($menu, $isAdmin, $isEmployee, $isManager), $allMenus),
+            fn($menu) => $menu !== null
+        ));
     }
 
-    protected function adminMenus(): array
+    protected function filterMenu(array $menu, bool $isAdmin, bool $isEmployee, bool $isManager): ?array
     {
-        return config('services.menus', []);
-    }
+        $access = $menu['access'] ?? 'all';
 
-    protected function employeeMenus($user): array
-    {
-        $menus     = config('services.emp-menus', []);
-        $isManager = $user->employee?->subordinates()->exists() ?? false;
-
-        if (!$isManager) {
-            $menus = array_map(function ($menu) {
-                if (isset($menu['children'])) {
-                    $menu['children'] = array_values(array_filter($menu['children'], function ($child) {
-                        return ($child['to'] ?? '') !== 'emp-leave.approvals';
-                    }));
-                }
-                return $menu;
-            }, $menus);
+        if (!$this->hasAccess($access, $isAdmin, $isEmployee, $isManager)) {
+            return null;
         }
 
-        return $menus;
+        // Filter children if present
+        if (isset($menu['children'])) {
+            $menu['children'] = array_values(array_filter(
+                $menu['children'],
+                fn($child) => $this->hasAccess($child['access'] ?? 'all', $isAdmin, $isEmployee, $isManager)
+            ));
+
+            if (empty($menu['children'])) {
+                return null;
+            }
+        }
+
+        return $menu;
+    }
+
+    protected function hasAccess(string $access, bool $isAdmin, bool $isEmployee, bool $isManager): bool
+    {
+        return match ($access) {
+            'all'      => true,
+            'admin'    => $isAdmin,
+            'employee' => $isEmployee,
+            'manager'  => $isManager,
+            default    => false,
+        };
     }
 }

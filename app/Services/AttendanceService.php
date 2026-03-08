@@ -356,9 +356,9 @@ class AttendanceService
     // Get next session number for today
     private function getNextSessionNumber(Employee $employee): int
     {
-        return AttendanceSession::forEmployee($employee->id)
+        return (AttendanceSession::forEmployee($employee->id)
                 ->today()
-                ->max('session_number') + 1;
+                ->max('session_number') ?? 0) + 1;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -508,29 +508,126 @@ class AttendanceService
             'firstCheckIn' => $sessions->isNotEmpty()
                 ? $sessions->first()->check_in_time->format('h:i A')
                 : '--:--',
-            'lastCheckOut'  => optional($sessions->whereNotNull('check_out_time')->last())?->check_out_time?->format('h:i A') ?? '--:--',
+            'lastCheckOut'  => $sessions->whereNotNull('check_out_time')->last()?->check_out_time?->format('h:i A') ?? '--:--',
             'totalHours'    => $this->formatDuration($totalSeconds),
             'status'        => $summary?->status ?? 'absent',
         ];
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // Employee Dashboard Methods
+    // ═══════════════════════════════════════════════════════════════
+
+    public function getOfficeHours(Employee $employee): array
+    {
+        $schedule = $this->scheduleService->getEmployeeSchedule($employee);
+
+        return [
+            'start'      => Carbon::parse($schedule['work_start_time'])->format('g:i A'),
+            'end'        => Carbon::parse($schedule['work_end_time'])->format('g:i A'),
+            'delay'      => config('attendance.late_grace_period', 15),
+            'office_ip'  => $schedule['office_ip'],
+            'company'    => $employee->company?->name ?? 'N/A',
+            'department' => $employee->department?->name ?? 'N/A',
+        ];
+    }
+
+    public function getMonthlyStats(Employee $employee): array
+    {
+        $now    = now();
+        $report = $this->getMonthlyReport($employee, $now->year, $now->month);
+
+        $workingDays    = $this->scheduleService->getMonthlyWorkingDays($employee, $now->year, $now->month);
+        $attendanceRate = $workingDays > 0
+            ? round(($report['stats']['present_days'] / $workingDays) * 100)
+            : 0;
+
+        return [
+            'present' => $report['stats']['present_days'],
+            'absent'  => $report['stats']['absent_days'],
+            'late'    => $report['stats']['late_days'],
+            'rate'    => $attendanceRate,
+        ];
+    }
+
+    public function getAttendanceRecords(Employee $employee, int $months = 3): array
+    {
+        $records = [];
+
+        for ($i = 0; $i < $months; $i++) {
+            $date     = now()->subMonths($i);
+            $monthKey = $date->format('Y-m');
+
+            $summaries = AttendanceSummary::where('employee_id', $employee->id)
+                ->forMonth($date->year, $date->month)
+                ->orderBy('attendance_date')
+                ->get();
+
+            $monthData = $summaries->map(fn($s) => [
+                'date'     => $s->attendance_date->day,
+                'checkIn'  => $s->first_check_in ? Carbon::parse($s->first_check_in)->format('H:i') : null,
+                'checkOut' => $s->last_check_out ? Carbon::parse($s->last_check_out)->format('H:i') : null,
+                'hours'    => $s->total_working_hours,
+                'status'   => $this->mapStatus($s->status),
+                'late'     => $s->late_minutes > 0,
+            ])->toArray();
+
+            if (!empty($monthData)) {
+                $records[$monthKey] = $monthData;
+            }
+        }
+
+        return $records;
+    }
+
+    public function getMonthlyData(Employee $employee, int $year, int $month): array
+    {
+        $summaries = AttendanceSummary::where('employee_id', $employee->id)
+            ->forMonth($year, $month)
+            ->orderBy('attendance_date')
+            ->get();
+
+        return $summaries->map(fn($s) => [
+            'date'     => $s->attendance_date->day,
+            'checkIn'  => $s->first_check_in ? Carbon::parse($s->first_check_in)->format('H:i') : null,
+            'checkOut' => $s->last_check_out ? Carbon::parse($s->last_check_out)->format('H:i') : null,
+            'hours'    => $s->total_working_hours,
+            'status'   => $this->mapStatus($s->status),
+            'late'     => $s->late_minutes > 0,
+        ])->toArray();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // Response & Utility Methods
     // ═══════════════════════════════════════════════════════════════
 
-    // Format duration from seconds to human-readable
-    private function formatDuration(int $seconds): string
+    public function formatDuration(int $seconds): string
     {
         return floor($seconds / 3600) . 'h ' . floor(($seconds % 3600) / 60) . 'm';
     }
 
-    // Build success response
+    private function mapStatus($status): string
+    {
+        $key = $status instanceof \BackedEnum ? $status->value : $status;
+
+        return match ($key) {
+            'present'        => 'Present',
+            'absent'         => 'Absent',
+            'half_day'       => 'Half Day',
+            'late'           => 'Present',
+            'holiday'        => 'Holiday',
+            'weekend'        => 'Weekend',
+            'leave'          => 'Leave',
+            'work_from_home' => 'WFH',
+            default          => 'Unknown',
+        };
+    }
+
     private function success(string $message, array $extra = []): array
     {
         return collect(['success' => true, 'message' => $message])->merge($extra)->toArray();
     }
 
-    // Build error response
     private function error(string $message, array $extra = []): array
     {
         return collect(['success' => false, 'message' => $message])->merge($extra)->toArray();

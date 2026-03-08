@@ -172,8 +172,7 @@ class AttendanceSummary extends Model
             ->values()
             ->toArray();
 
-        // Calculate overtime (assuming 8 hours = 480 minutes standard)
-        $standardMinutes = 480;
+        $standardMinutes = config('attendance.standard_working_hours', 8) * 60;
         $overtimeMinutes = max(0, $totalMinutes - $standardMinutes);
 
         // Determine status
@@ -196,11 +195,13 @@ class AttendanceSummary extends Model
 
     private function determineStatus($netWorkingMinutes): AttendanceStatus
     {
-        $hours = $netWorkingMinutes / 60;
+        $hours       = $netWorkingMinutes / 60;
+        $fullDay     = config('attendance.standard_working_hours', 8);
+        $halfDay     = config('attendance.half_day_hours', 4);
 
-        if ($hours >= 8) {
+        if ($hours >= $fullDay) {
             return AttendanceStatus::Present;
-        } elseif ($hours >= 4) {
+        } elseif ($hours >= $halfDay) {
             return AttendanceStatus::HalfDay;
         } elseif ($hours > 0) {
             return AttendanceStatus::Late;

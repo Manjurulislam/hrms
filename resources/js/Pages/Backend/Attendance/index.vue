@@ -1,7 +1,7 @@
 <script setup>
 import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head, Link} from '@inertiajs/vue3';
-import {reactive} from 'vue';
+import {reactive, ref} from 'vue';
 import {useToast} from 'vue-toastification';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 
@@ -15,8 +15,11 @@ const props = defineProps({
     defaultCompanyId: Number,
 });
 
+const expanded = ref([]);
+
 const state = reactive({
     headers: [
+        {title: '', key: 'data-table-expand', sortable: false, width: '40px'},
         {title: 'SL', align: 'start', sortable: false, key: 'id'},
         {title: 'Employee', key: 'employee_name'},
         {title: 'Emp ID', key: 'emp_id'},
@@ -118,7 +121,7 @@ const getStatusColor = (status) => {
     const colors = {
         'Present': 'success',
         'Absent': 'error',
-        'Late': 'warning',
+        'Late': 'deeporange',
         'Half Day': 'orange',
         'Leave': 'info',
         'Holiday': 'purple',
@@ -126,6 +129,35 @@ const getStatusColor = (status) => {
         'WFH': 'teal',
     };
     return colors[status] || 'default';
+};
+
+const getSessionStatusColor = (status) => {
+    const colors = {
+        'active': 'success',
+        'completed': 'primary',
+        'auto_closed': 'warning',
+    };
+    return colors[status] || 'grey';
+};
+
+const getSessionStatusLabel = (status) => {
+    const labels = {
+        'active': 'Active',
+        'completed': 'Completed',
+        'auto_closed': 'Auto Closed',
+    };
+    return labels[status] || status;
+};
+
+const getBreakTypeLabel = (type) => {
+    const labels = {
+        'lunch': 'Lunch',
+        'tea': 'Tea',
+        'personal': 'Personal',
+        'prayer': 'Prayer',
+        'other': 'Other',
+    };
+    return labels[type] || type;
 };
 </script>
 
@@ -247,6 +279,7 @@ const getStatusColor = (status) => {
                         </v-row>
 
                         <v-data-table-server
+                            v-model:expanded="expanded"
                             :headers="state.headers"
                             :items="state.serverItems"
                             :items-length="state.pagination.totalItems"
@@ -255,6 +288,7 @@ const getStatusColor = (status) => {
                             :search="state.filters.search"
                             density="compact"
                             item-value="id"
+                            show-expand
                             @update:options="getData"
                         >
                             <template v-slot:item.id="{ index }">
@@ -289,6 +323,69 @@ const getStatusColor = (status) => {
                                 <Link :href="route('attendance.show', item.employee_id)">
                                     <v-icon color="primary" size="small">mdi-eye</v-icon>
                                 </Link>
+                            </template>
+
+                            <!-- Expanded Row: Sessions & Breaks -->
+                            <template v-slot:expanded-row="{ columns, item }">
+                                <tr>
+                                    <td :colspan="columns.length" class="pa-0">
+                                        <div class="bg-grey-lighten-5 pa-4">
+                                            <div v-if="item.sessions && item.sessions.length > 0">
+                                                <div class="text-subtitle-2 font-weight-bold mb-2">
+                                                    <v-icon size="small" class="me-1">mdi-clock-outline</v-icon>
+                                                    Sessions
+                                                </div>
+                                                <v-table density="compact" class="bg-white rounded mb-2">
+                                                    <thead>
+                                                    <tr class="bg-grey-lighten-4">
+                                                        <th class="text-center">#</th>
+                                                        <th class="text-center">Check In</th>
+                                                        <th class="text-center">Check Out</th>
+                                                        <th class="text-center">Duration</th>
+                                                        <th class="text-center">Status</th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    <template v-for="session in item.sessions" :key="session.session_number">
+                                                        <tr>
+                                                            <td class="text-center">{{ session.session_number }}</td>
+                                                            <td class="text-center">{{ session.check_in_time }}</td>
+                                                            <td class="text-center">{{ session.check_out_time }}</td>
+                                                            <td class="text-center">{{ session.duration }}</td>
+                                                            <td class="text-center">
+                                                                <v-chip
+                                                                    :color="getSessionStatusColor(session.status)"
+                                                                    size="x-small"
+                                                                    variant="tonal"
+                                                                >
+                                                                    {{ getSessionStatusLabel(session.status) }}
+                                                                </v-chip>
+                                                            </td>
+                                                        </tr>
+                                                        <!-- Breaks for this session -->
+                                                        <tr v-for="(brk, bIdx) in session.breaks" :key="'b-' + bIdx" class="bg-orange-lighten-5">
+                                                            <td class="text-center">
+                                                                <v-icon size="x-small" color="warning">mdi-coffee</v-icon>
+                                                            </td>
+                                                            <td class="text-center text-caption">{{ brk.break_start }}</td>
+                                                            <td class="text-center text-caption">{{ brk.break_end }}</td>
+                                                            <td class="text-center text-caption">{{ brk.duration }}</td>
+                                                            <td class="text-center">
+                                                                <v-chip size="x-small" variant="tonal" color="warning">
+                                                                    {{ getBreakTypeLabel(brk.break_type) }}
+                                                                </v-chip>
+                                                            </td>
+                                                        </tr>
+                                                    </template>
+                                                    </tbody>
+                                                </v-table>
+                                            </div>
+                                            <div v-else class="text-center text-medium-emphasis py-2">
+                                                No session data available
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
                             </template>
                         </v-data-table-server>
                     </v-card-text>
