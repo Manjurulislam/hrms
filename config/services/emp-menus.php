@@ -14,6 +14,12 @@ return [
     ],
 
     [
+        'title' => 'Notice Board',
+        'icon'  => 'clipboard-text-bold-duotone',
+        'to'    => 'emp-notices.index',
+    ],
+
+    [
         'title'    => 'Leave',
         'icon'     => 'calendar-mark-bold-duotone',
         'children' => [
@@ -21,11 +27,6 @@ return [
                 'title' => 'My Leaves',
                 'icon'  => 'checklist-minimalistic-line-duotone',
                 'to'    => 'emp-leave.index',
-            ],
-            [
-                'title' => 'Apply Leave',
-                'icon'  => 'checklist-minimalistic-line-duotone',
-                'to'    => 'emp-leave.create',
             ],
             [
                 'title' => 'Pending Approvals',

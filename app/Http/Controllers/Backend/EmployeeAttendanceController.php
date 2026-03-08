@@ -9,7 +9,7 @@ use App\Http\Requests\Attendance\CheckInRequest;
 use App\Http\Requests\Attendance\CheckOutRequest;
 use App\Models\AttendanceSummary;
 use App\Services\AttendanceService;
-use App\Services\CatchIPService;
+use App\Services\Utility\CatchIPService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

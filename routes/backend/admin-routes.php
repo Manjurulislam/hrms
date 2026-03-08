@@ -10,6 +10,7 @@ use App\Http\Controllers\Backend\HolidayController;
 use App\Http\Controllers\Backend\LeaveRequestController;
 use App\Http\Controllers\Backend\LeaveTypeController;
 use App\Http\Controllers\Backend\RoleController;
+use App\Http\Controllers\Backend\NoticeController;
 use App\Http\Controllers\Backend\UserController;
 
 
@@ -110,6 +111,18 @@ Route::controller(RoleController::class)->name('roles.')
         Route::put('update/{role}', 'update')->name('update');
         Route::post('{role}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::delete('delete/{role}', 'destroy')->name('destroy');
+    });
+
+Route::controller(NoticeController::class)->name('notices.')
+    ->prefix('notices')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('get', 'get')->name('get');
+        Route::get('create', 'create')->name('create');
+        Route::post('store', 'store')->name('store');
+        Route::get('{notice}/edit', 'edit')->name('edit');
+        Route::put('update/{notice}', 'update')->name('update');
+        Route::post('{notice}/toggle-status', 'toggleStatus')->name('toggle-status');
+        Route::delete('delete/{notice}', 'destroy')->name('destroy');
     });
 
 Route::controller(AttendanceController::class)->name('attendance.')

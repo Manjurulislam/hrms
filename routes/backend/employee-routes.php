@@ -3,6 +3,7 @@
 
 use App\Http\Controllers\Backend\EmployeeAttendanceController;
 use App\Http\Controllers\Employee\LeaveController;
+use App\Http\Controllers\Employee\NoticeController as EmpNoticeController;
 use App\Http\Controllers\Api\AttendanceRecordController;
 
 
@@ -31,6 +32,13 @@ Route::controller(LeaveController::class)->name('emp-leave.')
         Route::get('approvals/{leaveRequest}', 'showApproval')->name('approvals.show');
         Route::post('approvals/{leaveRequest}/approve', 'approve')->name('approvals.approve');
         Route::post('approvals/{leaveRequest}/reject', 'reject')->name('approvals.reject');
+    });
+
+Route::controller(EmpNoticeController::class)->name('emp-notices.')
+    ->prefix('emp-notices')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('get', 'get')->name('get');
+        Route::get('{notice}', 'show')->name('show');
     });
 
 // API routes for attendance records data table

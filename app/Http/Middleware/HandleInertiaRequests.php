@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\Utility\MenuService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
@@ -36,7 +37,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth'  => [
                 'user'         => $user,
-                'menus'        => $this->getMenus($user),
+                'menus'        => app(MenuService::class)->getMenus($user),
                 'isSuperAdmin' => $user?->hasRole('super_admin') ?? false,
             ],
             'ziggy' => fn() => [
@@ -44,20 +45,5 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
         ];
-    }
-
-    protected function getMenus($user): array
-    {
-        if (!$user) {
-            return [];
-        }
-
-        // Admin roles get full admin menus
-        if ($user->hasRole('super_admin') || $user->hasRole('admin') || $user->hasRole('hr') || $user->hasRole('manager')) {
-            return config('services.menus');
-        }
-
-        // Regular employees
-        return config('services.emp-menus');
     }
 }

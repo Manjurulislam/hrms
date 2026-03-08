@@ -37,6 +37,12 @@ return [
     ],
 
     [
+        'title' => 'Notice Board',
+        'icon'  => 'clipboard-text-bold-duotone',
+        'to'    => 'notices.index',
+    ],
+
+    [
         'title'    => 'Company',
         'icon'     => 'buildings-2-bold-duotone',
         'children' => [

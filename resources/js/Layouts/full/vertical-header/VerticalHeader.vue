@@ -51,11 +51,11 @@ watch(priority, (newPriority) => {
         <ThemeToggler/>
 
         <!-- ---------------------------------------------- -->
-        <!-- Notification -->
+        <!-- Notification (TODO: enable when notification feature is ready) -->
         <!-- ---------------------------------------------- -->
-        <div class="hidden-sm-and-down">
+        <!-- <div class="hidden-sm-and-down">
             <NotificationDD/>
-        </div>
+        </div> -->
 
         <!-- ---------------------------------------------- -->
         <!-- User Profile -->
@@ -75,7 +75,7 @@ watch(priority, (newPriority) => {
             <v-sheet class="mt-4 dropdown-box px-4 py-3" elevation="10" rounded="lg">
                 <div class="d-flex justify-space-between align-center">
                     <RightMobileSidebar/>
-                    <NotificationDD/>
+                    <!-- <NotificationDD/> -->
                     <ProfileDD/>
                 </div>
             </v-sheet>

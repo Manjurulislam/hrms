@@ -3,7 +3,7 @@
 namespace App\Services\Backend;
 
 use App\Models\Company;
-use App\Services\CatchIPService;
+use App\Services\Utility\CatchIPService;
 use App\Traits\PaginateQuery;
 use App\Traits\QueryParams;
 use Illuminate\Http\Request;
