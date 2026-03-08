@@ -56,8 +56,16 @@ const getStatusColor = (status) => {
                 items-per-page="-1"
             >
                 <template v-slot:item.employee_name="{ item }">
-                    <div>{{ item.employee_name }}</div>
-                    <div class="text-caption text-medium-emphasis">{{ item.emp_id }}</div>
+                    <div class="d-flex align-center ga-2">
+                        <v-avatar size="28" color="primary" variant="tonal">
+                            <v-img v-if="item.avatar_url" :src="item.avatar_url" cover/>
+                            <span v-else class="text-caption text-uppercase">{{ item.employee_name?.charAt(0) }}</span>
+                        </v-avatar>
+                        <div>
+                            <div>{{ item.employee_name }}</div>
+                            <div class="text-caption text-medium-emphasis">{{ item.emp_id }}</div>
+                        </div>
+                    </div>
                 </template>
                 <template v-slot:item.status="{ item }">
                     <v-chip

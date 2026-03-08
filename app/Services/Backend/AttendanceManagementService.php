@@ -17,7 +17,7 @@ class AttendanceManagementService
     public function list(Request $request): array
     {
         $query = AttendanceSummary::query()
-            ->with(['employee:id,first_name,last_name,id_no', 'department:id,name'])
+            ->with(['employee:id,first_name,last_name,id_no', 'employee.media', 'department:id,name'])
             ->orderBy('attendance_date', 'desc');
 
         $query = $this->attendanceQuery($query, $request);
@@ -84,6 +84,7 @@ class AttendanceManagementService
             $key  = $item->employee_id . '_' . $date->toDateString();
 
             return array_merge($item->toArray(), [
+                'avatar_url'              => $item->employee?->getFirstMediaUrl('avatar') ?: null,
                 'attendance_date_display' => $date->format('d M Y'),
                 'day'                     => $date->format('D'),
                 'first_check_in_display'  => $item->first_check_in

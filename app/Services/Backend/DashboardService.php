@@ -121,7 +121,7 @@ class DashboardService
     {
         return AttendanceSummary::when($companyId, fn($q) => $q->where('company_id', $companyId))
             ->whereDate('attendance_date', $today)
-            ->with('employee:id,first_name,last_name,id_no')
+            ->with(['employee:id,first_name,last_name,id_no', 'employee.media'])
             ->orderBy('first_check_in', 'desc')
             ->limit(10)
             ->get()
@@ -129,6 +129,7 @@ class DashboardService
                 'employee_name' => $item->employee
                     ? $item->employee->first_name . ' ' . $item->employee->last_name
                     : '-',
+                'avatar_url'    => $item->employee?->getFirstMediaUrl('avatar') ?: null,
                 'emp_id'        => $item->employee?->id_no ?? '-',
                 'check_in'      => $item->first_check_in
                     ? Carbon::parse($item->first_check_in)->format('g:i a')
@@ -150,6 +151,7 @@ class DashboardService
             ->whereIn('status', [LeaveRequestStatus::Pending, LeaveRequestStatus::InReview])
             ->with([
                 'employee:id,first_name,last_name',
+                'employee.media',
                 'leaveType:id,name',
             ])
             ->orderBy('created_at', 'desc')
@@ -157,6 +159,7 @@ class DashboardService
             ->get()
             ->map(fn($item) => [
                 'id'            => $item->id,
+                'avatar_url'    => $item->employee?->getFirstMediaUrl('avatar') ?: null,
                 'employee_name' => $item->employee
                     ? $item->employee->first_name . ' ' . $item->employee->last_name
                     : '-',

@@ -5,11 +5,18 @@ namespace App\Services;
 use App\Models\Company;
 use App\Models\CompanyWorkingDay;
 use App\Models\Employee;
+use App\Traits\LoadsSettings;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class WorkScheduleService
 {
+    use LoadsSettings;
+
+    public function __construct()
+    {
+        $this->loadSettings();
+    }
     public function isWorkingDay(Employee $employee, Carbon $date): bool
     {
         $company = $employee->company;

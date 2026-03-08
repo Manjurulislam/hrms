@@ -13,16 +13,20 @@ use App\Models\AttendanceSummary;
 use App\Models\Employee;
 use App\Models\Holiday;
 use App\Models\LeaveRequest;
+use App\Traits\LoadsSettings;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
 class AttendanceService
 {
+    use LoadsSettings;
+
     public function __construct(
         protected ?WorkScheduleService $scheduleService = null
     ) {
         $this->scheduleService = $scheduleService ?: new WorkScheduleService();
+        $this->loadSettings();
     }
 
     // ─── Check In ────────────────────────────────────────────────

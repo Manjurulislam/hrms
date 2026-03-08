@@ -163,6 +163,56 @@ trait PaginateQuery
         ];
     }
 
+    public function transformLeaveRequests($query, $rows): array
+    {
+        if ($rows == -1) {
+            $items = $query->get();
+            $total = $items->count();
+            $data  = $items;
+        } else {
+            $pagination = $query->paginate($rows);
+            $total      = $pagination->total();
+            $data       = $pagination->items();
+        }
+
+        $data = collect($data)->map(function ($item) {
+            $arr = $item->toArray();
+            if ($item->employee) {
+                $arr['employee']['avatar_url'] = $item->employee->getFirstMediaUrl('avatar') ?: null;
+            }
+            return $arr;
+        });
+
+        return [
+            'total' => $total,
+            'data'  => $data,
+        ];
+    }
+
+    public function transformEmployees($query, $rows): array
+    {
+        if ($rows == -1) {
+            $items = $query->get();
+            $total = $items->count();
+            $data  = $items;
+        } else {
+            $pagination = $query->paginate($rows);
+            $total      = $pagination->total();
+            $data       = $pagination->items();
+        }
+
+        $data = collect($data)->map(function ($item) {
+            return array_merge($item->toArray(), [
+                'avatar_url' => $item->getFirstMediaUrl('avatar') ?: null,
+            ]);
+        });
+
+        return [
+            'total' => $total,
+            'data'  => $data,
+        ];
+    }
+
     public function transformAttendance($query, $rows): array
     {
         if ($rows == -1) {

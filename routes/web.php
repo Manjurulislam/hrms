@@ -4,10 +4,7 @@
 use App\Http\Controllers\Backend\DashboardController;
 use App\Http\Controllers\Backend\ProfileController;
 use Illuminate\Support\Facades\Route;
-use Rap2hpoutre\LaravelLogViewer\LogViewerController;
 
-
-Route::get('error-logs', [LogViewerController::class, 'index']);
 
 
 Route::middleware(['auth', 'menu.permission'])->group(function () {
@@ -17,6 +14,8 @@ Route::middleware(['auth', 'menu.permission'])->group(function () {
     Route::controller(ProfileController::class)->prefix('profile')->group(function () {
         Route::get('/', 'index')->name('profile');
         Route::put('/', 'update')->name('profile.update');
+        Route::post('avatar', 'uploadAvatar')->name('profile.avatar');
+        Route::delete('avatar', 'removeAvatar')->name('profile.avatar.remove');
         Route::put('password', 'changePassword')->name('profile.password');
     });
 

@@ -79,7 +79,13 @@ const formatDate = (date) => {
                                 {{ index + 1 }}
                             </template>
                             <template v-slot:item.employee="{ item }">
-                                {{ item.employee?.first_name }} {{ item.employee?.last_name }}
+                                <div class="d-flex align-center ga-2">
+                                    <v-avatar size="28" color="primary" variant="tonal">
+                                        <v-img v-if="item.employee?.avatar_url" :src="item.employee.avatar_url" cover/>
+                                        <span v-else class="text-caption text-uppercase">{{ item.employee?.first_name?.charAt(0) }}{{ item.employee?.last_name?.charAt(0) }}</span>
+                                    </v-avatar>
+                                    <span>{{ item.employee?.first_name }} {{ item.employee?.last_name }}</span>
+                                </div>
                             </template>
                             <template v-slot:item.emp_id="{ item }">
                                 {{ item.employee?.id_no || '-' }}

@@ -80,6 +80,11 @@ return [
         'access'   => 'admin',
         'children' => [
             [
+                'title' => 'General Settings',
+                'icon'  => 'checklist-minimalistic-line-duotone',
+                'to'    => 'settings.index',
+            ],
+            [
                 'title' => 'Holidays',
                 'icon'  => 'checklist-minimalistic-line-duotone',
                 'to'    => 'holidays.index',

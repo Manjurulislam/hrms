@@ -11,6 +11,7 @@ use App\Http\Controllers\Backend\LeaveRequestController;
 use App\Http\Controllers\Backend\LeaveTypeController;
 use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\NoticeController;
+use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\UserController;
 
 
@@ -142,4 +143,12 @@ Route::controller(LeaveRequestController::class)->name('leave-requests.')
         Route::get('{leaveRequest}/show', 'show')->name('show');
         Route::post('{leaveRequest}/approve', 'approve')->name('approve');
         Route::post('{leaveRequest}/reject', 'reject')->name('reject');
+    });
+
+Route::controller(SettingController::class)->name('settings.')
+    ->prefix('settings')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::put('{group}', 'update')->name('update');
+        Route::post('logo', 'uploadLogo')->name('logo');
+        Route::delete('logo', 'removeLogo')->name('logo.remove');
     });

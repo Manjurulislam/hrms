@@ -6,6 +6,8 @@ use App\Enums\Gender;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\ProfileUpdateRequest;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
@@ -21,6 +23,7 @@ class ProfileController extends Controller
         return Inertia::render('Backend/Profile/index', [
             'user'          => $user,
             'employee'      => $employee,
+            'avatarUrl'     => $employee?->avatar_url,
             'genderOptions' => Gender::toOptions(),
         ]);
     }
@@ -51,6 +54,39 @@ class ProfileController extends Controller
         });
 
         return back()->with('success', 'Profile updated successfully.');
+    }
+
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        $request->validate([
+            'avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $employee = $request->user()->employee;
+
+        if (!$employee) {
+            return response()->json(['message' => 'Employee profile not found.'], 404);
+        }
+
+        $employee->addMediaFromRequest('avatar')->toMediaCollection('avatar');
+
+        return response()->json([
+            'message'   => 'Photo uploaded successfully.',
+            'avatarUrl' => $employee->avatar_url,
+        ]);
+    }
+
+    public function removeAvatar(Request $request): JsonResponse
+    {
+        $employee = $request->user()->employee;
+
+        if (!$employee) {
+            return response()->json(['message' => 'Employee profile not found.'], 404);
+        }
+
+        $employee->clearMediaCollection('avatar');
+
+        return response()->json(['message' => 'Photo removed successfully.']);
     }
 
     public function changePassword(ChangePasswordRequest $request)

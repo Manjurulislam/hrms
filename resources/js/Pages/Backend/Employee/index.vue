@@ -186,7 +186,13 @@ const handleImportSuccess = () => {
                                 </v-chip>
                             </template>
                             <template v-slot:item.full_name="{ item }">
-                                <div class="d-flex align-center">
+                                <div class="d-flex align-center ga-2">
+                                    <v-avatar size="30" color="primary" variant="tonal">
+                                        <v-img v-if="item.avatar_url" :src="item.avatar_url" cover/>
+                                        <span v-else class="text-caption text-uppercase">
+                                            {{ item.first_name?.charAt(0) }}{{ item.last_name?.charAt(0) }}
+                                        </span>
+                                    </v-avatar>
                                     <div>
                                         <div class="font-weight-medium">{{ getFullName(item) }}</div>
                                         <div class="text-caption text-medium-emphasis">{{ item.gender || '-' }}</div>

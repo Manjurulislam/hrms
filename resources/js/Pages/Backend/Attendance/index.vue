@@ -295,9 +295,13 @@ const getBreakTypeLabel = (type) => {
                                 {{ index + 1 }}
                             </template>
                             <template v-slot:item.employee_name="{ item }">
-                                <span v-if="item.employee">
-                                    {{ item.employee.first_name }} {{ item.employee.last_name }}
-                                </span>
+                                <div v-if="item.employee" class="d-flex align-center ga-2">
+                                    <v-avatar size="28" color="primary" variant="tonal">
+                                        <v-img v-if="item.avatar_url" :src="item.avatar_url" cover/>
+                                        <span v-else class="text-caption text-uppercase">{{ item.employee.first_name?.charAt(0) }}{{ item.employee.last_name?.charAt(0) }}</span>
+                                    </v-avatar>
+                                    <span>{{ item.employee.first_name }} {{ item.employee.last_name }}</span>
+                                </div>
                                 <span v-else class="text-muted">-</span>
                             </template>
                             <template v-slot:item.emp_id="{ item }">

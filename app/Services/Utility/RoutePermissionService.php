@@ -14,6 +14,8 @@ class RoutePermissionService
         'dashboard.data',
         'profile',
         'profile.update',
+        'profile.avatar',
+        'profile.avatar.remove',
         'profile.password',
     ];
 

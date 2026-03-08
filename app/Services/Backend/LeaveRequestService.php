@@ -24,6 +24,7 @@ class LeaveRequestService
         $query = LeaveRequest::query()
             ->with([
                 'employee:id,first_name,last_name,id_no',
+                'employee.media',
                 'leaveType:id,name',
                 'currentApprover:id,first_name,last_name',
             ])
@@ -31,7 +32,7 @@ class LeaveRequestService
 
         $query = $this->leaveRequestQuery($query, $request);
 
-        return $this->paginateOrFetchAll($query, $request->integer('per_page', 50));
+        return $this->transformLeaveRequests($query, $request->integer('per_page', 50));
     }
 
     public function store(Employee $employee, array $data): LeaveRequest

@@ -27,13 +27,13 @@ class EmployeeService
     public function list(Request $request): array
     {
         $query = Employee::query()
-            ->with(['department:id,name', 'designation:id,title', 'manager:id,first_name,last_name', 'user:id,employee_id,email,status'])
+            ->with(['department:id,name', 'designation:id,title', 'manager:id,first_name,last_name', 'user:id,employee_id,email,status', 'media'])
             ->orderBy('first_name')
             ->orderBy('last_name');
 
         $query = $this->employeeQuery($query, $request);
 
-        return $this->paginateOrFetchAll($query, $request->integer('per_page', 10));
+        return $this->transformEmployees($query, $request->integer('per_page', 10));
     }
 
     public function create(array $data): Employee

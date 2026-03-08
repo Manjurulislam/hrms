@@ -97,14 +97,23 @@ class LeaveController extends Controller
         $query = LeaveRequest::query()
             ->with([
                 'employee:id,first_name,last_name,id_no',
+                'employee.media',
                 'leaveType:id,name',
             ])
             ->where('current_approver_id', $employee->id)
             ->orderBy('created_at', 'desc');
 
+        $items = $query->get()->map(function ($item) {
+            $arr = $item->toArray();
+            if ($item->employee) {
+                $arr['employee']['avatar_url'] = $item->employee->getFirstMediaUrl('avatar') ?: null;
+            }
+            return $arr;
+        });
+
         return response()->json([
-            'data'  => $query->get(),
-            'total' => $query->count(),
+            'data'  => $items,
+            'total' => $items->count(),
         ]);
     }
 
