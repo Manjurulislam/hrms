@@ -128,7 +128,7 @@ class WorkScheduleService
     public function calculateLateMinutes(Employee $employee, Carbon $checkInTime): int
     {
         $company      = $employee->company;
-        $graceMinutes = config('attendance.late_grace_period', 15);
+        $graceMinutes = (int) config('attendance.late_grace_period', 15);
 
         if (!$company || !$company->office_start_time) {
             $scheduledStart = Carbon::parse(config('attendance.default_office_start', '09:00'));
@@ -149,7 +149,7 @@ class WorkScheduleService
     public function calculateEarlyLeaveMinutes(Employee $employee, Carbon $checkOutTime): int
     {
         $company      = $employee->company;
-        $graceMinutes = config('attendance.early_leave_grace_period', 15);
+        $graceMinutes = (int) config('attendance.early_leave_grace_period', 15);
 
         if (!$company || !$company->office_end_time) {
             $scheduledEnd = Carbon::parse(config('attendance.default_office_end', '18:00'));
