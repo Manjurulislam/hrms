@@ -7,6 +7,7 @@ use App\Enums\EmpStatus;
 use App\Enums\Gender;
 use App\Enums\MaritalStatus;
 use App\Models\Employee;
+use App\Models\Role;
 use App\Traits\PaginateQuery;
 use App\Traits\QueryParams;
 use Illuminate\Http\Request;
@@ -53,7 +54,13 @@ class EmployeeService
     public function update(Employee $employee, array $data): Employee
     {
         return DB::transaction(function () use ($employee, $data) {
-            $employee->update($data);
+            $password = data_get($data, 'password');
+            $employee->update(collect($data)->except('password')->toArray());
+
+            if (filled($password)) {
+                $this->updateUserPassword($employee, $password);
+            }
+
             $this->syncUser($employee);
 
             return $employee;
@@ -71,10 +78,12 @@ class EmployeeService
 
     public function toggle(Employee $employee): bool
     {
-        $employee->update(['status' => !$employee->status]);
-        $employee->user?->update(['status' => $employee->status]);
+        return DB::transaction(function () use ($employee) {
+            $employee->update(['status' => !$employee->status]);
+            $employee->user?->update(['status' => $employee->status]);
 
-        return $employee->status;
+            return $employee->status;
+        });
     }
 
     // ──────────────────────────────────────────────
@@ -108,12 +117,14 @@ class EmployeeService
 
     protected function createUser(Employee $employee, string $password): void
     {
-        $employee->user()->create([
+        $user = $employee->user()->create([
             'name'     => $employee->full_name,
             'email'    => $employee->email,
             'password' => $password,
             'status'   => $employee->status,
         ]);
+
+        $this->assignEmployeeRole($user);
     }
 
     protected function syncUser(Employee $employee): void
@@ -123,5 +134,19 @@ class EmployeeService
             'email'  => $employee->email,
             'status' => $employee->status,
         ]);
+    }
+
+    protected function updateUserPassword(Employee $employee, string $password): void
+    {
+        $employee->user?->update(['password' => $password]);
+    }
+
+    protected function assignEmployeeRole($user): void
+    {
+        $employeeRole = Role::where('slug', 'employee')->first();
+
+        if ($employeeRole) {
+            $user->roles()->attach($employeeRole);
+        }
     }
 }

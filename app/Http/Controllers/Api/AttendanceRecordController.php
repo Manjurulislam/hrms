@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Exports\AttendanceExport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\MonthlyDataRequest;
 use App\Services\Backend\AttendanceRecordService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,12 +22,8 @@ class AttendanceRecordController extends Controller
         return response()->json($this->service->list($request));
     }
 
-    public function export(Request $request): BinaryFileResponse|JsonResponse
+    public function export(MonthlyDataRequest $request): BinaryFileResponse|JsonResponse
     {
-        $request->validate([
-            'month' => 'required|date_format:Y-m',
-        ]);
-
         $employeeId = $this->service->resolveEmployeeId($request);
 
         if (!$employeeId) {

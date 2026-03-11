@@ -9,6 +9,7 @@ use App\Services\Backend\SharedService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class DashboardController extends Controller
 {
@@ -21,9 +22,13 @@ class DashboardController extends Controller
     public function __invoke()
     {
         $user = auth()->user();
+        $user->load('roles');
+
+        $adminRoles = ['super_admin', 'admin', 'hr', 'manager'];
+        $hasAdminRole = $user->roles->whereIn('slug', $adminRoles)->isNotEmpty();
 
         // Employee → employee dashboard with data
-        if ($user->isEmployee() && !$user->hasRole('super_admin') && !$user->hasRole('admin') && !$user->hasRole('hr') && !$user->hasRole('manager')) {
+        if ($user->isEmployee() && !$hasAdminRole) {
             $employee = $user->employee;
             $data = $this->employeeDashboardService->getData($employee);
 

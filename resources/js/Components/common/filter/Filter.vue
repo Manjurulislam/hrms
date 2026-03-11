@@ -54,7 +54,7 @@ const props = defineProps({
 });
 
 const form = useForm({
-    search: props.filters.serach,
+    search: props.filters.search,
     search_date: props.filters.search_date,
     isChecked: props.filters.isChecked,
 })

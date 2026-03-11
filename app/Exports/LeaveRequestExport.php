@@ -51,10 +51,10 @@ class LeaveRequestExport implements FromCollection, WithHeadings, WithMapping
     public function map($record): array
     {
         return [
-            $record->employee->id_no ?? '-',
+            $record->employee?->id_no ?? '-',
             $record->employee ? trim($record->employee->first_name . ' ' . $record->employee->last_name) : '-',
-            $record->employee->phone ?? '-',
-            $record->leaveType->name ?? '-',
+            $record->employee?->phone ?? '-',
+            $record->leaveType?->name ?? '-',
             $record->started_at ? Carbon::parse($record->started_at)->format('d M Y') : '-',
             $record->ended_at ? Carbon::parse($record->ended_at)->format('d M Y') : '-',
             $record->total_days ?? 0,

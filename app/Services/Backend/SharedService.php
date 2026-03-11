@@ -6,10 +6,11 @@ use App\Models\Company;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
+use Illuminate\Support\Collection;
 
 class SharedService
 {
-    public function companies()
+    public function companies(): Collection
     {
         return Company::select('id', 'name')
             ->where('status', true)
@@ -17,7 +18,7 @@ class SharedService
             ->get();
     }
 
-    public function departments(?int $companyId = null)
+    public function departments(?int $companyId = null): Collection
     {
         return Department::select('id', 'name', 'company_id')
             ->where('status', true)
@@ -26,7 +27,7 @@ class SharedService
             ->get();
     }
 
-    public function designations(?int $excludeId = null, ?int $companyId = null)
+    public function designations(?int $excludeId = null, ?int $companyId = null): Collection
     {
         return Designation::select('id', 'title', 'level', 'company_id', 'parent_id')
             ->where('status', true)
@@ -37,7 +38,7 @@ class SharedService
             ->get();
     }
 
-    public function employees(?int $excludeId = null, ?int $companyId = null)
+    public function employees(?int $excludeId = null, ?int $companyId = null): Collection
     {
         return Employee::select('id', 'first_name', 'last_name', 'company_id')
             ->where('status', true)

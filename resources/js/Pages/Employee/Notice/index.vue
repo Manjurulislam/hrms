@@ -1,4 +1,5 @@
 <script setup>
+import axios from 'axios';
 import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head, Link} from '@inertiajs/vue3';
 import {reactive} from 'vue';
@@ -23,6 +24,8 @@ const loadData = () => {
     axios.get(route('emp-notices.get', {search: state.search})).then(({data}) => {
         state.loading = false;
         state.serverItems = data.data;
+    }).catch(() => {
+        state.loading = false;
     });
 };
 

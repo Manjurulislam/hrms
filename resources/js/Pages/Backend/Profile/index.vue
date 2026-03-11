@@ -1,5 +1,5 @@
 <script setup>
-import {Head, useForm, router} from '@inertiajs/vue3';
+import {Head, useForm} from '@inertiajs/vue3';
 import {onMounted, ref} from 'vue';
 import {useToast} from 'vue-toastification';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
@@ -13,19 +13,26 @@ const props = defineProps({
     employee: Object,
     avatarUrl: String,
     genderOptions: Array,
+    bloodGroupOptions: Array,
+    maritalStatusOptions: Array,
 });
 
 const avatarPreview = ref(props.avatarUrl);
 const avatarUploading = ref(false);
 
 const profileForm = useForm({
-    name: '',
     email: '',
     first_name: '',
     last_name: '',
     phone: '',
+    sec_phone: '',
+    nid: '',
     gender: null,
     date_of_birth: null,
+    blood_group: null,
+    marital_status: null,
+    emergency_contact: '',
+    bank_account: '',
     address: '',
 });
 
@@ -98,14 +105,19 @@ const removeAvatar = async () => {
 };
 
 onMounted(() => {
-    profileForm.name = props.user?.name;
     profileForm.email = props.user?.email;
     if (props.employee) {
         profileForm.first_name = props.employee.first_name;
         profileForm.last_name = props.employee.last_name;
         profileForm.phone = props.employee.phone;
+        profileForm.sec_phone = props.employee.sec_phone;
+        profileForm.nid = props.employee.nid;
         profileForm.gender = props.employee.gender;
         profileForm.date_of_birth = props.employee.date_of_birth;
+        profileForm.blood_group = props.employee.blood_group;
+        profileForm.marital_status = props.employee.marital_status;
+        profileForm.emergency_contact = props.employee.emergency_contact;
+        profileForm.bank_account = props.employee.bank_account;
         profileForm.address = props.employee.address;
     }
 });
@@ -158,7 +170,6 @@ onMounted(() => {
                                     Remove
                                 </v-btn>
                             </div>
-
                         </div>
                     </v-card-text>
                 </v-card>
@@ -169,21 +180,6 @@ onMounted(() => {
                     <form @submit.prevent="updateProfile">
                         <v-card-text>
                             <v-row dense>
-                                <v-col cols="12" md="6">
-                                    <TextInput
-                                        v-model="profileForm.name"
-                                        :error-messages="profileForm.errors.name"
-                                        label="Name *"
-                                    />
-                                </v-col>
-                                <v-col cols="12" md="6">
-                                    <TextInput
-                                        v-model="profileForm.email"
-                                        :error-messages="profileForm.errors.email"
-                                        label="Email *"
-                                        type="email"
-                                    />
-                                </v-col>
                                 <template v-if="employee">
                                     <v-col cols="12" md="6">
                                         <TextInput
@@ -208,6 +204,21 @@ onMounted(() => {
                                         />
                                     </v-col>
                                     <v-col cols="12" md="6">
+                                        <TextInput
+                                            v-model="profileForm.sec_phone"
+                                            :error-messages="profileForm.errors.sec_phone"
+                                            label="Secondary Phone"
+                                            type="tel"
+                                        />
+                                    </v-col>
+                                    <v-col cols="12" md="6">
+                                        <TextInput
+                                            v-model="profileForm.nid"
+                                            :error-messages="profileForm.errors.nid"
+                                            label="National ID"
+                                        />
+                                    </v-col>
+                                    <v-col cols="12" md="6">
                                         <v-select
                                             v-model="profileForm.gender"
                                             :error-messages="profileForm.errors.gender"
@@ -223,11 +234,10 @@ onMounted(() => {
                                         />
                                     </v-col>
                                     <v-col cols="12" md="6">
-                                        <v-label class="mb-2 font-weight-medium text-caption">Date of Birth</v-label>
                                         <el-date-picker
                                             v-model="profileForm.date_of_birth"
                                             format="YYYY-MM-DD"
-                                            placeholder="Select date"
+                                            placeholder="Date of Birth"
                                             size="large"
                                             style="width: 100%"
                                             type="date"
@@ -238,13 +248,58 @@ onMounted(() => {
                                         </div>
                                     </v-col>
                                     <v-col cols="12" md="6">
+                                        <v-select
+                                            v-model="profileForm.blood_group"
+                                            :error-messages="profileForm.errors.blood_group"
+                                            :items="bloodGroupOptions"
+                                            clearable
+                                            density="compact"
+                                            hide-details="auto"
+                                            item-title="label"
+                                            item-value="value"
+                                            label="Blood Group"
+                                            variant="outlined"
+                                            class="pb-3"
+                                        />
+                                    </v-col>
+                                    <v-col cols="12" md="6">
+                                        <v-select
+                                            v-model="profileForm.marital_status"
+                                            :error-messages="profileForm.errors.marital_status"
+                                            :items="maritalStatusOptions"
+                                            clearable
+                                            density="compact"
+                                            hide-details="auto"
+                                            item-title="label"
+                                            item-value="value"
+                                            label="Marital Status"
+                                            variant="outlined"
+                                            class="pb-3"
+                                        />
+                                    </v-col>
+                                    <v-col cols="12" md="6">
+                                        <TextInput
+                                            v-model="profileForm.emergency_contact"
+                                            :error-messages="profileForm.errors.emergency_contact"
+                                            label="Emergency Contact"
+                                            type="tel"
+                                        />
+                                    </v-col>
+                                    <v-col cols="12" md="6">
+                                        <TextInput
+                                            v-model="profileForm.bank_account"
+                                            :error-messages="profileForm.errors.bank_account"
+                                            label="Bank Account"
+                                        />
+                                    </v-col>
+                                    <v-col cols="12">
                                         <v-textarea
                                             v-model="profileForm.address"
                                             :error-messages="profileForm.errors.address"
                                             density="compact"
                                             hide-details="auto"
                                             label="Address"
-                                            rows="1"
+                                            rows="2"
                                             auto-grow
                                             variant="outlined"
                                             class="pb-3"

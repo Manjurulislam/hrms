@@ -85,6 +85,10 @@ class LeaveRequestController extends Controller
 
             $approver = $this->getApproverEmployee($leaveRequest);
 
+            if (!$approver) {
+                return back()->withErrors(['error' => 'Unable to resolve approver for this request.']);
+            }
+
             $result = $this->approvalService->approve(
                 $leaveRequest,
                 $approver,
@@ -107,6 +111,10 @@ class LeaveRequestController extends Controller
             }
 
             $approver = $this->getApproverEmployee($leaveRequest);
+
+            if (!$approver) {
+                return back()->withErrors(['error' => 'Unable to resolve approver for this request.']);
+            }
 
             $result = $this->approvalService->reject(
                 $leaveRequest,

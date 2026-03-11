@@ -24,7 +24,7 @@ class CompanyRequest extends FormRequest
             'website'           => ['nullable', 'url', 'max:255'],
             'office_start'    => ['nullable', 'date_format:H:i'],
             'office_end'      => ['nullable', 'date_format:H:i'],
-            'office_ip'       => ['nullable', 'string', 'max:45'],
+            'office_ip'       => ['nullable', 'ip'],
             'work_hours'      => ['nullable', 'integer', 'min:1', 'max:24'],
             'half_day_hours'  => ['nullable', 'integer', 'min:1', 'max:12'],
             'late_grace'      => ['nullable', 'integer', 'min:0', 'max:120'],

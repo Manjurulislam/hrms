@@ -1,6 +1,8 @@
 <script setup>
 import {ref} from 'vue';
-import {Link, useForm} from "@inertiajs/vue3";
+import {Link, useForm, usePage} from "@inertiajs/vue3";
+
+const status = usePage().props.status;
 
 const isSubmitting = ref(false);
 const inputVisible = ref(false);

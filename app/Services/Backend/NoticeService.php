@@ -20,13 +20,7 @@ class NoticeService
             ->with(['company:id,name', 'department:id,name', 'creator:id,name'])
             ->orderBy('created_at', 'desc');
 
-        $search    = $request->input('search');
-        $companyId = $request->input('company_id');
-        $status    = $request->input('status');
-
-        $query->when(filled($search), fn($q) => $q->where('title', 'like', "%{$search}%"));
-        $query->when(filled($companyId), fn($q) => $q->where('company_id', $companyId));
-        $query->when($status !== null && $status !== '', fn($q) => $q->where('status', $status));
+        $this->applyFilters($query, $request);
 
         return $this->paginateOrFetchAll($query, $request->integer('per_page', 10));
     }
@@ -80,15 +74,31 @@ class NoticeService
             ->published()
             ->notExpired()
             ->where('company_id', $employee->company_id)
-            ->where(function ($q) use ($employee) {
-                $q->whereNull('department_id')
-                  ->orWhere('department_id', $employee->department_id);
-            })
+            ->where(fn($q) => $q->whereNull('department_id')->orWhere('department_id', $employee->department_id))
             ->orderBy('published_at', 'desc');
 
-        $search = $request->input('search');
-        $query->when(filled($search), fn($q) => $q->where('title', 'like', "%{$search}%"));
+        $this->applySearchFilter($query, $request);
 
         return $this->paginateOrFetchAll($query, $request->integer('per_page', 10));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Query Filters
+    // ═══════════════════════════════════════════════════════════════
+
+    private function applyFilters($query, Request $request): void
+    {
+        $this->applySearchFilter($query, $request);
+
+        $query->when($request->filled('company_id'), fn($q) => $q->where('company_id', $request->input('company_id')));
+
+        $status = $request->input('status');
+        $query->when($status !== null && $status !== '', fn($q) => $q->where('status', $status));
+    }
+
+    private function applySearchFilter($query, Request $request): void
+    {
+        $search = $request->input('search');
+        $query->when(filled($search), fn($q) => $q->where('title', 'like', "%{$search}%"));
     }
 }

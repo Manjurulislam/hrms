@@ -24,12 +24,21 @@ class NoticeController extends Controller
     public function get(Request $request): JsonResponse
     {
         $employee = auth()->user()->employee;
+        abort_unless($employee, 403, 'No employee profile linked to your account.');
 
         return response()->json($this->service->employeeNotices($request, $employee));
     }
 
     public function show(Notice $notice): Response
     {
+        $employee = auth()->user()->employee;
+        abort_unless($employee, 403, 'No employee profile linked to your account.');
+        abort_unless(
+            $notice->company_id === $employee->company_id,
+            403,
+            'You are not authorized to view this notice.'
+        );
+
         $notice->load(['company:id,name', 'department:id,name', 'creator:id,name']);
 
         return Inertia::render('Employee/Notice/show', [

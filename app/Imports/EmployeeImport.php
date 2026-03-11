@@ -3,99 +3,59 @@
 namespace App\Imports;
 
 use App\Models\Employee;
+use App\Models\Role;
 use App\Models\User;
-use Exception;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Concerns\Importable;
+use Maatwebsite\Excel\Concerns\SkipsFailures;
+use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 
-class EmployeeImport implements ToModel, WithHeadingRow, WithValidation, WithBatchInserts, WithChunkReading
+class EmployeeImport implements ToModel, WithHeadingRow, WithValidation, WithBatchInserts, WithChunkReading, SkipsOnFailure
 {
-    use Importable;
+    use Importable, SkipsFailures;
 
-    protected mixed $company;
-    protected mixed $department;
-    private int     $importedCount = 0;
-    private array   $failedRows    = [];
-    private array   $errors        = [];
+    private int $importedCount = 0;
+    private ?Role $employeeRole;
 
-    public function __construct($company, $department)
-    {
-        $this->company    = $company;
-        $this->department = $department;
+    public function __construct(
+        protected readonly mixed $company,
+        protected readonly mixed $department,
+    ) {
+        $this->employeeRole = Role::where('slug', 'employee')->first();
     }
 
-    public function model(array $row)
+    public function model(array $row): ?Employee
     {
-        try {
-            DB::beginTransaction();
+        $name  = data_get($row, 'name');
+        $email = data_get($row, 'email');
 
-            $name  = data_get($row, 'name');
-            $email = data_get($row, 'email');
+        $employee = Employee::create([
+            'first_name'    => $name,
+            'email'         => $email,
+            'company_id'    => $this->company,
+            'department_id' => $this->department,
+        ]);
 
-            // Basic validation
-            if (empty($name) || empty($email)) {
-                throw new Exception('Name and email are required');
-            }
+        $user = User::create([
+            'name'        => $name,
+            'email'       => $email,
+            'password'    => 'Employee@123',
+            'employee_id' => $employee->id,
+            'status'      => true,
+        ]);
 
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                throw new Exception('Invalid email format');
-            }
-
-            // Check for duplicates
-            if (Employee::where('email', $email)->exists()) {
-                throw new Exception('Email already exists in employees');
-            }
-
-            if (User::where('email', $email)->exists()) {
-                throw new Exception('Email already exists in users');
-            }
-
-            // Create Employee
-            $emData = [
-                'first_name'    => $name,
-                'email'         => $email,
-                'company_id'    => $this->company,
-                'department_id' => $this->department,
-            ];
-
-            $employee = Employee::create($emData);
-            // Create User
-            $userData = [
-                'name'        => $name,
-                'email'       => $email,
-                'password'    => Hash::make('password'),
-                'employee_id' => $employee->id,
-            ];
-
-            User::create($userData);
-
-            $this->importedCount++;
-
-            DB::commit();
-
-            return $employee;
-        } catch (Exception $e) {
-            DB::rollBack();
-            $this->errors[] = [
-                'row'   => $this->getCurrentRowNumber(),
-                'data'  => $row,
-                'error' => $e->getMessage()
-            ];
-            return null;
+        if ($this->employeeRole) {
+            $user->roles()->attach($this->employeeRole);
         }
-    }
 
-    private function getCurrentRowNumber(): int
-    {
-        // This is an approximation since Laravel Excel 3.1 doesn't provide direct row numbers
-        return $this->importedCount + count($this->errors) + 2; // +2 for header and 1-based indexing
+        $this->importedCount++;
+
+        return $employee;
     }
 
     public function getImportedCount(): int
@@ -103,27 +63,15 @@ class EmployeeImport implements ToModel, WithHeadingRow, WithValidation, WithBat
         return $this->importedCount;
     }
 
-    public function getErrors(): array
-    {
-        return $this->errors;
-    }
-
-    // Laravel Excel 3.1 validation
-
-    public function hasErrors(): bool
-    {
-        return count($this->errors) > 0;
-    }
-
     public function rules(): array
     {
         return [
-            'name'  => 'required|string|max:255',
+            'name'  => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
                 'email',
                 Rule::unique('employees', 'email'),
-                Rule::unique('users', 'email')
+                Rule::unique('users', 'email'),
             ],
         ];
     }
@@ -131,10 +79,10 @@ class EmployeeImport implements ToModel, WithHeadingRow, WithValidation, WithBat
     public function customValidationMessages(): array
     {
         return [
-            'name.required'  => 'Employee name is required',
-            'email.required' => 'Employee email is required',
-            'email.email'    => 'Please provide a valid email address',
-            'email.unique'   => 'This email address is already registered',
+            'name.required'  => 'Employee name is required.',
+            'email.required' => 'Employee email is required.',
+            'email.email'    => 'Please provide a valid email address.',
+            'email.unique'   => 'This email address is already registered.',
         ];
     }
 

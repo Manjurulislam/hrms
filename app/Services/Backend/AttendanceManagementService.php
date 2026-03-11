@@ -36,9 +36,8 @@ class AttendanceManagementService
             $query->where('status', $request->input('status'));
         }
 
-        $records = $query->get();
-        $stats   = $this->computeStats($records);
-        $data    = $this->transformAttendanceWithSessions($query, $request->integer('per_page', 50));
+        $data  = $this->transformAttendanceWithSessions($query, $request->integer('per_page', 50));
+        $stats = $this->computeStats(collect($data['data']));
 
         return array_merge($data, ['stats' => $stats]);
     }
@@ -55,15 +54,23 @@ class AttendanceManagementService
 
     private function computeStats($records): array
     {
+        $statusCounts = collect($records)->countBy(fn($r) => data_get($r, 'status') instanceof AttendanceStatus
+            ? data_get($r, 'status')->value
+            : (string) data_get($r, 'status'));
+
+        $presentStatuses = [AttendanceStatus::Present->value, AttendanceStatus::Late->value, AttendanceStatus::WorkFromHome->value];
+        $presentCount = collect($presentStatuses)->sum(fn($s) => $statusCounts->get($s, 0));
+
+        $totalMinutes = collect($records)->sum(fn($r) => data_get($r, 'total_working_minutes', 0));
+        $count = collect($records)->count();
+
         return [
-            'present'   => $records->whereIn('status', [AttendanceStatus::Present, AttendanceStatus::Late, AttendanceStatus::WorkFromHome])->count(),
-            'absent'    => $records->where('status', AttendanceStatus::Absent)->count(),
-            'late'      => $records->where('status', AttendanceStatus::Late)->count(),
-            'half_day'  => $records->where('status', AttendanceStatus::HalfDay)->count(),
-            'wfh'       => $records->where('status', AttendanceStatus::WorkFromHome)->count(),
-            'avg_hours' => $records->count() > 0
-                ? round($records->avg('total_working_minutes') / 60, 1)
-                : 0,
+            'present'   => $presentCount,
+            'absent'    => $statusCounts->get(AttendanceStatus::Absent->value, 0),
+            'late'      => $statusCounts->get(AttendanceStatus::Late->value, 0),
+            'half_day'  => $statusCounts->get(AttendanceStatus::HalfDay->value, 0),
+            'wfh'       => $statusCounts->get(AttendanceStatus::WorkFromHome->value, 0),
+            'avg_hours' => $count > 0 ? round($totalMinutes / $count / 60, 1) : 0,
         ];
     }
 }
