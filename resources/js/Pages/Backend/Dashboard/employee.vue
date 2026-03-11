@@ -8,7 +8,6 @@ import RecentLeavesTable from '@/Components/modules/dashboard/employee/RecentLea
 
 defineProps({
     stats: Object,
-    monthlyAttendance: Array,
     leaveBalances: Array,
     recentLeaves: Array,
     weeklyHours: Array,

@@ -30,6 +30,12 @@ class DashboardController extends Controller
         // Employee → employee dashboard with data
         if ($user->isEmployee() && !$hasAdminRole) {
             $employee = $user->employee;
+
+            if (!$employee) {
+                return to_route('dashboard')->withErrors(['error' => 'No employee profile linked to your account.']);
+            }
+
+            $employee->load(['designation:id,title', 'department:id,name']);
             $data = $this->employeeDashboardService->getData($employee);
 
             return Inertia::render('Backend/Dashboard/employee', array_merge($data, [

@@ -39,6 +39,7 @@ const loadData = () => {
     }
     axios.get(route('dashboard.data', params)).then(({data: res}) => {
         data.value = res;
+    }).catch(() => {}).finally(() => {
         loading.value = false;
     });
 };
