@@ -227,7 +227,7 @@ class AttendanceSummary extends Model
     public function addIpAddress($ip): void
     {
         $ips = $this->ip_addresses ?? [];
-        if (!in_array($ip, $ips)) {
+        if (!collect($ips)->contains($ip)) {
             $ips[] = $ip;
             $this->update(['ip_addresses' => $ips]);
         }
@@ -236,7 +236,7 @@ class AttendanceSummary extends Model
     public function addLocation($location): void
     {
         $locations = $this->locations ?? [];
-        if (!in_array($location, $locations)) {
+        if (!collect($locations)->contains($location)) {
             $locations[] = $location;
             $this->update(['locations' => $locations]);
         }

@@ -50,7 +50,7 @@ class RoutePermissionService
 
     protected function shouldSkip(string $route): bool
     {
-        return in_array($route, self::SKIP_ROUTES)
+        return collect(self::SKIP_ROUTES)->contains($route)
             || Str::startsWith($route, self::SKIP_PREFIXES);
     }
 

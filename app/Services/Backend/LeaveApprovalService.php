@@ -238,7 +238,7 @@ class LeaveApprovalService
         $current = $employee;
         $visited = [];
 
-        while ($current->manager_id && !in_array($current->manager_id, $visited)) {
+        while ($current->manager_id && !collect($visited)->contains($current->manager_id)) {
             $visited[] = $current->manager_id;
             $manager = Employee::with('designation')->find($current->manager_id);
 

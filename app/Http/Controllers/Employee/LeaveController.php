@@ -197,8 +197,8 @@ class LeaveController extends Controller
 
         $result = $this->service->cancel($leaveRequest);
 
-        if (!$result) {
-            return back()->withErrors(['error' => 'Only pending requests can be cancelled.']);
+        if ($result !== true) {
+            return back()->withErrors(['error' => is_string($result) ? $result : 'This leave request cannot be cancelled.']);
         }
 
         return back();

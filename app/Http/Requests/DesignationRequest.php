@@ -79,12 +79,12 @@ class DesignationRequest extends FormRequest
 
         $ancestors = $this->getAncestors($parentId);
 
-        return in_array($designationId, $ancestors);
+        return collect($ancestors)->contains($designationId);
     }
 
     private function getAncestors($designationId, $ancestors = []): array
     {
-        if (!$designationId || in_array($designationId, $ancestors)) {
+        if (!$designationId || collect($ancestors)->contains($designationId)) {
             return $ancestors;
         }
 

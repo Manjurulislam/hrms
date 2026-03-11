@@ -2,6 +2,7 @@
 
 namespace App\Services\Backend;
 
+use App\Enums\LeaveApprovalStatus;
 use App\Enums\LeaveRequestStatus;
 use App\Models\Employee;
 use App\Models\LeaveBalance;
@@ -60,10 +61,19 @@ class LeaveRequestService
         });
     }
 
-    public function cancel(LeaveRequest $leaveRequest): bool
+    public function cancel(LeaveRequest $leaveRequest): bool|string
     {
-        if ($leaveRequest->status !== LeaveRequestStatus::Pending) {
-            return false;
+        if (!collect([LeaveRequestStatus::Pending, LeaveRequestStatus::InReview])->contains($leaveRequest->status)) {
+            return 'This leave request cannot be cancelled.';
+        }
+
+        // Check if any approver has already acted on this request
+        $hasApprovalAction = $leaveRequest->approvals()
+            ->whereIn('status', [LeaveApprovalStatus::Approved, LeaveApprovalStatus::Rejected])
+            ->exists();
+
+        if ($hasApprovalAction) {
+            return 'This leave request has already been reviewed by an approver and cannot be cancelled.';
         }
 
         $leaveRequest->update(['status' => LeaveRequestStatus::Cancelled]);
