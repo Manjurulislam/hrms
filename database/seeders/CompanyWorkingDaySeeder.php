@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 
 class CompanyWorkingDaySeeder extends Seeder
 {
-    private const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+    private const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     public function run(): void
     {
