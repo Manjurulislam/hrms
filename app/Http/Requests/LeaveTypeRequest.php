@@ -25,6 +25,7 @@ class LeaveTypeRequest extends FormRequest
             ],
             'max_per_year' => ['required', 'integer', 'min:1', 'max:365'],
             'company_id'   => ['required', 'exists:companies,id'],
+            'approval_workflow_id' => ['nullable', 'exists:approval_workflows,id'],
             'status'       => ['boolean'],
         ];
     }

@@ -21,32 +21,6 @@ class SettingService
                 'currency'        => ['value' => 'BDT', 'type' => 'string', 'label' => 'Currency'],
                 'currency_symbol' => ['value' => '৳', 'type' => 'string', 'label' => 'Currency Symbol'],
             ],
-            'attendance' => [
-                'min_session_duration'     => ['value' => '1', 'type' => 'integer', 'label' => 'Min Session Duration (min)'],
-                'min_session_gap'          => ['value' => '2', 'type' => 'integer', 'label' => 'Min Session Gap (min)'],
-                'max_sessions_per_day'     => ['value' => '10', 'type' => 'integer', 'label' => 'Max Sessions Per Day'],
-                'max_breaks_per_day'       => ['value' => '5', 'type' => 'integer', 'label' => 'Max Breaks Per Day'],
-                'min_break_duration'       => ['value' => '1', 'type' => 'integer', 'label' => 'Min Break Duration (min)'],
-                'max_break_duration'       => ['value' => '120', 'type' => 'integer', 'label' => 'Max Break Duration (min)'],
-                'default_office_start'     => ['value' => '09:00', 'type' => 'string', 'label' => 'Default Office Start'],
-                'default_office_end'       => ['value' => '18:00', 'type' => 'string', 'label' => 'Default Office End'],
-                'late_grace_period'        => ['value' => '15', 'type' => 'integer', 'label' => 'Late Grace Period (min)'],
-                'early_leave_grace_period' => ['value' => '15', 'type' => 'integer', 'label' => 'Early Leave Grace (min)'],
-                'standard_working_hours'   => ['value' => '8', 'type' => 'integer', 'label' => 'Standard Working Hours'],
-                'half_day_hours'           => ['value' => '4', 'type' => 'integer', 'label' => 'Half Day Hours'],
-                'auto_close_enabled'       => ['value' => '1', 'type' => 'boolean', 'label' => 'Auto Close Sessions'],
-                'auto_close_time'          => ['value' => '23:59', 'type' => 'string', 'label' => 'Auto Close Time'],
-                'track_ip_address'         => ['value' => '1', 'type' => 'boolean', 'label' => 'Track IP Address'],
-                'track_location'           => ['value' => '1', 'type' => 'boolean', 'label' => 'Track Location'],
-            ],
-            'leave' => [
-                'max_leave_per_application'  => ['value' => '30', 'type' => 'integer', 'label' => 'Max Days Per Application'],
-                'min_advance_days'           => ['value' => '1', 'type' => 'integer', 'label' => 'Min Advance Days'],
-                'allow_half_day'             => ['value' => '1', 'type' => 'boolean', 'label' => 'Allow Half Day Leave'],
-                'allow_backdated'            => ['value' => '0', 'type' => 'boolean', 'label' => 'Allow Backdated Leave'],
-                'carry_forward'              => ['value' => '0', 'type' => 'boolean', 'label' => 'Carry Forward Balance'],
-                'max_carry_forward_days'     => ['value' => '5', 'type' => 'integer', 'label' => 'Max Carry Forward Days'],
-            ],
             'notification' => [
                 'send_late_notification'    => ['value' => '1', 'type' => 'boolean', 'label' => 'Late Arrival Notification'],
                 'send_absence_notification' => ['value' => '1', 'type' => 'boolean', 'label' => 'Absence Notification'],
@@ -109,6 +83,36 @@ class SettingService
         }
 
         Cache::forget(self::CACHE_KEY);
+    }
+
+    public function getLogoUrl(): ?string
+    {
+        $setting = Setting::where('group', 'general')->where('key', 'logo')->first();
+
+        return $setting?->getFirstMediaUrl('logo') ?: null;
+    }
+
+    public function getTimezones(): array
+    {
+        return array_map(fn($tz) => ['title' => $tz, 'value' => $tz], timezone_identifiers_list());
+    }
+
+    public function uploadLogo($request): string
+    {
+        $setting = Setting::firstOrCreate(
+            ['group' => 'general', 'key' => 'logo'],
+            ['value' => '', 'type' => 'string']
+        );
+
+        $setting->addMediaFromRequest('logo')->toMediaCollection('logo');
+
+        return $setting->getFirstMediaUrl('logo');
+    }
+
+    public function removeLogo(): void
+    {
+        $setting = Setting::where('group', 'general')->where('key', 'logo')->first();
+        $setting?->clearMediaCollection('logo');
     }
 
     public function getSettingsWithMeta(): array

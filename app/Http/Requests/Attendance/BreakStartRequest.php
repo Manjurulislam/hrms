@@ -61,7 +61,7 @@ class BreakStartRequest extends FormRequest
     {
         if ($validator->errors()->isNotEmpty()) return;
 
-        $maxBreaks = config('attendance.max_breaks_per_day', 5);
+        $maxBreaks = $this->companySetting($employee->company, 'max_breaks');
 
         if ($this->getTodayBreakCount($employee) >= $maxBreaks) {
             $validator->errors()->add('break', "Maximum {$maxBreaks} breaks allowed per day.");

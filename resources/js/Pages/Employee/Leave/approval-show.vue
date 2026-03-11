@@ -6,18 +6,16 @@ import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 const props = defineProps({
     leaveRequest: Object,
     isCurrentApprover: Boolean,
-    approverLevel: Number,
 });
 
 const remarks = ref('');
 const showRejectDialog = ref(false);
 
-const approveForm = useForm({remarks: '', forward: false});
+const approveForm = useForm({remarks: ''});
 const rejectForm = useForm({remarks: ''});
 
-const approve = (forward = false) => {
+const approve = () => {
     approveForm.remarks = remarks.value;
-    approveForm.forward = forward;
     approveForm.post(route('emp-leave.approvals.approve', props.leaveRequest.id));
 };
 
@@ -180,57 +178,17 @@ const empInitials = `${emp?.first_name?.charAt(0) || ''}${emp?.last_name?.charAt
                                 />
 
                                 <div class="d-flex flex-wrap ga-3">
-                                    <!-- Level > 2: Approve (auto-forwards) -->
                                     <v-btn
-                                        v-if="approverLevel > 2"
                                         :loading="approveForm.processing"
                                         color="success"
                                         prepend-icon="mdi-check"
                                         variant="flat"
                                         size="large"
-                                        @click="approve(false)"
+                                        @click="approve"
                                     >
                                         Approve
                                     </v-btn>
 
-                                    <!-- Level 2 (CTO): Final Approve or Forward -->
-                                    <v-btn
-                                        v-if="approverLevel === 2"
-                                        :loading="approveForm.processing"
-                                        color="success"
-                                        prepend-icon="mdi-check-all"
-                                        variant="flat"
-                                        size="large"
-                                        @click="approve(false)"
-                                    >
-                                        Final Approve
-                                    </v-btn>
-                                    <v-btn
-                                        v-if="approverLevel === 2"
-                                        :loading="approveForm.processing"
-                                        color="info"
-                                        prepend-icon="mdi-forward"
-                                        variant="flat"
-                                        size="large"
-                                        @click="approve(true)"
-                                    >
-                                        Forward to CEO
-                                    </v-btn>
-
-                                    <!-- Level 1 (CEO): Final Approve -->
-                                    <v-btn
-                                        v-if="approverLevel === 1"
-                                        :loading="approveForm.processing"
-                                        color="success"
-                                        prepend-icon="mdi-check-all"
-                                        variant="flat"
-                                        size="large"
-                                        @click="approve(false)"
-                                    >
-                                        Final Approve
-                                    </v-btn>
-
-                                    <!-- Reject -->
                                     <v-btn
                                         color="error"
                                         prepend-icon="mdi-close"

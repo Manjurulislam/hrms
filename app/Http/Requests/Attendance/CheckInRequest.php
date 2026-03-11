@@ -35,7 +35,7 @@ class CheckInRequest extends FormRequest
             $this->validateOfficeHours($validator, $employee);
             $this->validateOfficeHoursNotCompleted($validator, $employee);
             $this->validateNoActiveSession($validator, $employee);
-            $this->validateSessionGap($validator, $employee);
+            // $this->validateSessionGap($validator, $employee);
             $this->validateMaxSessions($validator, $employee);
         });
     }
@@ -85,7 +85,7 @@ class CheckInRequest extends FormRequest
         if (!$lastSession?->check_out_time) return;
 
         $minutesSince = (int) abs($lastSession->check_out_time->diffInMinutes(now()));
-        $minimumGap = config('attendance.minimum_session_gap', 5);
+        $minimumGap = $this->companySetting($employee->company, 'min_session_gap');
 
         if ($minutesSince < $minimumGap) {
             $validator->errors()->add(
@@ -99,7 +99,7 @@ class CheckInRequest extends FormRequest
     {
         if ($validator->errors()->isNotEmpty()) return;
 
-        $maxSessions = config('attendance.max_sessions_per_day', 10);
+        $maxSessions = $this->companySetting($employee->company, 'max_sessions');
 
         if ($this->getTodaySessionCount($employee) >= $maxSessions) {
             $validator->errors()->add('session', "Maximum {$maxSessions} sessions allowed per day.");

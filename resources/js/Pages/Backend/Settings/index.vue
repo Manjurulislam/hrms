@@ -66,8 +66,6 @@ const activeSection = ref('general');
 
 const sections = [
     {value: 'general', label: 'General', icon: 'mdi-cog-outline'},
-    {value: 'attendance', label: 'Attendance', icon: 'mdi-clock-outline'},
-    {value: 'leave', label: 'Leave', icon: 'mdi-calendar-clock'},
     {value: 'notification', label: 'Notifications', icon: 'mdi-bell-outline'},
 ];
 
@@ -100,8 +98,6 @@ const buildFormData = (group) => {
 };
 
 const generalForm = useForm(buildFormData('general'));
-const attendanceForm = useForm(buildFormData('attendance'));
-const leaveForm = useForm(buildFormData('leave'));
 const notificationForm = useForm(buildFormData('notification'));
 
 const submitGroup = (group, form) => {
@@ -253,283 +249,9 @@ const ucfirst = (str) => str.charAt(0).toUpperCase() + str.slice(1);
                                 </v-row>
                             </v-card-text>
                             <v-divider/>
-                            <v-card-actions class="pa-4">
-                                <v-spacer/>
+                            <v-card-actions class="justify-center pa-4">
                                 <v-btn
                                     :loading="generalForm.processing"
-                                    class="text-none"
-                                    color="primary"
-                                    type="submit"
-                                    variant="flat"
-                                >
-                                    Save Changes
-                                </v-btn>
-                            </v-card-actions>
-                        </form>
-                    </v-card>
-                </template>
-
-                <!-- Attendance Settings -->
-                <template v-if="activeSection === 'attendance'">
-                    <!-- Office Hours Card -->
-                    <v-card class="mb-4">
-                        <CardTitle icon="mdi-office-building-outline" title="Office Hours"/>
-                        <form @submit.prevent="submitGroup('attendance', attendanceForm)">
-                            <v-card-text>
-                                <div class="text-subtitle-2 text-medium-emphasis mb-3">Office Timing</div>
-                                <v-row dense>
-                                    <v-col cols="12" md="3">
-                                        <v-label class="mb-2 font-weight-medium text-caption">Office Start</v-label>
-                                        <el-time-picker
-                                            v-model="attendanceForm.default_office_start"
-                                            format="hh:mm A"
-                                            value-format="HH:mm"
-                                            placeholder="Start Time"
-                                            size="large"
-                                            style="width: 100%"
-                                        />
-                                    </v-col>
-                                    <v-col cols="12" md="3">
-                                        <v-label class="mb-2 font-weight-medium text-caption">Office End</v-label>
-                                        <el-time-picker
-                                            v-model="attendanceForm.default_office_end"
-                                            format="hh:mm A"
-                                            value-format="HH:mm"
-                                            placeholder="End Time"
-                                            size="large"
-                                            style="width: 100%"
-                                        />
-                                    </v-col>
-                                </v-row>
-
-                                <v-divider class="my-4"/>
-                                <div class="text-subtitle-2 text-medium-emphasis mb-3">Working Hours</div>
-                                <v-row dense>
-                                    <v-col cols="12" md="3">
-                                        <TextInput
-                                            v-model.number="attendanceForm.standard_working_hours"
-                                            label="Standard Working Hours/Day"
-                                            type="number"
-                                        />
-                                    </v-col>
-                                    <v-col cols="12" md="3">
-                                        <TextInput
-                                            v-model.number="attendanceForm.half_day_hours"
-                                            label="Half Day Hours"
-                                            type="number"
-                                        />
-                                    </v-col>
-                                </v-row>
-
-                                <v-divider class="my-4"/>
-                                <div class="text-subtitle-2 text-medium-emphasis mb-3">Grace Periods</div>
-                                <v-row dense>
-                                    <v-col cols="12" md="6">
-                                        <TextInput
-                                            v-model.number="attendanceForm.late_grace_period"
-                                            label="Late Grace Period (min)"
-                                            type="number"
-                                        />
-                                    </v-col>
-                                    <v-col cols="12" md="6">
-                                        <TextInput
-                                            v-model.number="attendanceForm.early_leave_grace_period"
-                                            label="Early Leave Grace (min)"
-                                            type="number"
-                                        />
-                                    </v-col>
-                                </v-row>
-
-                                <v-divider class="my-4"/>
-                                <div class="text-subtitle-2 text-medium-emphasis mb-3">Session Limits</div>
-                                <v-row dense>
-                                    <v-col cols="12" md="4">
-                                        <TextInput
-                                            v-model.number="attendanceForm.max_sessions_per_day"
-                                            label="Max Sessions/Day"
-                                            type="number"
-                                        />
-                                    </v-col>
-                                    <v-col cols="12" md="4">
-                                        <TextInput
-                                            v-model.number="attendanceForm.min_session_duration"
-                                            label="Min Session Duration (min)"
-                                            type="number"
-                                        />
-                                    </v-col>
-                                    <v-col cols="12" md="4">
-                                        <TextInput
-                                            v-model.number="attendanceForm.min_session_gap"
-                                            label="Min Gap Between Sessions (min)"
-                                            type="number"
-                                        />
-                                    </v-col>
-                                </v-row>
-
-                                <v-divider class="my-4"/>
-                                <div class="text-subtitle-2 text-medium-emphasis mb-3">Break Limits</div>
-                                <v-row dense>
-                                    <v-col cols="12" md="4">
-                                        <TextInput
-                                            v-model.number="attendanceForm.max_breaks_per_day"
-                                            label="Max Breaks/Day"
-                                            type="number"
-                                        />
-                                    </v-col>
-                                    <v-col cols="12" md="4">
-                                        <TextInput
-                                            v-model.number="attendanceForm.min_break_duration"
-                                            label="Min Break Duration (min)"
-                                            type="number"
-                                        />
-                                    </v-col>
-                                    <v-col cols="12" md="4">
-                                        <TextInput
-                                            v-model.number="attendanceForm.max_break_duration"
-                                            label="Max Break Duration (min)"
-                                            type="number"
-                                        />
-                                    </v-col>
-                                </v-row>
-
-                                <v-divider class="my-4"/>
-                                <div class="text-subtitle-2 text-medium-emphasis mb-3">Auto Close</div>
-                                <v-row dense>
-                                    <v-col cols="12" md="3">
-                                        <v-switch
-                                            v-model="attendanceForm.auto_close_enabled"
-                                            color="primary"
-                                            density="compact"
-                                            hide-details
-                                            label="Auto Close Sessions"
-                                        />
-                                    </v-col>
-                                    <v-col v-if="attendanceForm.auto_close_enabled" cols="12" md="3">
-                                        <v-label class="mb-2 font-weight-medium text-caption">Auto Close Time</v-label>
-                                        <el-time-picker
-                                            v-model="attendanceForm.auto_close_time"
-                                            format="hh:mm A"
-                                            value-format="HH:mm"
-                                            placeholder="Auto Close Time"
-                                            size="large"
-                                            style="width: 100%"
-                                        />
-                                    </v-col>
-                                </v-row>
-
-                                <v-divider class="my-4"/>
-                                <div class="text-subtitle-2 text-medium-emphasis mb-3">Tracking</div>
-                                <v-row dense>
-                                    <v-col cols="12" md="3">
-                                        <v-switch
-                                            v-model="attendanceForm.track_ip_address"
-                                            color="primary"
-                                            density="compact"
-                                            hide-details
-                                            label="Track IP Address"
-                                        />
-                                    </v-col>
-                                    <v-col cols="12" md="3">
-                                        <v-switch
-                                            v-model="attendanceForm.track_location"
-                                            color="primary"
-                                            density="compact"
-                                            hide-details
-                                            label="Track Location"
-                                        />
-                                    </v-col>
-                                </v-row>
-                            </v-card-text>
-                            <v-divider/>
-                            <v-card-actions class="pa-4">
-                                <v-spacer/>
-                                <v-btn
-                                    :loading="attendanceForm.processing"
-                                    class="text-none"
-                                    color="primary"
-                                    type="submit"
-                                    variant="flat"
-                                >
-                                    Save Changes
-                                </v-btn>
-                            </v-card-actions>
-                        </form>
-                    </v-card>
-                </template>
-
-                <!-- Leave Settings -->
-                <template v-if="activeSection === 'leave'">
-                    <v-card>
-                        <CardTitle icon="mdi-calendar-clock" title="Leave Settings"/>
-                        <form @submit.prevent="submitGroup('leave', leaveForm)">
-                            <v-card-text>
-                                <div class="text-subtitle-2 text-medium-emphasis mb-3">Leave Rules</div>
-                                <v-row dense>
-                                    <v-col cols="12" md="6">
-                                        <TextInput
-                                            v-model.number="leaveForm.max_leave_per_application"
-                                            label="Max Days Per Application"
-                                            type="number"
-                                        />
-                                    </v-col>
-                                    <v-col cols="12" md="6">
-                                        <TextInput
-                                            v-model.number="leaveForm.min_advance_days"
-                                            label="Min Advance Days"
-                                            type="number"
-                                        />
-                                    </v-col>
-                                </v-row>
-
-                                <v-divider class="my-4"/>
-                                <div class="text-subtitle-2 text-medium-emphasis mb-3">Options</div>
-                                <v-row dense>
-                                    <v-col cols="12" md="6">
-                                        <v-switch
-                                            v-model="leaveForm.allow_half_day"
-                                            color="primary"
-                                            density="compact"
-                                            hide-details
-                                            label="Allow Half Day Leave"
-                                        />
-                                    </v-col>
-                                    <v-col cols="12" md="6">
-                                        <v-switch
-                                            v-model="leaveForm.allow_backdated"
-                                            color="primary"
-                                            density="compact"
-                                            hide-details
-                                            label="Allow Backdated Leave"
-                                        />
-                                    </v-col>
-                                </v-row>
-
-                                <v-divider class="my-4"/>
-                                <div class="text-subtitle-2 text-medium-emphasis mb-3">Carry Forward</div>
-                                <v-row dense align="center">
-                                    <v-col cols="12" md="6">
-                                        <v-switch
-                                            v-model="leaveForm.carry_forward"
-                                            color="primary"
-                                            density="compact"
-                                            hide-details
-                                            label="Carry Forward Balance"
-                                        />
-                                    </v-col>
-                                    <v-col v-if="leaveForm.carry_forward" cols="12" md="6">
-                                        <TextInput
-                                            v-model.number="leaveForm.max_carry_forward_days"
-                                            label="Max Carry Forward Days"
-                                            type="number"
-                                        />
-                                    </v-col>
-                                </v-row>
-                            </v-card-text>
-                            <v-divider/>
-                            <v-card-actions class="pa-4">
-                                <v-spacer/>
-                                <v-btn
-                                    :loading="leaveForm.processing"
                                     class="text-none"
                                     color="primary"
                                     type="submit"
@@ -603,8 +325,7 @@ const ucfirst = (str) => str.charAt(0).toUpperCase() + str.slice(1);
                                 </v-row>
                             </v-card-text>
                             <v-divider/>
-                            <v-card-actions class="pa-4">
-                                <v-spacer/>
+                            <v-card-actions class="justify-center pa-4">
                                 <v-btn
                                     :loading="notificationForm.processing"
                                     class="text-none"

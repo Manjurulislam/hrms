@@ -13,20 +13,19 @@ use App\Models\AttendanceSummary;
 use App\Models\Employee;
 use App\Models\Holiday;
 use App\Models\LeaveRequest;
-use App\Traits\LoadsSettings;
+use App\Traits\CompanySettings;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
 class AttendanceService
 {
-    use LoadsSettings;
+    use CompanySettings;
 
     public function __construct(
         protected ?WorkScheduleService $scheduleService = null
     ) {
         $this->scheduleService = $scheduleService ?: new WorkScheduleService();
-        $this->loadSettings();
     }
 
     // ─── Check In ────────────────────────────────────────────────
@@ -375,8 +374,8 @@ class AttendanceService
         $company = $employee->company;
 
         return [
-            'start_time'   => $company?->office_start_time,
-            'end_time'     => $company?->office_end_time,
+            'start_time'   => $this->companySetting($company, 'office_start'),
+            'end_time'     => $this->companySetting($company, 'office_end'),
             'late_minutes' => $company
                 ? $this->scheduleService->calculateLateMinutes($employee, now())
                 : 0,
@@ -425,9 +424,9 @@ class AttendanceService
             [
                 'company_id'           => $employee->company_id,
                 'department_id'        => $employee->department_id,
-                'scheduled_start_time' => $company?->office_start_time,
-                'scheduled_end_time'   => $company?->office_end_time,
-                'grace_minutes'        => config('attendance.late_grace_period', 15),
+                'scheduled_start_time' => $this->companySetting($company, 'office_start'),
+                'scheduled_end_time'   => $this->companySetting($company, 'office_end'),
+                'grace_minutes'        => $this->companySetting($company, 'late_grace'),
                 'is_working_day'       => $isWorkingDay,
                 'shift_name'           => $company ? 'Regular' : 'Default',
             ]
@@ -529,7 +528,7 @@ class AttendanceService
         return [
             'start'      => Carbon::parse($schedule['work_start_time'])->format('g:i A'),
             'end'        => Carbon::parse($schedule['work_end_time'])->format('g:i A'),
-            'delay'      => config('attendance.late_grace_period', 15),
+            'delay'      => $this->companySetting($employee->company, 'late_grace'),
             'office_ip'  => $schedule['office_ip'],
             'company'    => $employee->company?->name ?? 'N/A',
             'department' => $employee->department?->name ?? 'N/A',

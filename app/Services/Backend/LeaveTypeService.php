@@ -2,6 +2,7 @@
 
 namespace App\Services\Backend;
 
+use App\Models\ApprovalWorkflow;
 use App\Models\LeaveType;
 use App\Traits\PaginateQuery;
 use App\Traits\QueryParams;
@@ -54,6 +55,7 @@ class LeaveTypeService
     {
         $data = [
             'companies' => $this->shared->companies(),
+            'workflows' => ApprovalWorkflow::where('is_active', true)->get(['id', 'name', 'company_id']),
         ];
 
         if ($leaveType) {

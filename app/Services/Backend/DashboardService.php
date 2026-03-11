@@ -140,7 +140,7 @@ class DashboardService
                 'working_hours' => $item->total_working_minutes
                     ? sprintf('%dh %dm', floor($item->total_working_minutes / 60), $item->total_working_minutes % 60)
                     : '0h 0m',
-                'status'        => $this->getStatusLabel($item->status),
+                'status'        => AttendanceStatus::labelFor($item->status),
             ])
             ->toArray();
     }
@@ -171,21 +171,4 @@ class DashboardService
             ->toArray();
     }
 
-    private function getStatusLabel($status): string
-    {
-        $labels = [
-            'present'        => 'Present',
-            'absent'         => 'Absent',
-            'late'           => 'Late',
-            'half_day'       => 'Half Day',
-            'leave'          => 'Leave',
-            'holiday'        => 'Holiday',
-            'weekend'        => 'Weekend',
-            'work_from_home' => 'WFH',
-        ];
-
-        $key = $status instanceof \BackedEnum ? $status->value : $status;
-
-        return $labels[$key] ?? $key;
-    }
 }

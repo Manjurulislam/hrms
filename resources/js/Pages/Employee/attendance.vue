@@ -4,7 +4,7 @@ import AttendantRecords from "@/Components/modules/employee/attendance/attendant
 import TrackerClock from "@/Components/modules/employee/attendance/trackerClock.vue";
 import EmpStats from "@/Components/modules/employee/attendance/empStats.vue";
 
-import {computed} from 'vue'
+import {computed, ref} from 'vue'
 import {Head} from "@inertiajs/vue3";
 
 // Props from Inertia backend
@@ -43,6 +43,12 @@ const statusColor = computed(() => {
     if (props.todayData?.totalWorkedSeconds > 0) return 'info'
     return 'primary'
 })
+
+const recordsRef = ref(null)
+
+const onAttendanceChanged = () => {
+    recordsRef.value?.reload()
+}
 </script>
 
 <template>
@@ -54,6 +60,8 @@ const statusColor = computed(() => {
                 <tracker-clock
                     :office-hours="officeHours"
                     :today-data="todayData"
+                    @work-started="onAttendanceChanged"
+                    @work-ended="onAttendanceChanged"
                 />
             </v-col>
 
@@ -71,6 +79,7 @@ const statusColor = computed(() => {
         <v-row>
             <v-col cols="12">
                 <AttendantRecords
+                    ref="recordsRef"
                     :can-manage="false"
                     :employee-id="userInfo.employeeId"
                 />

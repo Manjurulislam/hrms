@@ -2,10 +2,8 @@
 
 namespace App\Services\Backend;
 
-use App\Enums\LeaveApprovalStatus;
 use App\Enums\LeaveRequestStatus;
 use App\Models\Employee;
-use App\Models\LeaveApproval;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
@@ -49,22 +47,14 @@ class LeaveRequestService
                 'company_id'          => $employee->company_id,
                 'employee_id'         => $employee->id,
                 'leave_type_id'       => $data['leave_type_id'],
-                'current_approver_id' => $employee->manager_id,
+                'current_approver_id' => null,
                 'status'              => LeaveRequestStatus::Pending,
                 'started_at'          => $data['started_at'],
                 'ended_at'            => $data['ended_at'],
             ]);
 
-            // Create first approval row for the direct manager
-            if ($employee->manager_id) {
-                $manager = Employee::with('designation')->find($employee->manager_id);
-                LeaveApproval::create([
-                    'leave_request_id' => $leaveRequest->id,
-                    'approver_id'      => $employee->manager_id,
-                    'level'            => $manager?->designation?->level?->value ?? 99,
-                    'status'           => LeaveApprovalStatus::Pending,
-                ]);
-            }
+            // Delegate first approver resolution to the approval service
+            app(LeaveApprovalService::class)->initializeApproval($leaveRequest, $employee);
 
             return $leaveRequest;
         });

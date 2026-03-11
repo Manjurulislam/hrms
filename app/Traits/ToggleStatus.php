@@ -13,10 +13,13 @@ trait ToggleStatus
         try {
             $model->status = !$model->status;
             $model->save();
-            return redirect()->back();
+
+            $status = $model->status ? 'activated' : 'deactivated';
+
+            return redirect()->back()->with('success', "Status {$status} successfully.");
         } catch (Exception $e) {
             Log::error(__METHOD__, [$e->getMessage()]);
-            return redirect()->back();
+            return redirect()->back()->withErrors(['error' => 'Failed to update status.']);
         }
     }
 }

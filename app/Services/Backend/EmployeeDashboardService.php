@@ -69,7 +69,7 @@ class EmployeeDashboardService
             ->map(fn($item) => [
                 'date'   => Carbon::parse($item->attendance_date)->format('d'),
                 'hours'  => round($item->total_working_minutes / 60, 1),
-                'status' => $this->getStatusLabel($item->status),
+                'status' => AttendanceStatus::labelFor($item->status),
             ])
             ->toArray();
     }
@@ -137,19 +137,4 @@ class EmployeeDashboardService
             ->toArray();
     }
 
-    private function getStatusLabel($status): string
-    {
-        $labels = [
-            'present'        => 'Present',
-            'absent'         => 'Absent',
-            'late'           => 'Late',
-            'half_day'       => 'Half Day',
-            'leave'          => 'Leave',
-            'holiday'        => 'Holiday',
-            'weekend'        => 'Weekend',
-            'work_from_home' => 'WFH',
-        ];
-        $key = $status instanceof \BackedEnum ? $status->value : $status;
-        return $labels[$key] ?? $key;
-    }
 }

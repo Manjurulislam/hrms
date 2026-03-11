@@ -5,18 +5,14 @@ namespace App\Services;
 use App\Models\Company;
 use App\Models\CompanyWorkingDay;
 use App\Models\Employee;
-use App\Traits\LoadsSettings;
+use App\Traits\CompanySettings;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class WorkScheduleService
 {
-    use LoadsSettings;
+    use CompanySettings;
 
-    public function __construct()
-    {
-        $this->loadSettings();
-    }
     public function isWorkingDay(Employee $employee, Carbon $date): bool
     {
         $company = $employee->company;
@@ -59,10 +55,10 @@ class WorkScheduleService
         if (!$company) {
             return [
                 'has_schedule'    => false,
-                'work_start_time' => config('attendance.default_office_start', '09:00'),
-                'work_end_time'   => config('attendance.default_office_end', '18:00'),
-                'working_days'    => [1, 2, 3, 4, 5], // Mon-Fri
-                'weekend_days'    => [0, 6], // Sun, Sat
+                'work_start_time' => $this->companySetting(null, 'office_start'),
+                'work_end_time'   => $this->companySetting(null, 'office_end'),
+                'working_days'    => [1, 2, 3, 4, 5],
+                'weekend_days'    => [0, 6],
                 'office_ip'       => null,
             ];
         }
@@ -77,8 +73,8 @@ class WorkScheduleService
 
         return [
             'has_schedule'    => true,
-            'work_start_time' => $company->office_start_time ?? '09:00',
-            'work_end_time'   => $company->office_end_time ?? '18:00',
+            'work_start_time' => $this->companySetting($company, 'office_start'),
+            'work_end_time'   => $this->companySetting($company, 'office_end'),
             'working_days'    => $workingDays,
             'weekend_days'    => $weekendDays,
             'office_ip'       => $company->office_ip,
@@ -111,13 +107,8 @@ class WorkScheduleService
         $time    = $time ?? now();
         $company = $employee->company;
 
-        if (!$company || !$company->office_start_time) {
-            $startTime = Carbon::parse(config('attendance.default_office_start', '09:00'));
-            $endTime   = Carbon::parse(config('attendance.default_office_end', '18:00'));
-        } else {
-            $startTime = Carbon::parse($company->office_start_time);
-            $endTime   = Carbon::parse($company->office_end_time);
-        }
+        $startTime = Carbon::parse($this->companySetting($company, 'office_start'));
+        $endTime   = Carbon::parse($this->companySetting($company, 'office_end'));
 
         $startTime->setDate($time->year, $time->month, $time->day);
         $endTime->setDate($time->year, $time->month, $time->day);
@@ -127,14 +118,9 @@ class WorkScheduleService
 
     public function calculateLateMinutes(Employee $employee, Carbon $checkInTime): int
     {
-        $company      = $employee->company;
-        $graceMinutes = (int) config('attendance.late_grace_period', 15);
-
-        if (!$company || !$company->office_start_time) {
-            $scheduledStart = Carbon::parse(config('attendance.default_office_start', '09:00'));
-        } else {
-            $scheduledStart = Carbon::parse($company->office_start_time);
-        }
+        $company        = $employee->company;
+        $graceMinutes   = $this->companySetting($company, 'late_grace');
+        $scheduledStart = Carbon::parse($this->companySetting($company, 'office_start'));
 
         $scheduledStart->setDate($checkInTime->year, $checkInTime->month, $checkInTime->day);
         $scheduledStartWithGrace = $scheduledStart->copy()->addMinutes($graceMinutes);
@@ -149,13 +135,8 @@ class WorkScheduleService
     public function calculateEarlyLeaveMinutes(Employee $employee, Carbon $checkOutTime): int
     {
         $company      = $employee->company;
-        $graceMinutes = (int) config('attendance.early_leave_grace_period', 15);
-
-        if (!$company || !$company->office_end_time) {
-            $scheduledEnd = Carbon::parse(config('attendance.default_office_end', '18:00'));
-        } else {
-            $scheduledEnd = Carbon::parse($company->office_end_time);
-        }
+        $graceMinutes = $this->companySetting($company, 'early_grace');
+        $scheduledEnd = Carbon::parse($this->companySetting($company, 'office_end'));
 
         $scheduledEnd->setDate($checkOutTime->year, $checkOutTime->month, $checkOutTime->day);
         $scheduledEndWithGrace = $scheduledEnd->copy()->subMinutes($graceMinutes);

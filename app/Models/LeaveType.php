@@ -12,6 +12,7 @@ class LeaveType extends Model
         'name',
         'max_per_year',
         'company_id',
+        'approval_workflow_id',
         'status',
     ];
 
@@ -33,5 +34,10 @@ class LeaveType extends Model
     public function leaveBalances(): HasMany
     {
         return $this->hasMany(LeaveBalance::class);
+    }
+
+    public function approvalWorkflow(): BelongsTo
+    {
+        return $this->belongsTo(ApprovalWorkflow::class);
     }
 }

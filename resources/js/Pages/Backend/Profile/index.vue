@@ -254,8 +254,7 @@ onMounted(() => {
                             </v-row>
                         </v-card-text>
                         <v-divider/>
-                        <v-card-actions class="pa-4">
-                            <v-spacer/>
+                        <v-card-actions class="justify-center pa-4">
                             <v-btn
                                 :loading="profileForm.processing"
                                 class="text-none"
@@ -304,8 +303,7 @@ onMounted(() => {
                             </v-row>
                         </v-card-text>
                         <v-divider/>
-                        <v-card-actions class="pa-4">
-                            <v-spacer/>
+                        <v-card-actions class="justify-center pa-4">
                             <v-btn
                                 :loading="passwordForm.processing"
                                 class="text-none"

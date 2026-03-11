@@ -4,12 +4,15 @@ namespace App\Models;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\SessionStatus;
+use App\Traits\CompanySettings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AttendanceSummary extends Model
 {
+    use CompanySettings;
+
     protected $fillable = [
         'employee_id',
         'company_id',
@@ -33,12 +36,13 @@ class AttendanceSummary extends Model
         'locations',
     ];
 
+
     protected $casts = [
         'attendance_date' => 'date',
-        'ip_addresses' => 'array',
-        'locations' => 'array',
-        'is_working_day' => 'boolean',
-        'status' => AttendanceStatus::class,
+        'ip_addresses'    => 'array',
+        'locations'       => 'array',
+        'is_working_day'  => 'boolean',
+        'status'          => AttendanceStatus::class,
     ];
 
     public function employee(): BelongsTo
@@ -56,24 +60,18 @@ class AttendanceSummary extends Model
         return $this->belongsTo(Department::class);
     }
 
-    public function sessions(): HasMany
-    {
-        return $this->hasMany(AttendanceSession::class, 'employee_id', 'employee_id')
-            ->whereDate('attendance_date', $this->attendance_date)
-            ->orderBy('session_number');
-    }
-
     public function breaks(): HasMany
     {
         return $this->hasMany(AttendanceBreak::class, 'employee_id', 'employee_id')
             ->whereDate('attendance_date', $this->attendance_date);
     }
 
-    // Accessors
     public function getTotalWorkingHoursAttribute(): float
     {
         return round($this->total_working_minutes / 60, 2);
     }
+
+    // Accessors
 
     public function getTotalBreakHoursAttribute(): float
     {
@@ -100,11 +98,12 @@ class AttendanceSummary extends Model
         return round($this->early_leave_minutes / 60, 2);
     }
 
-    // Scopes
     public function scopePresent($query)
     {
         return $query->whereIn('status', [AttendanceStatus::Present, AttendanceStatus::Late, AttendanceStatus::WorkFromHome]);
     }
+
+    // Scopes
 
     public function scopeAbsent($query)
     {
@@ -117,7 +116,6 @@ class AttendanceSummary extends Model
             ->whereMonth('attendance_date', $month);
     }
 
-    // Methods
     public function recalculate(): void
     {
         // Get ALL sessions for the day (including active ones for first_check_in)
@@ -128,9 +126,9 @@ class AttendanceSummary extends Model
 
         if ($allSessions->isEmpty()) {
             $this->update([
-                'status' => AttendanceStatus::Absent,
+                'status'                => AttendanceStatus::Absent,
                 'total_working_minutes' => 0,
-                'total_sessions' => 0,
+                'total_sessions'        => 0,
             ]);
             return;
         }
@@ -145,15 +143,15 @@ class AttendanceSummary extends Model
         $lastCheckOut = $completedSessions->max('check_out_time');
 
         // Calculate breaks (time between completed sessions)
-        $breakMinutes = 0;
+        $breakMinutes            = 0;
         $sortedCompletedSessions = $completedSessions->sortBy('check_in_time')->values();
 
         for ($i = 1; $i < $sortedCompletedSessions->count(); $i++) {
             $previousCheckOut = $sortedCompletedSessions[$i - 1]->check_out_time;
-            $currentCheckIn = $sortedCompletedSessions[$i]->check_in_time;
+            $currentCheckIn   = $sortedCompletedSessions[$i]->check_in_time;
 
             if ($previousCheckOut && $currentCheckIn) {
-                $breakMinutes += (int) abs($previousCheckOut->diffInMinutes($currentCheckIn));
+                $breakMinutes += (int)abs($previousCheckOut->diffInMinutes($currentCheckIn));
             }
         }
 
@@ -172,32 +170,41 @@ class AttendanceSummary extends Model
             ->values()
             ->toArray();
 
-        $standardMinutes = config('attendance.standard_working_hours', 8) * 60;
+        $standardMinutes = $this->companySetting($this->company, 'work_hours') * 60;
         $overtimeMinutes = max(0, $totalMinutes - $standardMinutes);
 
         // Determine status
         $netWorkingMinutes = $totalMinutes - $breakMinutes;
-        $status = $this->determineStatus($netWorkingMinutes);
+        $status            = $this->determineStatus($netWorkingMinutes);
 
         // Update summary
         $this->update([
-            'first_check_in' => $firstCheckIn ? $firstCheckIn->format('H:i:s') : null,
-            'last_check_out' => $lastCheckOut ? $lastCheckOut->format('H:i:s') : null,
+            'first_check_in'        => $firstCheckIn ? $firstCheckIn->format('H:i:s') : null,
+            'last_check_out'        => $lastCheckOut ? $lastCheckOut->format('H:i:s') : null,
             'total_working_minutes' => $totalMinutes,
-            'total_break_minutes' => $breakMinutes,
-            'overtime_minutes' => $overtimeMinutes,
-            'total_sessions' => $allSessions->count(),
-            'status' => $status,
-            'ip_addresses' => $ipAddresses,
-            'locations' => $locations,
+            'total_break_minutes'   => $breakMinutes,
+            'overtime_minutes'      => $overtimeMinutes,
+            'total_sessions'        => $allSessions->count(),
+            'status'                => $status,
+            'ip_addresses'          => $ipAddresses,
+            'locations'             => $locations,
         ]);
+    }
+
+    // Methods
+
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(AttendanceSession::class, 'employee_id', 'employee_id')
+            ->whereDate('attendance_date', $this->attendance_date)
+            ->orderBy('session_number');
     }
 
     private function determineStatus($netWorkingMinutes): AttendanceStatus
     {
-        $hours       = $netWorkingMinutes / 60;
-        $fullDay     = config('attendance.standard_working_hours', 8);
-        $halfDay     = config('attendance.half_day_hours', 4);
+        $hours   = $netWorkingMinutes / 60;
+        $fullDay = $this->companySetting($this->company, 'work_hours');
+        $halfDay = $this->companySetting($this->company, 'half_day_hours');
 
         if ($hours >= $fullDay) {
             return AttendanceStatus::Present;

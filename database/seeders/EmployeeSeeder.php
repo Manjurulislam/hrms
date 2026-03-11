@@ -61,71 +61,7 @@ class EmployeeSeeder extends Seeder
                 'emp_status'     => 'confirmed',
                 'status'         => true,
                 'joining_date'   => Carbon::parse('2021-01-15'),
-            ],
-            // TL Backend - Manjurul (reports to PM)
-            [
-                'id_no'          => 'SWT004',
-                'first_name'     => 'Manjurul',
-                'last_name'      => 'Islam',
-                'email'          => 'manjurul@softwindtech.com',
-                'phone'          => '+880-1712-000004',
-                'gender'         => 'male',
-                'company_id'     => 1,
-                'department_id'  => 1, // Backend
-                'designation_id' => 4, // Team Lead
-                'manager_id'     => 3, // Kabir
-                'emp_status'     => 'confirmed',
-                'status'         => true,
-                'joining_date'   => Carbon::parse('2021-06-01'),
-            ],
-            // TL Frontend - Hasib (reports to PM)
-            [
-                'id_no'          => 'SWT005',
-                'first_name'     => 'Hasib',
-                'last_name'      => 'Khan',
-                'email'          => 'hasib@softwindtech.com',
-                'phone'          => '+880-1712-000005',
-                'gender'         => 'male',
-                'company_id'     => 1,
-                'department_id'  => 2, // Frontend
-                'designation_id' => 4, // Team Lead
-                'manager_id'     => 3, // Kabir
-                'emp_status'     => 'confirmed',
-                'status'         => true,
-                'joining_date'   => Carbon::parse('2021-06-15'),
-            ],
-            // Backend Developer - Rahim (reports to TL Manjurul)
-            [
-                'id_no'          => 'SWT006',
-                'first_name'     => 'Rahim',
-                'last_name'      => 'Uddin',
-                'email'          => 'rahim@softwindtech.com',
-                'phone'          => '+880-1712-000006',
-                'gender'         => 'male',
-                'company_id'     => 1,
-                'department_id'  => 1, // Backend
-                'designation_id' => 6, // Developer
-                'manager_id'     => 4, // Manjurul
-                'emp_status'     => 'confirmed',
-                'status'         => true,
-                'joining_date'   => Carbon::parse('2022-03-01'),
-            ],
-            // Frontend Developer - Nusrat (reports to TL Hasib)
-            [
-                'id_no'          => 'SWT007',
-                'first_name'     => 'Nusrat',
-                'last_name'      => 'Jahan',
-                'email'          => 'nusrat@softwindtech.com',
-                'phone'          => '+880-1712-000007',
-                'gender'         => 'female',
-                'company_id'     => 1,
-                'department_id'  => 2, // Frontend
-                'designation_id' => 6, // Developer
-                'manager_id'     => 5, // Hasib
-                'emp_status'     => 'confirmed',
-                'status'         => true,
-                'joining_date'   => Carbon::parse('2022-05-01'),
-            ],
+            ]
         ];
 
         $adminRole    = Role::where('slug', 'admin')->first();

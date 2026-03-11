@@ -214,6 +214,9 @@ onUnmounted(() => {
     clearTimeout(debounceTimer)
 })
 
+// Expose reload for parent to call
+defineExpose({ reload })
+
 // Initialize on mount
 onMounted(() => {
     getData({ page: 1, itemsPerPage: state.filters.per_page, sortBy: [] })
@@ -224,8 +227,8 @@ onMounted(() => {
     <v-card elevation="3">
         <v-card-title class="d-flex justify-space-between align-center">
             <div class="d-flex align-center">
-                <v-icon class="me-2">mdi-calendar-check</v-icon>
-                <span>Attendance Records</span>
+                <v-icon class="me-2" size="small">mdi-calendar-check</v-icon>
+                <span class="text-body-2 font-weight-light">Attendance</span>
             </div>
             <v-btn
                 @click="exportData"
@@ -418,10 +421,6 @@ onMounted(() => {
                             </div>
                         </td>
                     </tr>
-                </template>
-
-                <template v-slot:loading>
-                    <v-skeleton-loader type="table-row@10" />
                 </template>
 
                 <template v-slot:no-data>

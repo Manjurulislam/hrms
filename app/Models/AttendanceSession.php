@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\SessionStatus;
 use App\Enums\SessionType;
+use App\Traits\CompanySettings;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class AttendanceSession extends Model
 {
     use SoftDeletes;
+    use CompanySettings;
 
     protected $fillable = [
         'employee_id',
@@ -42,18 +45,18 @@ class AttendanceSession extends Model
     ];
 
     protected $casts = [
-        'attendance_date' => 'date',
-        'check_in_time' => 'datetime',
-        'check_out_time' => 'datetime',
-        'check_in_lat' => 'decimal:8',
-        'check_in_long' => 'decimal:8',
-        'check_out_lat' => 'decimal:8',
-        'check_out_long' => 'decimal:8',
-        'is_late' => 'boolean',
+        'attendance_date'    => 'date',
+        'check_in_time'      => 'datetime',
+        'check_out_time'     => 'datetime',
+        'check_in_lat'       => 'decimal:8',
+        'check_in_long'      => 'decimal:8',
+        'check_out_lat'      => 'decimal:8',
+        'check_out_long'     => 'decimal:8',
+        'is_late'            => 'boolean',
         'is_early_departure' => 'boolean',
-        'is_overtime' => 'boolean',
-        'session_type' => SessionType::class,
-        'status' => SessionStatus::class,
+        'is_overtime'        => 'boolean',
+        'session_type'       => SessionType::class,
+        'status'             => SessionStatus::class,
     ];
 
     public function employee(): BelongsTo
@@ -113,13 +116,6 @@ class AttendanceSession extends Model
     }
 
     // Methods
-    public function calculateDuration(): void
-    {
-        if ($this->check_in_time && $this->check_out_time) {
-            $this->duration_minutes = (int) abs($this->check_in_time->diffInMinutes($this->check_out_time));
-            $this->save();
-        }
-    }
 
     public function checkOut($ip, $location = 'office', $lat = null, $long = null, $note = null): bool
     {
@@ -128,18 +124,26 @@ class AttendanceSession extends Model
         }
 
         $this->update([
-            'check_out_time' => now(),
-            'check_out_ip' => $ip,
+            'check_out_time'     => now(),
+            'check_out_ip'       => $ip,
             'check_out_location' => $location,
-            'check_out_lat' => $lat,
-            'check_out_long' => $long,
-            'check_out_note' => $note,
-            'status' => SessionStatus::Completed,
+            'check_out_lat'      => $lat,
+            'check_out_long'     => $long,
+            'check_out_note'     => $note,
+            'status'             => SessionStatus::Completed,
         ]);
 
         $this->calculateDuration();
 
         return true;
+    }
+
+    public function calculateDuration(): void
+    {
+        if ($this->check_in_time && $this->check_out_time) {
+            $this->duration_minutes = (int)abs($this->check_in_time->diffInMinutes($this->check_out_time));
+            $this->save();
+        }
     }
 
     public function autoClose(): void
@@ -149,14 +153,9 @@ class AttendanceSession extends Model
         }
 
         // Use office end time instead of end of day so extra time is not counted
-        $company = $this->company;
-        if ($company?->office_end_time) {
-            $officeEnd = \Carbon\Carbon::parse($company->office_end_time)
-                ->setDate($this->attendance_date->year, $this->attendance_date->month, $this->attendance_date->day);
-        } else {
-            $officeEnd = \Carbon\Carbon::parse(config('attendance.default_office_end', '18:00'))
-                ->setDate($this->attendance_date->year, $this->attendance_date->month, $this->attendance_date->day);
-        }
+        $company   = $this->company;
+        $officeEnd = Carbon::parse($this->companySetting($company, 'office_end'))
+            ->setDate($this->attendance_date->year, $this->attendance_date->month, $this->attendance_date->day);
 
         // If check-in was after office end (shouldn't happen with new validation), use check-in time
         $checkOutTime = $this->check_in_time->gt($officeEnd) ? $this->check_in_time : $officeEnd;
@@ -164,9 +163,9 @@ class AttendanceSession extends Model
         $this->update([
             'check_out_time' => $checkOutTime,
             'check_out_note' => 'Auto closed by system',
-            'status' => SessionStatus::AutoClosed,
+            'status'         => SessionStatus::AutoClosed,
         ]);
-
+        
         $this->calculateDuration();
     }
 }

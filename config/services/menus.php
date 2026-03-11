@@ -41,6 +41,11 @@ return [
                 'icon'  => 'checklist-minimalistic-line-duotone',
                 'to'    => 'leave-types.index',
             ],
+            [
+                'title' => 'Approval Workflows',
+                'icon'  => 'checklist-minimalistic-line-duotone',
+                'to'    => 'approval-workflows.index',
+            ],
         ]
     ],
 
@@ -114,14 +119,14 @@ return [
     ['header' => 'My Workspace', 'access' => 'employee'],
 
     [
-        'title'  => 'My Attendance',
+        'title'  => 'Attendance',
         'icon'   => 'clock-circle-bold-duotone',
         'to'     => 'emp-attendance.index',
         'access' => 'employee',
     ],
 
     [
-        'title'  => 'Notice Board',
+        'title'  => 'Notice',
         'icon'   => 'clipboard-text-bold-duotone',
         'to'     => 'emp-notices.index',
         'access' => 'employee',
@@ -133,7 +138,7 @@ return [
         'access'   => 'employee',
         'children' => [
             [
-                'title' => 'My Leaves',
+                'title' => 'Apply Leave',
                 'icon'  => 'checklist-minimalistic-line-duotone',
                 'to'    => 'emp-leave.index',
             ],

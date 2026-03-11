@@ -7,6 +7,7 @@ use App\Http\Controllers\Backend\DepartmentController;
 use App\Http\Controllers\Backend\DesignationController;
 use App\Http\Controllers\Backend\EmployeeController;
 use App\Http\Controllers\Backend\HolidayController;
+use App\Http\Controllers\Backend\ApprovalWorkflowController;
 use App\Http\Controllers\Backend\LeaveRequestController;
 use App\Http\Controllers\Backend\LeaveTypeController;
 use App\Http\Controllers\Backend\RoleController;
@@ -143,6 +144,18 @@ Route::controller(LeaveRequestController::class)->name('leave-requests.')
         Route::get('{leaveRequest}/show', 'show')->name('show');
         Route::post('{leaveRequest}/approve', 'approve')->name('approve');
         Route::post('{leaveRequest}/reject', 'reject')->name('reject');
+    });
+
+Route::controller(ApprovalWorkflowController::class)->name('approval-workflows.')
+    ->prefix('approval-workflows')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('get', 'get')->name('get');
+        Route::get('create', 'create')->name('create');
+        Route::post('store', 'store')->name('store');
+        Route::get('{approvalWorkflow}/edit', 'edit')->name('edit');
+        Route::put('update/{approvalWorkflow}', 'update')->name('update');
+        Route::post('{approvalWorkflow}/toggle-status', 'toggleStatus')->name('toggle-status');
+        Route::delete('delete/{approvalWorkflow}', 'destroy')->name('destroy');
     });
 
 Route::controller(SettingController::class)->name('settings.')

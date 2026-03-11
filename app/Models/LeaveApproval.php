@@ -12,6 +12,7 @@ class LeaveApproval extends Model
         'leave_request_id',
         'approver_id',
         'level',
+        'workflow_step_id',
         'status',
         'remarks',
         'acted_at',
@@ -31,5 +32,10 @@ class LeaveApproval extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'approver_id');
+    }
+
+    public function workflowStep(): BelongsTo
+    {
+        return $this->belongsTo(ApprovalWorkflowStep::class, 'workflow_step_id');
     }
 }

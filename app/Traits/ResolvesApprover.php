@@ -10,31 +10,30 @@ trait ResolvesApprover
 {
     /**
      * Resolve approver context for the current authenticated user.
-     *
-     * Returns: [isCurrentApprover, approverLevel]
      */
-    protected function resolveApproverContext(LeaveRequest $leaveRequest): array
+    protected function resolveApproverContext(LeaveRequest $leaveRequest): bool
     {
         $user = auth()->user();
         $employee = $user->employee;
 
+        // Never allow approving your own leave
+        if ($employee && $leaveRequest->employee_id === $employee->id) {
+            return false;
+        }
+
         $isCurrentApprover = false;
-        $approverLevel = 99;
 
         if ($employee) {
             $isCurrentApprover = $leaveRequest->current_approver_id === $employee->id;
-            $approverLevel = $employee->designation?->level?->value ?? 99;
         }
 
-        // Super admin can act on any pending/in_review request
         $actionableStatuses = collect([LeaveRequestStatus::Pending, LeaveRequestStatus::InReview]);
 
         if ($user->hasRole('super_admin') && $actionableStatuses->contains($leaveRequest->status)) {
             $isCurrentApprover = true;
-            $approverLevel = 1;
         }
 
-        return [$isCurrentApprover, $approverLevel];
+        return $isCurrentApprover;
     }
 
     /**
@@ -63,6 +62,11 @@ trait ResolvesApprover
     {
         $user = auth()->user();
         $actionableStatuses = collect([LeaveRequestStatus::Pending, LeaveRequestStatus::InReview]);
+
+        // Never allow employees to approve their own leave
+        if ($user->employee && $leaveRequest->employee_id === $user->employee->id) {
+            return false;
+        }
 
         if ($user->hasRole('super_admin')) {
             return $actionableStatuses->contains($leaveRequest->status);

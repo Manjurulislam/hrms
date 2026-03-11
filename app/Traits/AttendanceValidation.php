@@ -13,6 +13,7 @@ use Carbon\Carbon;
 
 trait AttendanceValidation
 {
+    use CompanySettings;
     protected function getEmployee(): ?Employee
     {
         return $this->user()?->employee;
@@ -73,13 +74,8 @@ trait AttendanceValidation
     {
         $company = $employee->company;
 
-        $start = $company?->office_start_time
-            ? Carbon::parse($company->office_start_time)->format('g:i A')
-            : config('attendance.default_office_start', '9:00 AM');
-
-        $end = $company?->office_end_time
-            ? Carbon::parse($company->office_end_time)->format('g:i A')
-            : config('attendance.default_office_end', '6:00 PM');
+        $start = Carbon::parse($this->companySetting($company, 'office_start'))->format('g:i A');
+        $end   = Carbon::parse($this->companySetting($company, 'office_end'))->format('g:i A');
 
         return ['start' => $start, 'end' => $end];
     }

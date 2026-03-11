@@ -133,12 +133,11 @@ class LeaveController extends Controller
             'approvals.approver:id,first_name,last_name',
         ]);
 
-        [$isCurrentApprover, $approverLevel] = $this->resolveApproverContext($leaveRequest);
+        $isCurrentApprover = $this->resolveApproverContext($leaveRequest);
 
         return Inertia::render('Employee/Leave/approval-show', [
             'leaveRequest'      => $leaveRequest,
             'isCurrentApprover' => $isCurrentApprover,
-            'approverLevel'     => $approverLevel,
         ]);
     }
 
@@ -154,8 +153,7 @@ class LeaveController extends Controller
             $result = $this->approvalService->approve(
                 $leaveRequest,
                 $approver,
-                $request->input('remarks'),
-                $request->boolean('forward')
+                $request->input('remarks')
             );
 
             return to_route('emp-leave.approvals')->with('success', $result['message']);

@@ -68,12 +68,11 @@ class LeaveRequestController extends Controller
             'approvals.approver:id,first_name,last_name',
         ]);
 
-        [$isCurrentApprover, $approverLevel] = $this->resolveApproverContext($leaveRequest);
+        $isCurrentApprover = $this->resolveApproverContext($leaveRequest);
 
         return Inertia::render('Backend/LeaveRequest/show', [
             'leaveRequest'      => $leaveRequest,
             'isCurrentApprover' => $isCurrentApprover,
-            'approverLevel'     => $approverLevel,
         ]);
     }
 
@@ -89,8 +88,7 @@ class LeaveRequestController extends Controller
             $result = $this->approvalService->approve(
                 $leaveRequest,
                 $approver,
-                $request->input('remarks'),
-                $request->boolean('forward')
+                $request->input('remarks')
             );
 
             return back()->with('success', $result['message']);
