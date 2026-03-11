@@ -14,9 +14,9 @@ return new class extends Migration {
             $table->id();
             $table->string('title')->index();
             $table->text('description');
-            $table->unsignedBigInteger('company_id')->index();
-            $table->unsignedBigInteger('department_id')->nullable()->index();
-            $table->unsignedBigInteger('created_by')->index();
+            $table->foreignId('company_id')->constrained()->restrictOnDelete();
+            $table->foreignId('department_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
             $table->date('published_at')->nullable()->index();
             $table->date('expired_at')->nullable()->index();
             $table->boolean('status')->default(1);

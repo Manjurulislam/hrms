@@ -3,7 +3,6 @@
 namespace App\Services\Backend;
 
 use App\Models\ApprovalWorkflow;
-use App\Models\ApprovalWorkflowStep;
 use App\Traits\PaginateQuery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,45 +17,28 @@ class ApprovalWorkflowService
             ->with(['company:id,name', 'steps' => fn($q) => $q->orderBy('step_order')])
             ->orderBy('created_at', 'desc');
 
-        if ($request->filled('company_id')) {
-            $query->where('company_id', $request->input('company_id'));
-        }
-
-        if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->input('search') . '%');
-        }
+        $this->applyFilters($query, $request);
 
         $perPage = $request->integer('per_page', 50);
-        $paginated = $perPage === -1 ? $query->get() : $query->paginate($perPage);
 
         if ($perPage === -1) {
-            return ['data' => $paginated, 'total' => $paginated->count()];
+            $items = $query->get();
+            return ['data' => $items, 'total' => $items->count()];
         }
 
-        return $paginated->toArray();
+        return $query->paginate($perPage)->toArray();
     }
 
     public function store(array $data): ApprovalWorkflow
     {
         return DB::transaction(function () use ($data) {
             $workflow = ApprovalWorkflow::create([
-                'name'       => $data['name'],
-                'company_id' => $data['company_id'],
-                'is_active'  => $data['is_active'] ?? true,
+                'name'       => data_get($data, 'name'),
+                'company_id' => data_get($data, 'company_id'),
+                'is_active'  => data_get($data, 'is_active', true),
             ]);
 
-            if (!empty($data['steps'])) {
-                foreach ($data['steps'] as $index => $step) {
-                    $workflow->steps()->create([
-                        'step_order'      => $index + 1,
-                        'approver_type'   => $step['approver_type'],
-                        'approver_value'  => $step['approver_value'] ?? null,
-                        'is_mandatory'    => $step['is_mandatory'] ?? true,
-                        'condition_type'  => $step['condition_type'] ?? 'always',
-                        'condition_value' => $step['condition_value'] ?? null,
-                    ]);
-                }
-            }
+            $this->syncSteps($workflow, data_get($data, 'steps', []));
 
             return $workflow->load('steps');
         });
@@ -66,25 +48,12 @@ class ApprovalWorkflowService
     {
         return DB::transaction(function () use ($workflow, $data) {
             $workflow->update([
-                'name'      => $data['name'],
-                'is_active' => $data['is_active'] ?? true,
+                'name'      => data_get($data, 'name'),
+                'is_active' => data_get($data, 'is_active', true),
             ]);
 
-            // Replace all steps
             $workflow->steps()->delete();
-
-            if (!empty($data['steps'])) {
-                foreach ($data['steps'] as $index => $step) {
-                    $workflow->steps()->create([
-                        'step_order'      => $index + 1,
-                        'approver_type'   => $step['approver_type'],
-                        'approver_value'  => $step['approver_value'] ?? null,
-                        'is_mandatory'    => $step['is_mandatory'] ?? true,
-                        'condition_type'  => $step['condition_type'] ?? 'always',
-                        'condition_value' => $step['condition_value'] ?? null,
-                    ]);
-                }
-            }
+            $this->syncSteps($workflow, data_get($data, 'steps', []));
 
             return $workflow->load('steps');
         });
@@ -100,5 +69,29 @@ class ApprovalWorkflowService
         $workflow->update(['is_active' => !$workflow->is_active]);
 
         return $workflow->is_active;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Private Methods
+    // ═══════════════════════════════════════════════════════════════
+
+    private function syncSteps(ApprovalWorkflow $workflow, array $steps): void
+    {
+        foreach ($steps as $index => $step) {
+            $workflow->steps()->create([
+                'step_order'      => $index + 1,
+                'approver_type'   => data_get($step, 'approver_type'),
+                'approver_value'  => data_get($step, 'approver_value'),
+                'is_mandatory'    => data_get($step, 'is_mandatory', true),
+                'condition_type'  => data_get($step, 'condition_type', 'always'),
+                'condition_value' => data_get($step, 'condition_value'),
+            ]);
+        }
+    }
+
+    private function applyFilters($query, Request $request): void
+    {
+        $query->when($request->filled('company_id'), fn($q) => $q->where('company_id', $request->input('company_id')));
+        $query->when($request->filled('search'), fn($q) => $q->where('name', 'like', '%' . $request->input('search') . '%'));
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Services\Backend;
 
 use App\Models\Setting;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class SettingService
@@ -10,25 +11,10 @@ class SettingService
     private const CACHE_KEY = 'app_settings';
     private const CACHE_TTL = 3600;
 
-    public static function defaults(): array
+    public function getGroup(string $group): array
     {
-        return [
-            'general' => [
-                'app_name'        => ['value' => 'HRMS', 'type' => 'string', 'label' => 'Application Name'],
-                'timezone'        => ['value' => 'Asia/Dhaka', 'type' => 'string', 'label' => 'Timezone'],
-                'date_format'     => ['value' => 'd M Y', 'type' => 'string', 'label' => 'Date Format'],
-                'time_format'     => ['value' => 'h:i A', 'type' => 'string', 'label' => 'Time Format'],
-                'currency'        => ['value' => 'BDT', 'type' => 'string', 'label' => 'Currency'],
-                'currency_symbol' => ['value' => '৳', 'type' => 'string', 'label' => 'Currency Symbol'],
-            ],
-            'notification' => [
-                'send_late_notification'    => ['value' => '1', 'type' => 'boolean', 'label' => 'Late Arrival Notification'],
-                'send_absence_notification' => ['value' => '1', 'type' => 'boolean', 'label' => 'Absence Notification'],
-                'send_leave_notification'   => ['value' => '1', 'type' => 'boolean', 'label' => 'Leave Request Notification'],
-                'notify_on_approval'        => ['value' => '1', 'type' => 'boolean', 'label' => 'Approval Notification'],
-                'notify_on_rejection'       => ['value' => '1', 'type' => 'boolean', 'label' => 'Rejection Notification'],
-            ],
-        ];
+        $all = $this->getAll();
+        return $all[$group] ?? [];
     }
 
     public function getAll(): array
@@ -49,10 +35,25 @@ class SettingService
         });
     }
 
-    public function getGroup(string $group): array
+    public static function defaults(): array
     {
-        $all = $this->getAll();
-        return $all[$group] ?? [];
+        return [
+            'general'      => [
+                'app_name'        => ['value' => 'HRMS', 'type' => 'string', 'label' => 'Application Name'],
+                'timezone'        => ['value' => 'Asia/Dhaka', 'type' => 'string', 'label' => 'Timezone'],
+                'date_format'     => ['value' => 'd M Y', 'type' => 'string', 'label' => 'Date Format'],
+                'time_format'     => ['value' => 'h:i A', 'type' => 'string', 'label' => 'Time Format'],
+                'currency'        => ['value' => 'BDT', 'type' => 'string', 'label' => 'Currency'],
+                'currency_symbol' => ['value' => '৳', 'type' => 'string', 'label' => 'Currency Symbol'],
+            ],
+            'notification' => [
+                'send_late_notification'    => ['value' => '1', 'type' => 'boolean', 'label' => 'Late Arrival Notification'],
+                'send_absence_notification' => ['value' => '1', 'type' => 'boolean', 'label' => 'Absence Notification'],
+                'send_leave_notification'   => ['value' => '1', 'type' => 'boolean', 'label' => 'Leave Request Notification'],
+                'notify_on_approval'        => ['value' => '1', 'type' => 'boolean', 'label' => 'Approval Notification'],
+                'notify_on_rejection'       => ['value' => '1', 'type' => 'boolean', 'label' => 'Rejection Notification'],
+            ],
+        ];
     }
 
     public function get(string $group, string $key, $default = null)
@@ -78,7 +79,7 @@ class SettingService
 
             Setting::updateOrCreate(
                 ['group' => $group, 'key' => $key],
-                ['value' => (string) $value, 'type' => $type]
+                ['value' => (string)$value, 'type' => $type]
             );
         }
 
@@ -97,7 +98,7 @@ class SettingService
         return array_map(fn($tz) => ['title' => $tz, 'value' => $tz], timezone_identifiers_list());
     }
 
-    public function uploadLogo($request): string
+    public function uploadLogo(Request $request): string
     {
         $setting = Setting::firstOrCreate(
             ['group' => 'general', 'key' => 'logo'],
@@ -117,9 +118,9 @@ class SettingService
 
     public function getSettingsWithMeta(): array
     {
-        $saved = $this->getAll();
+        $saved    = $this->getAll();
         $defaults = self::defaults();
-        $result = [];
+        $result   = [];
 
         foreach ($defaults as $group => $keys) {
             foreach ($keys as $key => $meta) {

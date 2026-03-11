@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AvatarUploadRequest;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Services\Backend\ProfileService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,22 +25,19 @@ class ProfileController extends Controller
         return Inertia::render('Backend/Profile/index', $this->service->getProfileData(auth()->user()));
     }
 
-    public function update(ProfileUpdateRequest $request)
+    public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         try {
             $this->service->updateProfile($request->user(), $request->validated());
             return back()->with('success', 'Profile updated successfully.');
         } catch (\Exception $e) {
+            Log::error('Profile update failed', ['user_id' => $request->user()->id, 'error' => $e->getMessage()]);
             return back()->withErrors(['error' => 'Failed to update profile.']);
         }
     }
 
-    public function uploadAvatar(Request $request): JsonResponse
+    public function uploadAvatar(AvatarUploadRequest $request): JsonResponse
     {
-        $request->validate([
-            'avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-        ]);
-
         $employee = $request->user()->employee;
 
         if (!$employee) {
@@ -67,12 +67,13 @@ class ProfileController extends Controller
         }
     }
 
-    public function changePassword(ChangePasswordRequest $request)
+    public function changePassword(ChangePasswordRequest $request): RedirectResponse
     {
         try {
             $this->service->changePassword($request->user(), $request->validated('password'));
             return back()->with('success', 'Password changed successfully.');
         } catch (\Exception $e) {
+            Log::error('Password change failed', ['user_id' => $request->user()->id, 'error' => $e->getMessage()]);
             return back()->withErrors(['error' => 'Failed to change password.']);
         }
     }

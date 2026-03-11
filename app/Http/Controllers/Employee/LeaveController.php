@@ -30,7 +30,11 @@ class LeaveController extends Controller
 
     private function employee(): Employee
     {
-        return Auth::user()->employee;
+        $employee = Auth::user()->employee;
+
+        abort_unless($employee, 403, 'No employee profile linked to your account.');
+
+        return $employee;
     }
 
     public function index(): Response

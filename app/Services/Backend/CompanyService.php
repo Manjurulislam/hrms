@@ -26,14 +26,14 @@ class CompanyService
 
     public function create(array $data): Company
     {
-        $data['office_ip'] = $this->ipService->getPublicIp() ?? $data['office_ip'] ?? null;
+        $data['office_ip'] = $this->resolveOfficeIp(data_get($data, 'office_ip'));
 
         return Company::create($data);
     }
 
     public function update(Company $company, array $data): Company
     {
-        $data['office_ip'] = $this->ipService->getPublicIp() ?? $data['office_ip'] ?? $company->office_ip;
+        $data['office_ip'] = $this->resolveOfficeIp(data_get($data, 'office_ip', $company->office_ip));
 
         $company->update($data);
 
@@ -61,5 +61,10 @@ class CompanyService
         }
 
         return $data;
+    }
+
+    private function resolveOfficeIp(?string $fallbackIp): ?string
+    {
+        return $this->ipService->getPublicIp() ?? $fallbackIp;
     }
 }

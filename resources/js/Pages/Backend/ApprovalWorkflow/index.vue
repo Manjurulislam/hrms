@@ -1,4 +1,5 @@
 <script setup>
+import axios from 'axios';
 import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head} from '@inertiajs/vue3';
 import BtnLink from '@/Components/common/utility/BtnLink.vue';
@@ -47,12 +48,16 @@ const getData = (obj) => {
             steps_count: item.steps?.length || 0,
         }));
         state.pagination.totalItems = data.total;
+    }).catch(() => {
+        state.loading = false;
+        toast.error('Failed to load workflows.');
     });
 };
 
 const toggleStatus = (item) => {
     axios.post(route('approval-workflows.toggle-status', item.id))
-        .then(() => toast('Workflow status updated.'));
+        .then(() => toast('Workflow status updated.'))
+        .catch(() => toast.error('Failed to update status.'));
 };
 
 const handleSearch = () => {

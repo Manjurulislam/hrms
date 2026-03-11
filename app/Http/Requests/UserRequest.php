@@ -20,9 +20,10 @@ class UserRequest extends FormRequest
         return [
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email', 'max:255', Rule::unique('users')->ignore($userId)],
-            'password' => [$userId ? 'nullable' : 'required', Password::min(6)->mixedCase()->numbers()->symbols()],
+            'password' => [$userId ? 'nullable' : 'required', 'string', 'min:8', 'confirmed'],
             'status'   => ['required', 'boolean'],
-            'role'     => ['required', 'array', 'exists:roles,id'],
+            'role'     => ['required', 'array'],
+            'role.*'   => ['exists:roles,id'],
         ];
     }
 

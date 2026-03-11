@@ -91,12 +91,13 @@ class WorkScheduleService
         $startDate   = Carbon::create($year, $month, 1);
         $endDate     = $startDate->copy()->endOfMonth();
         $workingDays = 0;
+        $current     = $startDate->copy();
 
-        while ($startDate <= $endDate) {
-            if ($this->isWorkingDay($employee, $startDate)) {
+        while ($current <= $endDate) {
+            if ($this->isWorkingDay($employee, $current)) {
                 $workingDays++;
             }
-            $startDate->addDay();
+            $current->addDay();
         }
 
         return $workingDays;

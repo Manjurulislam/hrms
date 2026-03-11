@@ -4,6 +4,7 @@ namespace App\Services\Backend;
 
 use App\Enums\ApproverType;
 use App\Enums\LeaveApprovalStatus;
+use App\Enums\LeaveMessage;
 use App\Enums\LeaveRequestStatus;
 use App\Enums\StepConditionType;
 use App\Models\ApprovalWorkflowStep;
@@ -12,6 +13,7 @@ use App\Models\LeaveApproval;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class LeaveApprovalService
 {
@@ -21,57 +23,27 @@ class LeaveApprovalService
     public function approve(LeaveRequest $leaveRequest, Employee $approver, ?string $remarks = null): array
     {
         return DB::transaction(function () use ($leaveRequest, $approver, $remarks) {
-            // Mark current approval as approved
-            $currentApproval = LeaveApproval::where('leave_request_id', $leaveRequest->id)
-                ->where('approver_id', $approver->id)
-                ->where('status', LeaveApprovalStatus::Pending)
-                ->first();
+            $currentApproval = $this->resolveOrCreateApproval($leaveRequest, $approver, LeaveApprovalStatus::Approved, $remarks);
 
-            if ($currentApproval) {
-                $currentApproval->update([
-                    'status'   => LeaveApprovalStatus::Approved,
-                    'remarks'  => $remarks,
-                    'acted_at' => now(),
-                ]);
-            } else {
-                $currentApproval = LeaveApproval::create([
-                    'leave_request_id' => $leaveRequest->id,
-                    'approver_id'      => $approver->id,
-                    'level'            => $approver->designation?->level?->value ?? 99,
-                    'status'           => LeaveApprovalStatus::Approved,
-                    'remarks'          => $remarks,
-                    'acted_at'         => now(),
-                ]);
-            }
+            $leaveType = $leaveRequest->leaveType;
 
-            // Find the next step in the workflow
-            $workflow = $leaveRequest->leaveType->approvalWorkflow;
-
-            if (!$workflow) {
-                // No workflow — fallback: single-step direct manager approval
+            if (!$leaveType) {
                 return $this->finalApprove($leaveRequest);
             }
 
-            $currentStepId = $currentApproval->workflow_step_id;
-            $nextStep = $this->findNextApplicableStep($workflow, $currentStepId, $leaveRequest->total_days);
+            $workflow = $leaveType->approvalWorkflow;
+
+            if (!$workflow) {
+                return $this->finalApprove($leaveRequest);
+            }
+
+            $nextStep = $this->findNextApplicableStep($workflow, $currentApproval->workflow_step_id, $leaveRequest->total_days);
 
             if (!$nextStep) {
                 return $this->finalApprove($leaveRequest);
             }
 
-            // Resolve the next approver
-            $employee = $leaveRequest->employee;
-            $nextApprover = $this->resolveApprover($nextStep, $employee);
-
-            if (!$nextApprover) {
-                // Can't resolve approver — skip non-mandatory, or final approve
-                if (!$nextStep->is_mandatory) {
-                    return $this->skipToNextOrFinalize($workflow, $nextStep, $leaveRequest);
-                }
-                return $this->finalApprove($leaveRequest);
-            }
-
-            return $this->forwardToStep($leaveRequest, $nextApprover, $nextStep);
+            return $this->processNextStep($leaveRequest, $workflow, $nextStep);
         });
     }
 
@@ -81,65 +53,28 @@ class LeaveApprovalService
     public function reject(LeaveRequest $leaveRequest, Employee $approver, ?string $remarks = null): array
     {
         return DB::transaction(function () use ($leaveRequest, $approver, $remarks) {
-            $approval = LeaveApproval::where('leave_request_id', $leaveRequest->id)
-                ->where('approver_id', $approver->id)
-                ->where('status', LeaveApprovalStatus::Pending)
-                ->first();
+            $this->resolveOrCreateApproval($leaveRequest, $approver, LeaveApprovalStatus::Rejected, $remarks);
+            $this->updateLeaveRequestStatus($leaveRequest, LeaveRequestStatus::Rejected);
 
-            if ($approval) {
-                $approval->update([
-                    'status'   => LeaveApprovalStatus::Rejected,
-                    'remarks'  => $remarks,
-                    'acted_at' => now(),
-                ]);
-            } else {
-                LeaveApproval::create([
-                    'leave_request_id' => $leaveRequest->id,
-                    'approver_id'      => $approver->id,
-                    'level'            => $approver->designation?->level?->value ?? 99,
-                    'status'           => LeaveApprovalStatus::Rejected,
-                    'remarks'          => $remarks,
-                    'acted_at'         => now(),
-                ]);
-            }
-
-            $leaveRequest->update([
-                'status'              => LeaveRequestStatus::Rejected,
-                'current_approver_id' => null,
-            ]);
-
-            return ['success' => true, 'message' => 'Leave request rejected.'];
+            return $this->success(LeaveMessage::Rejected->value);
         });
     }
 
     /**
      * Initialize the first approval step for a leave request.
-     * Called from LeaveRequestService::store().
      */
     public function initializeApproval(LeaveRequest $leaveRequest, Employee $employee): void
     {
         $workflow = $leaveRequest->leaveType->approvalWorkflow;
 
         if (!$workflow || !$workflow->is_active) {
-            // Fallback: direct manager
-            if ($employee->manager_id) {
-                $manager = Employee::with('designation')->find($employee->manager_id);
-                LeaveApproval::create([
-                    'leave_request_id' => $leaveRequest->id,
-                    'approver_id'      => $employee->manager_id,
-                    'level'            => $manager?->designation?->level?->value ?? 99,
-                    'status'           => LeaveApprovalStatus::Pending,
-                ]);
-                $leaveRequest->update(['current_approver_id' => $employee->manager_id]);
-            }
+            $this->fallbackToDirectManager($leaveRequest, $employee);
             return;
         }
 
-        // Find first applicable step
         $firstStep = $this->findNextApplicableStep($workflow, null, $leaveRequest->total_days);
 
         if (!$firstStep) {
-            // No applicable steps — auto-approve
             $this->finalApprove($leaveRequest);
             return;
         }
@@ -151,34 +86,83 @@ class LeaveApprovalService
                 $this->skipToNextOrFinalize($workflow, $firstStep, $leaveRequest);
                 return;
             }
-            // Fallback to direct manager
-            if ($employee->manager_id) {
-                $approver = Employee::with('designation')->find($employee->manager_id);
-            }
+
+            $approver = $this->resolveDirectManager($employee);
+
             if (!$approver) {
                 return;
             }
         }
 
-        LeaveApproval::create([
-            'leave_request_id' => $leaveRequest->id,
-            'approver_id'      => $approver->id,
-            'level'            => $approver->designation?->level?->value ?? 99,
-            'workflow_step_id' => $firstStep->id,
-            'status'           => LeaveApprovalStatus::Pending,
-        ]);
-
+        $this->createPendingApproval($leaveRequest, $approver, $firstStep);
         $leaveRequest->update(['current_approver_id' => $approver->id]);
     }
 
-    /**
-     * Find the next applicable workflow step after the current one.
-     */
+    // ═══════════════════════════════════════════════════════════════
+    // Approval Resolution
+    // ═══════════════════════════════════════════════════════════════
+
+    private function resolveOrCreateApproval(
+        LeaveRequest $leaveRequest,
+        Employee $approver,
+        LeaveApprovalStatus $status,
+        ?string $remarks
+    ): LeaveApproval {
+        $existing = $this->findPendingApproval($leaveRequest, $approver);
+
+        if ($existing) {
+            $existing->update([
+                'status'   => $status,
+                'remarks'  => $remarks,
+                'acted_at' => now(),
+            ]);
+
+            return $existing;
+        }
+
+        return LeaveApproval::create([
+            'leave_request_id' => $leaveRequest->id,
+            'approver_id'      => $approver->id,
+            'level'            => $this->getApproverLevel($approver),
+            'status'           => $status,
+            'remarks'          => $remarks,
+            'acted_at'         => now(),
+        ]);
+    }
+
+    private function findPendingApproval(LeaveRequest $leaveRequest, Employee $approver): ?LeaveApproval
+    {
+        return LeaveApproval::where('leave_request_id', $leaveRequest->id)
+            ->where('approver_id', $approver->id)
+            ->where('status', LeaveApprovalStatus::Pending)
+            ->first();
+    }
+
+    private function createPendingApproval(LeaveRequest $leaveRequest, Employee $approver, ApprovalWorkflowStep $step): LeaveApproval
+    {
+        return LeaveApproval::create([
+            'leave_request_id' => $leaveRequest->id,
+            'approver_id'      => $approver->id,
+            'level'            => $this->getApproverLevel($approver),
+            'workflow_step_id' => $step->id,
+            'status'           => LeaveApprovalStatus::Pending,
+        ]);
+    }
+
+    private function getApproverLevel(Employee $approver): int
+    {
+        return $approver->designation?->level?->value ?? 99;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Workflow Step Navigation
+    // ═══════════════════════════════════════════════════════════════
+
     private function findNextApplicableStep($workflow, ?int $currentStepId, int $totalDays): ?ApprovalWorkflowStep
     {
         $steps = $workflow->steps()->orderBy('step_order')->get();
 
-        $foundCurrent = $currentStepId === null; // if null, start from beginning
+        $foundCurrent = $currentStepId === null;
 
         foreach ($steps as $step) {
             if (!$foundCurrent) {
@@ -196,9 +180,6 @@ class LeaveApprovalService
         return null;
     }
 
-    /**
-     * Check if a step's condition is met.
-     */
     private function stepConditionMet(ApprovalWorkflowStep $step, int $totalDays): bool
     {
         return match ($step->condition_type) {
@@ -209,15 +190,68 @@ class LeaveApprovalService
         };
     }
 
-    /**
-     * Resolve the actual Employee approver for a workflow step.
-     */
+    private function processNextStep(LeaveRequest $leaveRequest, $workflow, ApprovalWorkflowStep $nextStep): array
+    {
+        $employee = $leaveRequest->employee;
+        $nextApprover = $this->resolveApprover($nextStep, $employee);
+
+        if (!$nextApprover) {
+            if (!$nextStep->is_mandatory) {
+                return $this->skipToNextOrFinalize($workflow, $nextStep, $leaveRequest);
+            }
+            return $this->finalApprove($leaveRequest);
+        }
+
+        return $this->forwardToStep($leaveRequest, $nextApprover, $nextStep);
+    }
+
+    private function skipToNextOrFinalize($workflow, ApprovalWorkflowStep $skippedStep, LeaveRequest $leaveRequest, int $depth = 0): array
+    {
+        if ($depth > 10) {
+            Log::error('LeaveApprovalService::skipToNextOrFinalize exceeded max recursion depth', [
+                'leave_request_id' => $leaveRequest->id,
+                'skipped_step_id'  => $skippedStep->id,
+            ]);
+            return $this->finalApprove($leaveRequest);
+        }
+
+        $nextStep = $this->findNextApplicableStep($workflow, $skippedStep->id, $leaveRequest->total_days);
+
+        if (!$nextStep) {
+            return $this->finalApprove($leaveRequest);
+        }
+
+        $nextApprover = $this->resolveApprover($nextStep, $leaveRequest->employee);
+
+        if (!$nextApprover) {
+            if (!$nextStep->is_mandatory) {
+                return $this->skipToNextOrFinalize($workflow, $nextStep, $leaveRequest, $depth + 1);
+            }
+            return $this->finalApprove($leaveRequest);
+        }
+
+        return $this->forwardToStep($leaveRequest, $nextApprover, $nextStep);
+    }
+
+    private function forwardToStep(LeaveRequest $leaveRequest, Employee $nextApprover, ApprovalWorkflowStep $step): array
+    {
+        $this->createPendingApproval($leaveRequest, $nextApprover, $step);
+
+        $this->updateLeaveRequestStatus($leaveRequest, LeaveRequestStatus::InReview, $nextApprover->id);
+
+        return $this->success(LeaveMessage::ForwardedTo->with(['name' => $nextApprover->full_name]));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Approver Resolution
+    // ═══════════════════════════════════════════════════════════════
+
     private function resolveApprover(ApprovalWorkflowStep $step, Employee $employee): ?Employee
     {
         return match ($step->approver_type) {
-            ApproverType::DirectManager   => $this->resolveDirectManager($employee),
+            ApproverType::DirectManager    => $this->resolveDirectManager($employee),
             ApproverType::DesignationLevel => $this->resolveByDesignationLevel($employee, (int) $step->approver_value),
-            ApproverType::SpecificEmployee => Employee::with('designation')->find($step->approver_value),
+            ApproverType::SpecificEmployee => $this->resolveSpecificEmployee($step->approver_value),
             ApproverType::DepartmentHead   => $this->resolveDepartmentHead($employee),
             default                        => null,
         };
@@ -232,15 +266,59 @@ class LeaveApprovalService
         return Employee::with('designation')->find($employee->manager_id);
     }
 
+    private function resolveSpecificEmployee($employeeId): ?Employee
+    {
+        return Employee::with('designation')->find($employeeId);
+    }
+
     private function resolveByDesignationLevel(Employee $employee, int $targetLevel): ?Employee
     {
-        // Walk up the manager chain until we find someone at the target level
+        $managerIds = $this->collectManagerChainIds($employee);
+
+        if (empty($managerIds)) {
+            return null;
+        }
+
+        $managers = $this->loadManagersWithDesignations($managerIds);
+
+        return $this->findManagerAtLevel($employee, $managers, $targetLevel);
+    }
+
+    private function collectManagerChainIds(Employee $employee): array
+    {
+        $managerIds = [];
         $current = $employee;
         $visited = [];
 
-        while ($current->manager_id && !collect($visited)->contains($current->manager_id)) {
+        while ($current->manager_id && !in_array($current->manager_id, $visited)) {
             $visited[] = $current->manager_id;
-            $manager = Employee::with('designation')->find($current->manager_id);
+            $managerIds[] = $current->manager_id;
+            $current = Employee::select('id', 'manager_id')->find($current->manager_id);
+
+            if (!$current) {
+                break;
+            }
+        }
+
+        return $managerIds;
+    }
+
+    private function loadManagersWithDesignations(array $managerIds)
+    {
+        return Employee::with('designation')
+            ->whereIn('id', $managerIds)
+            ->get()
+            ->keyBy('id');
+    }
+
+    private function findManagerAtLevel(Employee $employee, $managers, int $targetLevel): ?Employee
+    {
+        $current = $employee;
+        $visited = [];
+
+        while ($current->manager_id && !in_array($current->manager_id, $visited)) {
+            $visited[] = $current->manager_id;
+            $manager = $managers->get($current->manager_id);
 
             if (!$manager) {
                 break;
@@ -264,72 +342,74 @@ class LeaveApprovalService
             return null;
         }
 
-        // Find the employee with the highest designation level in the same department
-        // (lowest level number = highest authority)
         return Employee::where('department_id', $employee->department_id)
             ->where('id', '!=', $employee->id)
             ->whereHas('designation', fn($q) => $q->whereNotNull('level'))
             ->with('designation')
-            ->get()
-            ->sortBy(fn($e) => $e->designation?->level?->value ?? 99)
+            ->join('designations', 'employees.designation_id', '=', 'designations.id')
+            ->orderBy('designations.level', 'asc')
+            ->select('employees.*')
             ->first();
     }
 
-    private function forwardToStep(LeaveRequest $leaveRequest, Employee $nextApprover, ApprovalWorkflowStep $step): array
-    {
-        LeaveApproval::create([
-            'leave_request_id' => $leaveRequest->id,
-            'approver_id'      => $nextApprover->id,
-            'level'            => $nextApprover->designation?->level?->value ?? 99,
-            'workflow_step_id' => $step->id,
-            'status'           => LeaveApprovalStatus::Pending,
-        ]);
-
-        $leaveRequest->update([
-            'current_approver_id' => $nextApprover->id,
-            'status'              => LeaveRequestStatus::InReview,
-        ]);
-
-        return ['success' => true, 'message' => 'Approved and forwarded to ' . $nextApprover->full_name . '.'];
-    }
-
-    private function skipToNextOrFinalize($workflow, ApprovalWorkflowStep $skippedStep, LeaveRequest $leaveRequest): array
-    {
-        $nextStep = $this->findNextApplicableStep($workflow, $skippedStep->id, $leaveRequest->total_days);
-
-        if (!$nextStep) {
-            return $this->finalApprove($leaveRequest);
-        }
-
-        $employee = $leaveRequest->employee;
-        $nextApprover = $this->resolveApprover($nextStep, $employee);
-
-        if (!$nextApprover) {
-            if (!$nextStep->is_mandatory) {
-                return $this->skipToNextOrFinalize($workflow, $nextStep, $leaveRequest);
-            }
-            return $this->finalApprove($leaveRequest);
-        }
-
-        return $this->forwardToStep($leaveRequest, $nextApprover, $nextStep);
-    }
+    // ═══════════════════════════════════════════════════════════════
+    // Status & Balance Updates
+    // ═══════════════════════════════════════════════════════════════
 
     private function finalApprove(LeaveRequest $leaveRequest): array
     {
-        $leaveRequest->update([
-            'status'              => LeaveRequestStatus::Approved,
-            'current_approver_id' => null,
-        ]);
+        $this->updateLeaveRequestStatus($leaveRequest, LeaveRequestStatus::Approved);
+        $this->deductLeaveBalance($leaveRequest);
 
+        return $this->success(LeaveMessage::Approved->value);
+    }
+
+    private function updateLeaveRequestStatus(LeaveRequest $leaveRequest, LeaveRequestStatus $status, ?int $approverId = null): void
+    {
+        $leaveRequest->update([
+            'status'              => $status,
+            'current_approver_id' => $approverId,
+        ]);
+    }
+
+    private function deductLeaveBalance(LeaveRequest $leaveRequest): void
+    {
         $balance = LeaveBalance::where('employee_id', $leaveRequest->employee_id)
             ->where('leave_type_id', $leaveRequest->leave_type_id)
             ->where('year', $leaveRequest->started_at->year)
             ->first();
 
-        if ($balance) {
-            $balance->increment('used', $leaveRequest->total_days);
+        $balance?->increment('used', $leaveRequest->total_days);
+    }
+
+    private function fallbackToDirectManager(LeaveRequest $leaveRequest, Employee $employee): void
+    {
+        if (!$employee->manager_id) {
+            return;
         }
 
-        return ['success' => true, 'message' => 'Leave request approved.'];
+        $manager = $this->resolveDirectManager($employee);
+
+        if (!$manager) {
+            return;
+        }
+
+        LeaveApproval::create([
+            'leave_request_id' => $leaveRequest->id,
+            'approver_id'      => $employee->manager_id,
+            'level'            => $this->getApproverLevel($manager),
+            'status'           => LeaveApprovalStatus::Pending,
+        ]);
+
+        $leaveRequest->update(['current_approver_id' => $employee->manager_id]);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Response Helpers
+    // ═══════════════════════════════════════════════════════════════
+
+    private function success(string $message): array
+    {
+        return ['success' => true, 'message' => $message];
     }
 }

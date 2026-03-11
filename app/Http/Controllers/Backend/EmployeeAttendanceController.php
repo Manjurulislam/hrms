@@ -7,6 +7,7 @@ use App\Http\Requests\Attendance\BreakEndRequest;
 use App\Http\Requests\Attendance\BreakStartRequest;
 use App\Http\Requests\Attendance\CheckInRequest;
 use App\Http\Requests\Attendance\CheckOutRequest;
+use App\Http\Requests\MonthlyDataRequest;
 use App\Services\AttendanceService;
 use App\Services\Utility\CatchIPService;
 use Illuminate\Http\JsonResponse;
@@ -47,6 +48,7 @@ class EmployeeAttendanceController extends Controller
     public function startWork(CheckInRequest $request): JsonResponse
     {
         $employee = $request->user()->employee;
+        abort_unless($employee, 403, 'No employee profile linked to your account.');
 
         $result = $this->service->checkIn(
             $employee,
@@ -69,6 +71,7 @@ class EmployeeAttendanceController extends Controller
     public function endWork(CheckOutRequest $request): JsonResponse
     {
         $employee = $request->user()->employee;
+        abort_unless($employee, 403, 'No employee profile linked to your account.');
 
         $result = $this->service->checkOut(
             $employee,
@@ -92,6 +95,7 @@ class EmployeeAttendanceController extends Controller
     public function startBreak(BreakStartRequest $request): JsonResponse
     {
         $employee = $request->user()->employee;
+        abort_unless($employee, 403, 'No employee profile linked to your account.');
 
         $result = $this->service->startBreak(
             $employee,
@@ -115,6 +119,7 @@ class EmployeeAttendanceController extends Controller
     public function endBreak(BreakEndRequest $request): JsonResponse
     {
         $employee = $request->user()->employee;
+        abort_unless($employee, 403, 'No employee profile linked to your account.');
 
         $result = $this->service->endBreak($employee, $this->resolveIp($request));
 
@@ -144,17 +149,15 @@ class EmployeeAttendanceController extends Controller
         ]);
     }
 
-    public function monthlyData(Request $request): JsonResponse
+    public function monthlyData(MonthlyDataRequest $request): JsonResponse
     {
-        $request->validate(['month' => 'required|date_format:Y-m']);
-
         $employee = auth()->user()->employee;
 
         if (!$employee) {
             return response()->json(['error' => 'Employee not found'], 404);
         }
 
-        [$year, $month] = explode('-', $request->month);
+        [$year, $month] = explode('-', $request->validated('month'));
 
         return response()->json([
             'success' => true,

@@ -10,7 +10,9 @@ class MenuService
             return [];
         }
 
-        $isAdmin    = $user->hasRole('super_admin') || $user->hasRole('admin') || $user->hasRole('hr');
+        $user->loadMissing('roles');
+        $roleSlugs  = $user->roles->pluck('slug');
+        $isAdmin    = $roleSlugs->intersect(['super_admin', 'admin', 'hr'])->isNotEmpty();
         $isEmployee = $user->isEmployee();
         $isManager  = $isEmployee && ($user->employee?->subordinates()->exists() ?? false);
 

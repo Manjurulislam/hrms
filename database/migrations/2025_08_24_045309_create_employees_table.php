@@ -15,10 +15,10 @@ return new class extends Migration {
             $table->string('email')->unique();
             $table->string('phone', 20)->unique()->nullable();
             $table->string('sec_phone', 20)->nullable();
-            $table->string('nid')->nullable();
+            $table->string('nid')->unique()->nullable();
             $table->string('gender', 20)->nullable();
 
-            $table->longText('qualification')->nullable();
+            $table->text('qualification')->nullable();
             $table->text('emergency_contact')->nullable();
             $table->string('blood_group', 20)->nullable()->index();
             $table->string('marital_status', 50)->nullable()->index();
@@ -26,8 +26,8 @@ return new class extends Migration {
 
             $table->text('address')->nullable();
 
-            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('department_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('company_id')->constrained()->restrictOnDelete();
+            $table->foreignId('department_id')->constrained()->restrictOnDelete();
             $table->foreignId('designation_id')->nullable()->constrained()->nullOnDelete();
             $table->unsignedBigInteger('manager_id')->nullable()->index();
 

@@ -1,5 +1,5 @@
 <script setup>
-import {Link} from '@inertiajs/vue3';
+import {Link, router} from '@inertiajs/vue3';
 </script>
 
 <template>
@@ -27,19 +27,17 @@ import {Link} from '@inertiajs/vue3';
                 </div>
                 <v-divider/>
                 <v-list class="py-0 mt-2" density="compact" lines="one">
-                    <v-list-item class="px-2 rounded-md" color="primary" :href="route('profile')">
+                    <v-list-item class="px-2 rounded-md" color="primary" @click="router.visit(route('profile'))">
                         <template #prepend>
                             <v-icon size="small">mdi-account-outline</v-icon>
                         </template>
                         <v-list-item-title class="text-subtitle-2">My Profile</v-list-item-title>
                     </v-list-item>
-                    <v-list-item class="px-2 rounded-md" color="error">
+                    <v-list-item class="px-2 rounded-md" color="error" @click="router.post(route('logout'))">
                         <template #prepend>
                             <v-icon size="small">mdi-logout</v-icon>
                         </template>
-                        <Link :href="route('logout')" method="post" class="text-subtitle-2 text-decoration-none text-inherit">
-                            Sign out
-                        </Link>
+                        <v-list-item-title class="text-subtitle-2">Sign out</v-list-item-title>
                     </v-list-item>
                 </v-list>
             </div>

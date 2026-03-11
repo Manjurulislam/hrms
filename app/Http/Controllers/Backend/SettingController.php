@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LogoUploadRequest;
 use App\Services\Backend\SettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -27,24 +28,22 @@ class SettingController extends Controller
 
     public function update(Request $request, string $group): RedirectResponse
     {
-        if (!isset(SettingService::defaults()[$group])) {
+        $defaults = SettingService::defaults()[$group] ?? null;
+
+        if (!$defaults) {
             return back()->withErrors(['error' => 'Invalid settings group.']);
         }
 
         try {
-            $this->service->updateGroup($group, $request->all());
+            $this->service->updateGroup($group, $request->only(array_keys($defaults)));
             return back()->with('success', ucfirst($group) . ' settings updated successfully.');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Failed to update settings.']);
         }
     }
 
-    public function uploadLogo(Request $request): JsonResponse
+    public function uploadLogo(LogoUploadRequest $request): JsonResponse
     {
-        $request->validate([
-            'logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
-        ]);
-
         try {
             $logoUrl = $this->service->uploadLogo($request);
             return response()->json(['message' => 'Logo uploaded successfully.', 'logoUrl' => $logoUrl]);

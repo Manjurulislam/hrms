@@ -13,11 +13,13 @@ class UserService
 {
     use PaginateQuery, QueryParams;
 
+    private const EXCLUDED_ROLE_SLUGS = ['super_admin', 'employee'];
+
     public function list(Request $request): array
     {
         $query = User::query()
             ->with('roles')
-            ->whereHas('roles', fn($q) => $q->whereNotIn('slug', ['super_admin', 'employee']))
+            ->whereHas('roles', fn($q) => $q->whereNotIn('slug', self::EXCLUDED_ROLE_SLUGS))
             ->orderBy('name');
 
         $query = $this->userQuery($query, $request);
@@ -40,7 +42,14 @@ class UserService
     {
         return DB::transaction(function () use ($user, $data) {
             $role = data_get($data, 'role');
-            $user->update(collect($data)->except('role')->filter()->toArray());
+            $userData = collect($data)->except('role', 'password')->toArray();
+            $password = data_get($data, 'password');
+
+            if (filled($password)) {
+                $userData['password'] = $password;
+            }
+
+            $user->update($userData);
             $user->roles()->sync($role);
 
             return $user;
@@ -54,18 +63,18 @@ class UserService
 
     public function toggle(User $user): bool
     {
-        $user->update(['status' => !$user->status]);
+        return DB::transaction(function () use ($user) {
+            $user->update(['status' => !$user->status]);
+            $user->employee?->update(['status' => $user->status]);
 
-        return $user->status;
+            return $user->status;
+        });
     }
 
     public function formData(?User $user = null): array
     {
         $data = [
-            'roles' => Role::select('id', 'name')
-                ->whereNotIn('slug', ['super_admin', 'employee'])
-                ->where('status', true)
-                ->get(),
+            'roles' => $this->getAssignableRoles(),
         ];
 
         if ($user) {
@@ -74,5 +83,13 @@ class UserService
         }
 
         return $data;
+    }
+
+    private function getAssignableRoles()
+    {
+        return Role::select('id', 'name')
+            ->whereNotIn('slug', self::EXCLUDED_ROLE_SLUGS)
+            ->where('status', true)
+            ->get();
     }
 }

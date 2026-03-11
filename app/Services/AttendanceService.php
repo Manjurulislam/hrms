@@ -17,16 +17,15 @@ use App\Traits\CompanySettings;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AttendanceService
 {
     use CompanySettings;
 
     public function __construct(
-        protected ?WorkScheduleService $scheduleService = null
-    ) {
-        $this->scheduleService = $scheduleService ?: new WorkScheduleService();
-    }
+        protected readonly WorkScheduleService $scheduleService,
+    ) {}
 
     // ─── Check In ────────────────────────────────────────────────
 
@@ -61,6 +60,7 @@ class AttendanceService
             return $this->success(AttendanceMessage::CheckInSuccess->value, ['session' => $session]);
         } catch (Exception $e) {
             DB::rollBack();
+            Log::error('Attendance check-in failed', ['employee_id' => $employee->id, 'error' => $e->getMessage()]);
 
             return $this->error(AttendanceMessage::CheckInFailed->value);
         }
@@ -102,6 +102,7 @@ class AttendanceService
             ]);
         } catch (Exception $e) {
             DB::rollBack();
+            Log::error('Attendance check-out failed', ['employee_id' => $employee->id, 'error' => $e->getMessage()]);
 
             return $this->error(AttendanceMessage::CheckOutFailed->value);
         }
@@ -143,6 +144,7 @@ class AttendanceService
             return $this->success(AttendanceMessage::BreakStartSuccess->value, ['break' => $break]);
         } catch (Exception $e) {
             DB::rollBack();
+            Log::error('Attendance break start failed', ['employee_id' => $employee->id, 'error' => $e->getMessage()]);
 
             return $this->error(AttendanceMessage::BreakStartFailed->value);
         }
@@ -176,6 +178,7 @@ class AttendanceService
             ]);
         } catch (Exception $e) {
             DB::rollBack();
+            Log::error('Attendance break end failed', ['employee_id' => $employee->id, 'error' => $e->getMessage()]);
 
             return $this->error(AttendanceMessage::BreakEndFailed->value);
         }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\EmployeeImportRequest;
 use App\Http\Requests\EmployeeRequest;
 use App\Imports\EmployeeImport;
 use App\Models\Employee;
@@ -101,18 +102,12 @@ class EmployeeController extends Controller
         }
     }
 
-    public function import(Request $request): RedirectResponse
+    public function import(EmployeeImportRequest $request): RedirectResponse
     {
-        $request->validate([
-            'file'          => 'required|mimes:xlsx,xls,csv|max:2048',
-            'company_id'    => 'required|exists:companies,id',
-            'department_id' => 'required|exists:departments,id',
-        ]);
-
         try {
             $import = new EmployeeImport(
-                $request->input('company_id'),
-                $request->input('department_id')
+                $request->validated('company_id'),
+                $request->validated('department_id'),
             );
 
             Excel::import($import, $request->file('file'));

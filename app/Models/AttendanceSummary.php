@@ -63,7 +63,7 @@ class AttendanceSummary extends Model
     public function breaks(): HasMany
     {
         return $this->hasMany(AttendanceBreak::class, 'employee_id', 'employee_id')
-            ->whereDate('attendance_date', $this->attendance_date);
+            ->whereColumn('attendance_breaks.attendance_date', 'attendance_summaries.attendance_date');
     }
 
     public function getTotalWorkingHoursAttribute(): float
@@ -203,7 +203,7 @@ class AttendanceSummary extends Model
     public function sessions(): HasMany
     {
         return $this->hasMany(AttendanceSession::class, 'employee_id', 'employee_id')
-            ->whereDate('attendance_date', $this->attendance_date)
+            ->whereColumn('attendance_sessions.attendance_date', 'attendance_summaries.attendance_date')
             ->orderBy('session_number');
     }
 
