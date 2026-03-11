@@ -507,13 +507,16 @@ class AttendanceService
     // Format summary for frontend response
     private function formatSummary(?AttendanceSummary $summary, $sessions, int $totalSeconds): array
     {
+        $breakMinutes = $summary?->total_break_minutes ?? 0;
+
         return [
-            'firstCheckIn' => $sessions->isNotEmpty()
+            'firstCheckIn'    => $sessions->isNotEmpty()
                 ? $sessions->first()->check_in_time->format('h:i A')
                 : '--:--',
-            'lastCheckOut'  => $sessions->whereNotNull('check_out_time')->last()?->check_out_time?->format('h:i A') ?? '--:--',
-            'totalHours'    => $this->formatDuration($totalSeconds),
-            'status'        => $summary?->status ?? 'absent',
+            'lastCheckOut'    => $sessions->whereNotNull('check_out_time')->last()?->check_out_time?->format('h:i A') ?? '--:--',
+            'totalHours'      => $this->formatDuration($totalSeconds),
+            'totalBreakTime'  => $breakMinutes > 0 ? $this->formatDuration($breakMinutes * 60) : null,
+            'status'          => $summary?->status ?? 'absent',
         ];
     }
 

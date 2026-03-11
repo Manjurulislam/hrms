@@ -34,6 +34,7 @@ const workTimer = ref('00:00:00')
 const breakTimer = ref('00:00:00')
 const progressPercentage = ref(0)
 const totalWorkedSeconds = ref(0)
+const totalBreakTime = ref(null)
 const isLoading = ref(false)
 
 // Timer intervals
@@ -73,6 +74,7 @@ const initializeFromServerData = () => {
             startTime.value = props.todayData.summary.firstCheckIn || '--:--'
             endTime.value = props.todayData.summary.lastCheckOut || '--:--'
             totalHours.value = props.todayData.summary.totalHours || '0h 0m'
+            totalBreakTime.value = props.todayData.summary.totalBreakTime || null
         }
 
         // Update progress
@@ -294,6 +296,7 @@ const endWork = async () => {
             if (todayData.summary) {
                 endTime.value = todayData.summary.lastCheckOut || formatTime(new Date())
                 totalHours.value = todayData.summary.totalHours || totalHours.value
+                totalBreakTime.value = todayData.summary.totalBreakTime || totalBreakTime.value
             }
 
             // Clear work timer
@@ -587,10 +590,10 @@ onUnmounted(() => {
                 </v-col>
                 <v-col cols="3">
                     <div class="text-h6" :class="isOnBreak ? 'text-warning' : ''">
-                        {{ isOnBreak ? breakTimer : '--:--' }}
+                        {{ isOnBreak ? breakTimer : (totalBreakTime || '--:--') }}
                     </div>
                     <div class="text-caption text-medium-emphasis">
-                        {{ isOnBreak ? 'Break Time' : 'No Break' }}
+                        {{ isOnBreak ? 'On Break' : (totalBreakTime ? 'Break Time' : 'No Break') }}
                     </div>
                 </v-col>
             </v-row>

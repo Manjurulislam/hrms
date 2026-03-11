@@ -142,8 +142,15 @@ class AttendanceSummary extends Model
         // Get last checkout from completed sessions only
         $lastCheckOut = $completedSessions->max('check_out_time');
 
-        // Calculate breaks (time between completed sessions)
-        $breakMinutes            = 0;
+        // Calculate breaks from actual break records in all sessions
+        $breakMinutes = 0;
+        foreach ($allSessions as $session) {
+            $breakMinutes += $session->breaks()
+                ->whereNotNull('break_end')
+                ->sum('duration_minutes');
+        }
+
+        // Also add gaps between completed sessions as break time
         $sortedCompletedSessions = $completedSessions->sortBy('check_in_time')->values();
 
         for ($i = 1; $i < $sortedCompletedSessions->count(); $i++) {
