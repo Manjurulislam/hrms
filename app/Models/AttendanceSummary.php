@@ -63,7 +63,7 @@ class AttendanceSummary extends Model
     public function breaks(): HasMany
     {
         return $this->hasMany(AttendanceBreak::class, 'employee_id', 'employee_id')
-            ->whereColumn('attendance_breaks.attendance_date', 'attendance_summaries.attendance_date');
+            ->where('attendance_breaks.attendance_date', $this->attendance_date);
     }
 
     public function getTotalWorkingHoursAttribute(): float
@@ -180,6 +180,30 @@ class AttendanceSummary extends Model
         $standardMinutes = $this->companySetting($this->company, 'work_hours') * 60;
         $overtimeMinutes = max(0, $totalMinutes - $standardMinutes);
 
+        // Calculate late minutes from first check-in vs scheduled start
+        $lateMinutes = 0;
+        if ($firstCheckIn && $this->scheduled_start_time) {
+            $scheduledStart = \Carbon\Carbon::parse($this->scheduled_start_time)
+                ->setDate($firstCheckIn->year, $firstCheckIn->month, $firstCheckIn->day);
+            $graceMinutes = $this->grace_minutes ?? 0;
+            $scheduledStartWithGrace = $scheduledStart->copy()->addMinutes($graceMinutes);
+
+            if ($firstCheckIn->gt($scheduledStartWithGrace)) {
+                $lateMinutes = (int) abs($scheduledStart->diffInMinutes($firstCheckIn));
+            }
+        }
+
+        // Calculate early leave minutes from last check-out vs scheduled end
+        $earlyLeaveMinutes = 0;
+        if ($lastCheckOut && $this->scheduled_end_time) {
+            $scheduledEnd = \Carbon\Carbon::parse($this->scheduled_end_time)
+                ->setDate($lastCheckOut->year, $lastCheckOut->month, $lastCheckOut->day);
+
+            if ($lastCheckOut->lt($scheduledEnd)) {
+                $earlyLeaveMinutes = (int) abs($lastCheckOut->diffInMinutes($scheduledEnd));
+            }
+        }
+
         // Determine status
         $netWorkingMinutes = $totalMinutes - $breakMinutes;
         $status            = $this->determineStatus($netWorkingMinutes);
@@ -191,6 +215,8 @@ class AttendanceSummary extends Model
             'total_working_minutes' => $totalMinutes,
             'total_break_minutes'   => $breakMinutes,
             'overtime_minutes'      => $overtimeMinutes,
+            'late_minutes'          => $lateMinutes,
+            'early_leave_minutes'   => $earlyLeaveMinutes,
             'total_sessions'        => $allSessions->count(),
             'status'                => $status,
             'ip_addresses'          => $ipAddresses,
@@ -203,7 +229,7 @@ class AttendanceSummary extends Model
     public function sessions(): HasMany
     {
         return $this->hasMany(AttendanceSession::class, 'employee_id', 'employee_id')
-            ->whereColumn('attendance_sessions.attendance_date', 'attendance_summaries.attendance_date')
+            ->where('attendance_sessions.attendance_date', $this->attendance_date)
             ->orderBy('session_number');
     }
 

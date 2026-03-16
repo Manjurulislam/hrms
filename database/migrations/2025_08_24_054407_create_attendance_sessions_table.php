@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->unsignedBigInteger('employee_id')->index();
             $table->unsignedBigInteger('company_id')->index();
             $table->unsignedBigInteger('department_id')->nullable()->index();
+            $table->date('attendance_date')->index();
             $table->integer('session_number')->default(1);
 
             // Check-in details
@@ -58,8 +59,6 @@ return new class extends Migration {
             // Note: "one active session per employee per day" is enforced in AttendanceService::checkIn()
             // A DB unique on (employee_id, attendance_date, status) would block multiple completed sessions
 
-
-            $table->date('attendance_date')->index();
             $table->timestamps();
             $table->softDeletes();
 
