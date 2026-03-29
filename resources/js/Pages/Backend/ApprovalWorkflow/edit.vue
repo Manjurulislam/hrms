@@ -12,7 +12,7 @@ const props = defineProps({
     companies: Array,
     approverTypes: Array,
     conditionTypes: Array,
-    designationLevels: Array,
+    designations: Array,
     employees: Array,
 });
 
@@ -234,11 +234,11 @@ const submit = () => {
                                                             v-if="step.approver_type === 'designation_level'"
                                                             v-model="step.approver_value"
                                                             :error-messages="form.errors[`steps.${index}.approver_value`]"
-                                                            :items="designationLevels"
+                                                            :items="designations"
                                                             density="compact"
-                                                            item-title="label"
-                                                            item-value="value"
-                                                            label="Designation Level"
+                                                            :item-title="d => `${d.title} (Level ${d.level})`"
+                                                            item-value="id"
+                                                            label="Designation"
                                                             variant="outlined"
                                                             hide-details="auto"
                                                         >

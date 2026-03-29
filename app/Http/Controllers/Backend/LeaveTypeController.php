@@ -74,7 +74,11 @@ class LeaveTypeController extends Controller
     public function destroy(LeaveType $leaveType): RedirectResponse
     {
         try {
-            $this->service->delete($leaveType);
+            $result = $this->service->delete($leaveType);
+
+            if (!$result['success']) {
+                return back()->withErrors(['error' => $result['message']]);
+            }
 
             return to_route('leave-types.index');
         } catch (Exception $e) {

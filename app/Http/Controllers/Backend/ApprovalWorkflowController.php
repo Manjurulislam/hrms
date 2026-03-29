@@ -7,8 +7,8 @@ use App\Http\Requests\ApprovalWorkflowRequest;
 use App\Models\ApprovalWorkflow;
 use App\Models\Employee;
 use App\Enums\ApproverType;
-use App\Enums\DesignationLevel;
 use App\Enums\StepConditionType;
+use App\Models\Designation;
 use App\Services\Backend\ApprovalWorkflowService;
 use App\Services\Backend\SharedService;
 use Exception;
@@ -120,10 +120,9 @@ class ApprovalWorkflowController extends Controller
                 'value' => $t->value,
                 'label' => ucwords(str_replace('_', ' ', $t->value)),
             ]),
-            'designationLevels' => collect(DesignationLevel::cases())->map(fn($l) => [
-                'value' => $l->value,
-                'label' => $l->name,
-            ]),
+            'designations' => Designation::where('status', true)
+                ->orderBy('level')
+                ->get(['id', 'title', 'level']),
             'employees' => Employee::where('status', true)->get(['id', 'first_name', 'last_name']),
         ];
     }

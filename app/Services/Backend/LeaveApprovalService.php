@@ -8,6 +8,7 @@ use App\Enums\LeaveMessage;
 use App\Enums\LeaveRequestStatus;
 use App\Enums\StepConditionType;
 use App\Models\ApprovalWorkflowStep;
+use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\LeaveApproval;
 use App\Models\LeaveBalance;
@@ -250,7 +251,7 @@ class LeaveApprovalService
     {
         return match ($step->approver_type) {
             ApproverType::DirectManager    => $this->resolveDirectManager($employee),
-            ApproverType::DesignationLevel => $this->resolveByDesignationLevel($employee, (int) $step->approver_value),
+            ApproverType::DesignationLevel => $this->resolveByDesignation($employee, (int) $step->approver_value),
             ApproverType::SpecificEmployee => $this->resolveSpecificEmployee($step->approver_value),
             ApproverType::DepartmentHead   => $this->resolveDepartmentHead($employee),
             default                        => null,
@@ -269,6 +270,17 @@ class LeaveApprovalService
     private function resolveSpecificEmployee($employeeId): ?Employee
     {
         return Employee::with('designation')->find($employeeId);
+    }
+
+    private function resolveByDesignation(Employee $employee, int $designationId): ?Employee
+    {
+        $designation = Designation::find($designationId);
+
+        if (!$designation || !$designation->level) {
+            return null;
+        }
+
+        return $this->resolveByDesignationLevel($employee, $designation->level->value);
     }
 
     private function resolveByDesignationLevel(Employee $employee, int $targetLevel): ?Employee

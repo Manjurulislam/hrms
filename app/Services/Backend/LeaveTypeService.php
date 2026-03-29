@@ -39,9 +39,19 @@ class LeaveTypeService
         return $leaveType;
     }
 
-    public function delete(LeaveType $leaveType): bool
+    public function delete(LeaveType $leaveType): array
     {
-        return $leaveType->delete();
+        if ($leaveType->leaveRequests()->exists()) {
+            return ['success' => false, 'message' => 'Cannot delete. This leave type has leave requests.'];
+        }
+
+        if ($leaveType->leaveBalances()->exists()) {
+            return ['success' => false, 'message' => 'Cannot delete. This leave type has leave balances.'];
+        }
+
+        $leaveType->delete();
+
+        return ['success' => true, 'message' => 'Leave type deleted successfully.'];
     }
 
     public function toggle(LeaveType $leaveType): bool

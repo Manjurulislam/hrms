@@ -2,6 +2,7 @@
 import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head} from '@inertiajs/vue3';
 import BtnLink from '@/Components/common/utility/BtnLink.vue';
+import BtnDelete from '@/Components/common/utility/BtnDelete.vue';
 import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 import LeaveTypeFilter from '@/Components/common/filter/LeaveTypeFilter.vue';
@@ -74,6 +75,7 @@ const getDaysLabel = (days) => {
     if (days === 1) return '1 Day';
     return `${days} Days`;
 };
+
 </script>
 
 <template>
@@ -145,6 +147,9 @@ const getDaysLabel = (days) => {
                                     :route="route('leave-types.edit', item.id)"
                                     color="bg-darkprimary"
                                     icon="mdi-pencil"/>
+                                <btn-delete
+                                    :route="route('leave-types.destroy', item.id)"
+                                />
                             </template>
                         </v-data-table-server>
                     </v-card-text>
