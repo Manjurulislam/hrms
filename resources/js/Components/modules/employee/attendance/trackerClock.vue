@@ -230,7 +230,7 @@ const startWork = async () => {
     isLoading.value = true
 
     try {
-        const response = await axios.post('/emp-attendance/start-work', {
+        const response = await axios.post(route('emp-attendance.start-work'), {
             location: 'office',
             note: null
         })
@@ -279,7 +279,7 @@ const endWork = async () => {
     isLoading.value = true
 
     try {
-        const response = await axios.post('/emp-attendance/end-work', {
+        const response = await axios.post(route('emp-attendance.end-work'), {
             location: 'office',
             note: null
         })
@@ -334,7 +334,7 @@ const startBreak = async () => {
     isLoading.value = true
 
     try {
-        const response = await axios.post('/emp-attendance/start-break', {
+        const response = await axios.post(route('emp-attendance.start-break'), {
             break_type: 'personal',
             reason: null
         })
@@ -369,7 +369,7 @@ const endBreak = async () => {
     isLoading.value = true
 
     try {
-        const response = await axios.post('/emp-attendance/end-break')
+        const response = await axios.post(route('emp-attendance.end-break'))
 
         if (response.data.success) {
             isOnBreak.value = false
@@ -404,7 +404,7 @@ const handleToggleAttendance = () => {
 // Sync with server periodically
 const syncWithServer = async () => {
     try {
-        const response = await axios.get('/emp-attendance/current-status')
+        const response = await axios.get(route('emp-attendance.current-status'))
 
         if (response.data.success && response.data.data) {
             const serverData = response.data.data
@@ -502,6 +502,10 @@ onUnmounted(() => {
                 <div class="text-body-2 office-hours-inline">
                     <v-icon class="me-1" size="small">mdi-clock-outline</v-icon>
                     Office Time : {{ officeHours.start }} - {{ officeHours.end }}
+                </div>
+                <div v-if="officeHours.office_ip" class="text-body-2 office-hours-inline mt-2">
+                    <v-icon class="me-1" size="small">mdi-ip-network</v-icon>
+                    Office IP : {{ officeHours.office_ip }}
                 </div>
             </v-card>
         </v-col>

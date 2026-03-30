@@ -88,7 +88,7 @@ const setLimit = (obj) => {
 const getData = (obj) => {
     setLimit(obj)
     state.loading = true
-    axios.get('/api/attendance-records', { params: state.filters }).then(({ data }) => {
+    axios.get(route('attendance-records.get'), { params: state.filters }).then(({ data }) => {
         state.serverItems = data.data
         state.pagination.totalItems = data.total
     }).catch(() => {
@@ -179,7 +179,7 @@ const getBreakTypeLabel = (type) => {
 // Export data
 const exportData = () => {
     const month = state.filters.month || getCurrentYearMonth()
-    axios.get('/api/attendance-records/export', {
+    axios.get(route('attendance-records.export'), {
         params: {
             month,
             employee_id: state.filters.employee_id
