@@ -3,6 +3,9 @@ import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head, useForm} from '@inertiajs/vue3';
 import {computed} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
+import {useToast} from 'vue-toastification';
+
+const toast = useToast();
 
 const props = defineProps({
     leaveTypes: Array,
@@ -36,7 +39,10 @@ const hasEnoughBalance = computed(() => {
 });
 
 const submit = () => {
-    form.post(route('emp-leave.store'));
+    form.post(route('emp-leave.store'), {
+        onSuccess: () => toast.success('Leave request submitted successfully.'),
+        onError: () => toast.error('Something is wrong. Please try again.'),
+    });
 };
 </script>
 

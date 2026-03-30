@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Services\NotificationService;
 use App\Traits\PaginateQuery;
 use App\Traits\QueryParams;
 use Carbon\Carbon;
@@ -172,6 +173,8 @@ class LeaveRequestService
             ]);
 
             app(LeaveApprovalService::class)->initializeApproval($leaveRequest, $employee);
+
+            app(NotificationService::class)->leaveRequestCreated($leaveRequest);
 
             return $leaveRequest;
         });

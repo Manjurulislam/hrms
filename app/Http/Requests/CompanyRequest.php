@@ -12,6 +12,15 @@ class CompanyRequest extends FormRequest
         return auth()->check();
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'office_start'  => $this->office_start ? substr($this->office_start, 0, 5) : null,
+            'office_end'    => $this->office_end ? substr($this->office_end, 0, 5) : null,
+            'auto_close_at' => $this->auto_close_at ? substr($this->auto_close_at, 0, 5) : null,
+        ]);
+    }
+
     public function rules(): array
     {
         $companyId = $this->route('company')?->id;

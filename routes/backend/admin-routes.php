@@ -14,6 +14,7 @@ use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\NoticeController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\UserController;
+use App\Http\Controllers\Backend\WorkingDayController;
 
 
 Route::controller(CompanyController::class)->name('companies.')
@@ -26,6 +27,18 @@ Route::controller(CompanyController::class)->name('companies.')
         Route::put('update/{company}', 'update')->name('update');
         Route::post('{company}/toggle-status', 'toggleStatus')->name('toggle-status');
         Route::delete('delete/{company}', 'destroy')->name('destroy');
+    });
+
+Route::controller(WorkingDayController::class)->name('working-days.')
+    ->prefix('companies/{company}/working-days')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('get', 'get')->name('get');
+        Route::get('create', 'create')->name('create');
+        Route::post('store', 'store')->name('store');
+        Route::get('{workingDay}/edit', 'edit')->name('edit');
+        Route::put('update/{workingDay}', 'update')->name('update');
+        Route::post('{workingDay}/toggle-status', 'toggleStatus')->name('toggle-status');
+        Route::delete('delete/{workingDay}', 'destroy')->name('destroy');
     });
 
 Route::controller(DepartmentController::class)->name('departments.')

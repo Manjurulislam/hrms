@@ -32,6 +32,12 @@ class EmployeeRegisterRequest extends FormRequest
                     ->where('company_id', $this->input('company_id'))
                     ->where('status', true),
             ],
+            'designation_id' => [
+                'nullable',
+                Rule::exists('designations', 'id')
+                    ->where('company_id', $this->input('company_id'))
+                    ->where('status', true),
+            ],
             'password'      => ['required', 'string', 'min:8', 'confirmed'],
         ];
     }

@@ -49,7 +49,7 @@ const submit = () => {
             required
             @click:append-inner="inputVisible = !inputVisible"
         />
-        <div class="d-flex flex-wrap align-center my-3 ml-n2">
+        <div class="d-flex flex-wrap align-center justify-space-between my-3 ml-n2">
             <v-checkbox
                 v-model:checked="form.remember"
                 class="pe-2"
@@ -59,6 +59,9 @@ const submit = () => {
             >
                 <template v-slot:label class="font-weight-medium">Keep me logged in</template>
             </v-checkbox>
+            <Link :href="route('password.request')" class="text-primary font-weight-semibold text-caption">
+                Forgot Password?
+            </Link>
         </div>
         <v-btn :loading="isSubmitting" block color="darkgray" flat size="large" type="submit">Sign In</v-btn>
 

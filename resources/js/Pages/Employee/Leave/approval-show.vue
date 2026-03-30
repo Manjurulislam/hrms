@@ -8,19 +8,20 @@ const props = defineProps({
     isCurrentApprover: Boolean,
 });
 
-const remarks = ref('');
+const approveRemarks = ref('');
+const rejectRemarks = ref('');
 const showRejectDialog = ref(false);
 
 const approveForm = useForm({remarks: ''});
 const rejectForm = useForm({remarks: ''});
 
 const approve = () => {
-    approveForm.remarks = remarks.value;
+    approveForm.remarks = approveRemarks.value;
     approveForm.post(route('emp-leave.approvals.approve', props.leaveRequest.id));
 };
 
 const reject = () => {
-    rejectForm.remarks = remarks.value;
+    rejectForm.remarks = rejectRemarks.value;
     rejectForm.post(route('emp-leave.approvals.reject', props.leaveRequest.id), {
         onSuccess: () => showRejectDialog.value = false,
     });
@@ -167,7 +168,7 @@ const empInitials = `${emp?.first_name?.charAt(0) || ''}${emp?.last_name?.charAt
                                 </div>
 
                                 <v-textarea
-                                    v-model="remarks"
+                                    v-model="approveRemarks"
                                     density="compact"
                                     label="Remarks (optional)"
                                     placeholder="Add your remarks here..."
@@ -265,7 +266,7 @@ const empInitials = `${emp?.first_name?.charAt(0) || ''}${emp?.last_name?.charAt
                         <strong>{{ empName }}</strong>?
                     </p>
                     <v-textarea
-                        v-model="remarks"
+                        v-model="rejectRemarks"
                         density="compact"
                         label="Rejection Remarks"
                         placeholder="Please provide a reason for rejection..."

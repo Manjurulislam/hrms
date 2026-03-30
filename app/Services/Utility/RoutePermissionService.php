@@ -25,6 +25,7 @@ class RoutePermissionService
         'emp-leave.',
         'emp-notices.',
         'attendance-records.',
+        'working-days.',
     ];
 
     private const RESOURCE_ACTIONS = [

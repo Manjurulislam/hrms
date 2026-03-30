@@ -3,6 +3,9 @@ import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head, Link} from '@inertiajs/vue3';
 import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
+import {useToast} from 'vue-toastification';
+
+const toast = useToast();
 
 const state = reactive({
     headers: [
@@ -24,8 +27,11 @@ const state = reactive({
 const loadData = () => {
     state.loading = true;
     axios.get(route('emp-leave.approvals.get')).then(({data}) => {
-        state.loading = false;
         state.serverItems = data.data;
+    }).catch(() => {
+        toast.error('Failed to load approvals.');
+    }).finally(() => {
+        state.loading = false;
     });
 };
 

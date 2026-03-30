@@ -5,19 +5,20 @@ import BtnLink from '@/Components/common/utility/BtnLink.vue';
 import BtnDelete from '@/Components/common/utility/BtnDelete.vue';
 import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
-import CompanyFilter from '@/Components/common/filter/CompanyFilter.vue';
 import {useToast} from 'vue-toastification';
+
+const props = defineProps({
+    company: Object,
+});
 
 const toast = useToast();
 const state = reactive({
     headers: [
         {title: 'SL', align: 'start', sortable: false, key: 'id'},
-        {title: 'Name', key: 'name'},
-        {title: 'Code', key: 'code'},
-        {title: 'Email', key: 'email'},
-        {title: 'Phone', key: 'phone'},
-        {title: 'Status', key: 'status', sortable: false, width: '8%'},
-        {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
+        {title: 'Day', key: 'day_label'},
+        {title: 'Day of Week', key: 'day_of_week'},
+        {title: 'Working', key: 'is_working', sortable: false, width: '8%'},
+        {title: 'Actions', key: 'actions', sortable: false, width: '10%'}
     ],
     pagination: {
         itemsPerPage: 50,
@@ -25,13 +26,14 @@ const state = reactive({
     },
     filters: {
         search: '',
-        status: null,
         per_page: 50,
         page: 1
     },
     serverItems: [],
     loading: true
 });
+
+const dayLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 const setLimit = (obj) => {
     const {page, itemsPerPage, sortBy} = obj;
@@ -42,42 +44,34 @@ const setLimit = (obj) => {
 
 const getData = (obj) => {
     setLimit(obj);
-    axios.get(route('companies.get', state.filters)).then(({data}) => {
+    axios.get(route('working-days.get', {company: props.company.id, ...state.filters})).then(({data}) => {
         state.serverItems = data.data;
         state.pagination.totalItems = data.total;
     }).catch(() => {
-        toast.error('Failed to load companies.');
+        toast.error('Failed to load working days.');
     }).finally(() => {
         state.loading = false;
     });
 };
 
 const toggleStatus = (item) => {
-    axios.post(route('companies.toggle-status', item.id))
-        .then(() => toast('Company status has been updated.'));
-};
-
-
-const handleSearch = (filters) => {
-    state.filters = {...state.filters, ...filters, page: 1};
-    state.loading = true;
-    getData({page: 1, itemsPerPage: state.filters.per_page, sortBy: state.filters.sort});
+    axios.post(route('working-days.toggle-status', {company: props.company.id, workingDay: item.id}))
+        .then(() => toast('Working day status has been updated.'));
 };
 </script>
 
 <template>
     <DefaultLayout>
-        <Head title="Companies"/>
+        <Head :title="`Working Days - ${company.name}`"/>
         <v-row no-gutters>
             <v-col cols="12">
                 <v-card>
                     <CardTitle
-                        :router="{title: 'Add New' , route: 'companies.create'}"
+                        :router="{title: 'Add New', route: 'working-days.create', queryParam: company.id}"
+                        :extra-route="{title: 'Back', route: 'companies.index', icon: 'mdi-arrow-left-bold'}"
                         icon="mdi-plus"
-                        title="Companies"
+                        :title="`Working Days - ${company.name}`"
                     />
-
-                    <CompanyFilter :filters="state.filters" @handleFilter="handleSearch"/>
                     <v-card-text>
                         <v-data-table-server
                             :headers="state.headers"
@@ -85,17 +79,19 @@ const handleSearch = (filters) => {
                             :items-length="state.pagination.totalItems"
                             :items-per-page="state.pagination.itemsPerPage"
                             :loading="state.loading"
-                            :search="state.searchParam"
                             density="compact"
-                            item-value="name"
+                            item-value="id"
                             @update:options="getData"
                         >
                             <template v-slot:item.id="{ index }">
                                 {{ (state.filters.page - 1) * state.pagination.itemsPerPage + index + 1 }}
                             </template>
-                            <template v-slot:item.status="{ item }">
+                            <template v-slot:item.day_of_week="{ item }">
+                                {{ dayLabels[item.day_of_week] ?? item.day_of_week }}
+                            </template>
+                            <template v-slot:item.is_working="{ item }">
                                 <v-switch
-                                    v-model="item.status"
+                                    v-model="item.is_working"
                                     color="success"
                                     density="compact"
                                     hide-details
@@ -105,14 +101,10 @@ const handleSearch = (filters) => {
                             <template v-slot:item.actions="{ item }">
                                 <div class="d-flex ga-1">
                                     <btn-link
-                                        :route="route('working-days.index', item.id)"
-                                        color="bg-secondary"
-                                        icon="mdi-calendar-week"/>
-                                    <btn-link
-                                        :route="route('companies.edit', item.id)"
+                                        :route="route('working-days.edit', {company: company.id, workingDay: item.id})"
                                         color="bg-darkprimary"
                                         icon="mdi-pencil"/>
-                                    <btn-delete :route="route('companies.destroy', item.id)"/>
+                                    <btn-delete :route="route('working-days.destroy', {company: company.id, workingDay: item.id})"/>
                                 </div>
                             </template>
                         </v-data-table-server>

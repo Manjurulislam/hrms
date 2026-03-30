@@ -5,6 +5,7 @@ namespace App\Services\Auth;
 use App\Enums\Gender;
 use App\Models\Company;
 use App\Models\Department;
+use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\Role;
 use App\Models\User;
@@ -17,6 +18,7 @@ class RegisterService
         return [
             'companies'     => Company::where('status', true)->select('id', 'name')->get(),
             'departments'   => Department::where('status', true)->select('id', 'name', 'company_id')->get(),
+            'designations'  => Designation::where('status', true)->select('id', 'title', 'company_id')->get(),
             'genderOptions' => Gender::toOptions(),
         ];
     }
@@ -44,6 +46,7 @@ class RegisterService
             'date_of_birth' => data_get($data, 'date_of_birth'),
             'company_id'    => data_get($data, 'company_id'),
             'department_id' => data_get($data, 'department_id'),
+            'designation_id' => data_get($data, 'designation_id'),
             'emp_status'    => 'probation',
         ]);
     }

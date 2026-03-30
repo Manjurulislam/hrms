@@ -94,9 +94,7 @@ const handleSearch = () => {
 };
 
 const clearFilter = () => {
-    props.filters.search = '';
-    props.filters.status = null;
-    emit('handleFilter', props.filters);
+    emit('handleFilter', {...props.filters, search: '', status: null});
 };
 </script>
 

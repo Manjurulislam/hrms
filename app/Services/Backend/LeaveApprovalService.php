@@ -13,6 +13,7 @@ use App\Models\Employee;
 use App\Models\LeaveApproval;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -56,6 +57,8 @@ class LeaveApprovalService
         return DB::transaction(function () use ($leaveRequest, $approver, $remarks) {
             $this->resolveOrCreateApproval($leaveRequest, $approver, LeaveApprovalStatus::Rejected, $remarks);
             $this->updateLeaveRequestStatus($leaveRequest, LeaveRequestStatus::Rejected);
+
+            app(NotificationService::class)->leaveRequestRejected($leaveRequest, $remarks);
 
             return $this->success(LeaveMessage::Rejected->value);
         });
@@ -372,6 +375,8 @@ class LeaveApprovalService
     {
         $this->updateLeaveRequestStatus($leaveRequest, LeaveRequestStatus::Approved);
         $this->deductLeaveBalance($leaveRequest);
+
+        app(NotificationService::class)->leaveRequestApproved($leaveRequest);
 
         return $this->success(LeaveMessage::Approved->value);
     }

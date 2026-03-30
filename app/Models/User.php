@@ -3,9 +3,11 @@
 namespace App\Models;
 
 
+use App\Mail\ResetPasswordMail;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Facades\Mail;
 
 class User extends Authenticatable
 {
@@ -35,6 +37,13 @@ class User extends Authenticatable
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $url = url(route('password.reset', ['token' => $token, 'email' => $this->email], false));
+
+        Mail::to($this->email)->send(new ResetPasswordMail($url, $this->name));
     }
 
     public function isEmployee(): bool

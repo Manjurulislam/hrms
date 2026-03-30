@@ -3,6 +3,9 @@ import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head, Link, router} from '@inertiajs/vue3';
 import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
+import {useToast} from 'vue-toastification';
+
+const toast = useToast();
 
 const props = defineProps({
     statusOptions: Array,
@@ -27,6 +30,7 @@ const state = reactive({
     filters: {
         status: null,
         per_page: 50,
+        page: 1,
     },
     serverItems: [],
     loading: true,
@@ -43,9 +47,12 @@ const getData = (obj) => {
     setLimit(obj);
     state.loading = true;
     axios.get(route('emp-leave.get'), {params: state.filters}).then(({data}) => {
-        state.loading = false;
         state.serverItems = data.data;
         state.pagination.totalItems = data.total;
+    }).catch(() => {
+        toast.error('Failed to load leave requests.');
+    }).finally(() => {
+        state.loading = false;
     });
 };
 
@@ -135,7 +142,7 @@ const getStatusLabel = (status) => {
                             @update:options="getData"
                         >
                             <template v-slot:item.id="{ index }">
-                                {{ index + 1 }}
+                                {{ (state.filters.page - 1) * state.pagination.itemsPerPage + index + 1 }}
                             </template>
                             <template v-slot:item.leave_type="{ item }">
                                 {{ item.leave_type?.name || '-' }}

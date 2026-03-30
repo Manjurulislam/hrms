@@ -9,6 +9,7 @@ const toast = useToast();
 const props = defineProps({
     companies: Array,
     departments: Array,
+    designations: Array,
     genderOptions: Array,
 });
 
@@ -25,6 +26,7 @@ const form = useForm({
     date_of_birth: null,
     company_id: null,
     department_id: null,
+    designation_id: null,
     password: '',
     password_confirmation: '',
 });
@@ -34,8 +36,14 @@ const filteredDepartments = computed(() => {
     return props.departments.filter(d => d.company_id === form.company_id);
 });
 
+const filteredDesignations = computed(() => {
+    if (!form.company_id) return [];
+    return props.designations.filter(d => d.company_id === form.company_id);
+});
+
 const onCompanyChange = () => {
     form.department_id = null;
+    form.designation_id = null;
 };
 
 const submit = () => {
@@ -179,6 +187,21 @@ const submit = () => {
                                             item-title="name"
                                             item-value="id"
                                             label="Department *"
+                                            variant="outlined"
+                                        />
+                                    </v-col>
+
+                                    <v-col cols="12" md="4">
+                                        <v-select
+                                            v-model="form.designation_id"
+                                            :disabled="!form.company_id"
+                                            :error-messages="form.errors.designation_id"
+                                            :items="filteredDesignations"
+                                            density="compact"
+                                            hide-details="auto"
+                                            item-title="title"
+                                            item-value="id"
+                                            label="Designation"
                                             variant="outlined"
                                         />
                                     </v-col>
