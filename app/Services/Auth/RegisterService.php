@@ -18,7 +18,10 @@ class RegisterService
         return [
             'companies'     => Company::where('status', true)->select('id', 'name')->get(),
             'departments'   => Department::where('status', true)->select('id', 'name', 'company_id')->get(),
-            'designations'  => Designation::where('status', true)->select('id', 'title', 'company_id')->get(),
+            'designations'  => Designation::where('status', true)
+                ->whereRaw('LOWER(title) != ?', ['ceo'])
+                ->select('id', 'title', 'company_id')
+                ->get(),
             'genderOptions' => Gender::toOptions(),
         ];
     }
