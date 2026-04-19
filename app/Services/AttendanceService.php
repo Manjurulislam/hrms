@@ -13,6 +13,7 @@ use App\Models\AttendanceSummary;
 use App\Models\Employee;
 use App\Models\Holiday;
 use App\Models\LeaveRequest;
+use App\Services\Utility\CatchIPService;
 use App\Traits\CompanySettings;
 use Carbon\Carbon;
 use Exception;
@@ -25,6 +26,7 @@ class AttendanceService
 
     public function __construct(
         protected readonly WorkScheduleService $scheduleService,
+        protected readonly CatchIPService      $ipService,
     ) {}
 
     // ─── Check In ────────────────────────────────────────────────
@@ -536,6 +538,7 @@ class AttendanceService
             'end'        => Carbon::parse($schedule['work_end_time'])->format('g:i A'),
             'delay'      => $this->companySetting($employee->company, 'late_grace'),
             'office_ip'  => $schedule['office_ip'],
+            'my_ip'      => $this->ipService->getPublicIp(),
             'company'    => $employee->company?->name ?? 'N/A',
             'department' => $employee->department?->name ?? 'N/A',
         ];

@@ -58,6 +58,7 @@ class LeaveApprovalService
             $this->resolveOrCreateApproval($leaveRequest, $approver, LeaveApprovalStatus::Rejected, $remarks);
             $this->updateLeaveRequestStatus($leaveRequest, LeaveRequestStatus::Rejected);
 
+            // Notify the employee and top executives that the leave request has been rejected
             app(NotificationService::class)->leaveRequestRejected($leaveRequest, $remarks);
 
             return $this->success(LeaveMessage::Rejected->value);
@@ -243,6 +244,9 @@ class LeaveApprovalService
 
         $this->updateLeaveRequestStatus($leaveRequest, LeaveRequestStatus::InReview, $nextApprover->id);
 
+        // Notify the next approver via email that a leave request is awaiting their action
+        app(NotificationService::class)->leaveRequestForwarded($leaveRequest, $nextApprover);
+
         return $this->success(LeaveMessage::ForwardedTo->with(['name' => $nextApprover->full_name]));
     }
 
@@ -376,6 +380,7 @@ class LeaveApprovalService
         $this->updateLeaveRequestStatus($leaveRequest, LeaveRequestStatus::Approved);
         $this->deductLeaveBalance($leaveRequest);
 
+        // Notify the employee and top executives that the leave request has been fully approved
         app(NotificationService::class)->leaveRequestApproved($leaveRequest);
 
         return $this->success(LeaveMessage::Approved->value);

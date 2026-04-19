@@ -503,9 +503,9 @@ onUnmounted(() => {
                     <v-icon class="me-1" size="small">mdi-clock-outline</v-icon>
                     Office Time : {{ officeHours.start }} - {{ officeHours.end }}
                 </div>
-                <div v-if="officeHours.office_ip" class="text-body-2 office-hours-inline mt-2">
+                <div v-if="officeHours.my_ip" class="text-body-2 office-hours-inline mt-2">
                     <v-icon class="me-1" size="small">mdi-ip-network</v-icon>
-                    Office IP : {{ officeHours.office_ip }}
+                    My IP : {{ officeHours.my_ip }}
                 </div>
             </v-card>
         </v-col>

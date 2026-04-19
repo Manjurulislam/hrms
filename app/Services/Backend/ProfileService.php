@@ -9,12 +9,15 @@ use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Enums\DesignationLevel;
+use App\Services\Backend\SharedService;
 
 class ProfileService
 {
     public function getProfileData(User $user): array
     {
         $employee = $user->employee;
+        $sharedService = app(SharedService::class);
 
         return [
             'user'                 => $user,
@@ -23,6 +26,10 @@ class ProfileService
             'genderOptions'        => Gender::toOptions(),
             'bloodGroupOptions'    => BloodGroup::toOptions(),
             'maritalStatusOptions' => MaritalStatus::toOptions(),
+            'designations'         => $sharedService->designations(
+                companyId: $employee?->company_id,
+                excludeLevels: [DesignationLevel::TopExecutive->value],
+            ),
         ];
     }
 
@@ -51,6 +58,7 @@ class ProfileService
                     'emergency_contact' => data_get($data, 'emergency_contact'),
                     'bank_account'      => data_get($data, 'bank_account'),
                     'address'           => data_get($data, 'address'),
+                    'designation_id'    => data_get($data, 'designation_id'),
                 ]);
             }
         });

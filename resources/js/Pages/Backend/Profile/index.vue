@@ -15,6 +15,7 @@ const props = defineProps({
     genderOptions: Array,
     bloodGroupOptions: Array,
     maritalStatusOptions: Array,
+    designations: Array,
 });
 
 const avatarPreview = ref(props.avatarUrl);
@@ -34,6 +35,7 @@ const profileForm = useForm({
     emergency_contact: '',
     bank_account: '',
     address: '',
+    designation_id: null,
 });
 
 const passwordForm = useForm({
@@ -119,6 +121,7 @@ onMounted(() => {
         profileForm.emergency_contact = props.employee.emergency_contact;
         profileForm.bank_account = props.employee.bank_account;
         profileForm.address = props.employee.address;
+        profileForm.designation_id = props.employee.designation_id;
     }
 });
 </script>
@@ -209,6 +212,21 @@ onMounted(() => {
                                             :error-messages="profileForm.errors.sec_phone"
                                             label="Secondary Phone"
                                             type="tel"
+                                        />
+                                    </v-col>
+                                    <v-col cols="12" md="6">
+                                        <v-select
+                                            v-model="profileForm.designation_id"
+                                            :error-messages="profileForm.errors.designation_id"
+                                            :items="designations"
+                                            clearable
+                                            density="compact"
+                                            hide-details="auto"
+                                            item-title="title"
+                                            item-value="id"
+                                            label="Designation"
+                                            variant="outlined"
+                                            class="pb-3"
                                         />
                                     </v-col>
                                     <v-col cols="12" md="6">

@@ -42,6 +42,7 @@ class ProfileUpdateRequest extends FormRequest
             $rules['emergency_contact'] = ['nullable', 'string', 'max:20'];
             $rules['bank_account']      = ['nullable', 'string', 'max:50'];
             $rules['address']           = ['nullable', 'string', 'max:500'];
+            $rules['designation_id']    = ['nullable', 'integer', Rule::exists('designations', 'id')->where('company_id', $employee->company_id)->where('status', true)];
         }
 
         return $rules;

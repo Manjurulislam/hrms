@@ -66,6 +66,9 @@ class LeaveRequestService
 
         $leaveRequest->update(['status' => LeaveRequestStatus::Cancelled]);
 
+        // Notify the current approver and top executives that the employee has cancelled this leave request
+        app(NotificationService::class)->leaveRequestCancelled($leaveRequest);
+
         return true;
     }
 
@@ -174,6 +177,7 @@ class LeaveRequestService
 
             app(LeaveApprovalService::class)->initializeApproval($leaveRequest, $employee);
 
+            // Notify the employee (confirmation), first approver (action needed), and top executives (awareness)
             app(NotificationService::class)->leaveRequestCreated($leaveRequest);
 
             return $leaveRequest;

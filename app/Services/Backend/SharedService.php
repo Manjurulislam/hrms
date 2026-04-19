@@ -27,12 +27,13 @@ class SharedService
             ->get();
     }
 
-    public function designations(?int $excludeId = null, ?int $companyId = null): Collection
+    public function designations(?int $excludeId = null, ?int $companyId = null, array $excludeLevels = []): Collection
     {
         return Designation::select('id', 'title', 'level', 'company_id', 'parent_id')
             ->where('status', true)
             ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
             ->when($companyId, fn($q) => $q->where('company_id', $companyId))
+            ->when(!empty($excludeLevels), fn($q) => $q->whereNotIn('level', $excludeLevels))
             ->orderBy('level')
             ->orderBy('title')
             ->get();

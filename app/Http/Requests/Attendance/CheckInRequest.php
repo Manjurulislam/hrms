@@ -44,6 +44,9 @@ class CheckInRequest extends FormRequest
     {
         if ($validator->errors()->isNotEmpty()) return;
 
+        // Skip office hours check for overtime sessions so employees can check in outside regular hours
+        if ($this->input('session_type') === 'overtime') return;
+
         if (!$this->isWithinOfficeHours($employee)) {
             $range = $this->getOfficeTimeRange($employee);
             $validator->errors()->add(
@@ -56,6 +59,9 @@ class CheckInRequest extends FormRequest
     private function validateOfficeHoursNotCompleted($validator, $employee): void
     {
         if ($validator->errors()->isNotEmpty()) return;
+
+        // Skip completed hours check for overtime sessions so employees can continue working after regular hours
+        if ($this->input('session_type') === 'overtime') return;
 
         if ($this->hasCompletedOfficeHours($employee)) {
             $totalMinutes = $this->getTotalOfficeMinutes($employee);
