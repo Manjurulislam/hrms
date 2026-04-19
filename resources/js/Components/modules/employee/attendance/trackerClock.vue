@@ -510,12 +510,12 @@ onUnmounted(() => {
             </v-card>
         </v-col>
         <v-col cols="8">
-            <v-card class="text-center py-5" elevation="3">
+            <v-card class="tracker-card text-center py-5" elevation="3">
                 <div class="circular-progress-container">
                     <svg height="200" style="transform: rotate(-90deg);" width="200">
                         <circle cx="100" cy="100" fill="none"
                                 r="85"
-                                stroke="#E0E0E0"
+                                stroke="rgba(255,255,255,0.2)"
                                 stroke-width="10">
                         </circle>
                         <circle :stroke="progressColor" :stroke-dashoffset="progressOffset" cx="100"
@@ -529,10 +529,10 @@ onUnmounted(() => {
                         </circle>
                     </svg>
                     <div class="progress-content">
-                        <div class="timer-display">
+                        <div class="timer-display text-white">
                             {{ isWorking ? workTimer : totalHours }}
                         </div>
-                        <div class="progress-label">{{ progressLabel }}</div>
+                        <div class="progress-label text-white" style="opacity: 0.8;">{{ progressLabel }}</div>
                     </div>
                 </div>
                 <div v-if="isOfficeHoursComplete && !isWorking" class="mt-4">
@@ -572,31 +572,31 @@ onUnmounted(() => {
             </v-card>
         </v-col>
     </v-row>
-    <v-card class="mt-3" elevation="3">
+    <v-card class="summary-card mt-3 text-white" elevation="3">
         <!-- Today's Summary -->
         <v-card-text>
-            <v-card-title class="text-subtitle-2 pa-0 mb-3">
+            <v-card-title class="text-subtitle-2 pa-0 mb-3 text-white">
                 <v-icon class="me-2">mdi-calendar-today</v-icon>
                 Today's Summary
             </v-card-title>
             <v-row class="text-center">
                 <v-col cols="3">
                     <div class="text-h6">{{ startTime }}</div>
-                    <div class="text-caption text-medium-emphasis">Start Time</div>
+                    <div class="text-caption" style="opacity: 0.7;">Start Time</div>
                 </v-col>
                 <v-col cols="3">
                     <div class="text-h6">{{ endTime }}</div>
-                    <div class="text-caption text-medium-emphasis">End Time</div>
+                    <div class="text-caption" style="opacity: 0.7;">End Time</div>
                 </v-col>
                 <v-col cols="3">
-                    <div class="text-h6 text-primary">{{ totalHours }}</div>
-                    <div class="text-caption text-medium-emphasis">Total Hours</div>
+                    <div class="text-h6" style="color: #5DADE2;">{{ totalHours }}</div>
+                    <div class="text-caption" style="opacity: 0.7;">Total Hours</div>
                 </v-col>
                 <v-col cols="3">
-                    <div class="text-h6" :class="isOnBreak ? 'text-warning' : ''">
+                    <div class="text-h6" :style="isOnBreak ? 'color: #F39C12;' : ''">
                         {{ isOnBreak ? breakTimer : (totalBreakTime || '--:--') }}
                     </div>
-                    <div class="text-caption text-medium-emphasis">
+                    <div class="text-caption" style="opacity: 0.7;">
                         {{ isOnBreak ? 'On Break' : (totalBreakTime ? 'Break Time' : 'No Break') }}
                     </div>
                 </v-col>
@@ -607,8 +607,16 @@ onUnmounted(() => {
 
 <style scoped>
 .custom-blue {
-    background: linear-gradient(135deg, #1B4F72 0%, #3498DB 100%) !important;
+    background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%) !important;
     height: 100%;
+}
+
+.tracker-card {
+    background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%) !important;
+}
+
+.summary-card {
+    background: linear-gradient(135deg, #1A1A2E 0%, #16213E 50%, #0F3460 100%) !important;
 }
 
 .circular-progress-container {
@@ -627,13 +635,11 @@ onUnmounted(() => {
 .timer-display {
     font-size: 1.5rem;
     font-weight: 600;
-    color: #1B4F72;
     margin-bottom: 0.25rem;
 }
 
 .progress-label {
     font-size: 0.875rem;
-    color: #6C757D;
 }
 
 .office-hours-inline {
