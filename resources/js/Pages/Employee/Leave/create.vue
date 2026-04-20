@@ -10,6 +10,8 @@ const toast = useToast();
 const props = defineProps({
     leaveTypes: Array,
     balances: Array,
+    weekendDays: {type: Array, default: () => [0, 6]},
+    holidayDates: {type: Array, default: () => []},
 });
 
 const form = useForm({
@@ -25,12 +27,30 @@ const selectedBalance = computed(() => {
     return props.balances.find(b => b.id === form.leave_type_id);
 });
 
+const holidaySet = computed(() => new Set(props.holidayDates));
+const weekendSet = computed(() => new Set(props.weekendDays));
+
+const toLocalYmd = (d) =>
+    d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+
+// Mirror LeaveRequestService::calculateWorkingDays — company working days only, weekends + holidays excluded.
 const totalDays = computed(() => {
     if (!form.started_at || !form.ended_at) return 0;
-    const start = new Date(form.started_at);
-    const end = new Date(form.ended_at);
-    const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-    return diff > 0 ? diff : 0;
+    const start = new Date(form.started_at + 'T00:00:00');
+    const end = new Date(form.ended_at + 'T00:00:00');
+    if (end < start) return 0;
+
+    let days = 0;
+    const cursor = new Date(start);
+    while (cursor <= end) {
+        if (!weekendSet.value.has(cursor.getDay()) && !holidaySet.value.has(toLocalYmd(cursor))) {
+            days++;
+        }
+        cursor.setDate(cursor.getDate() + 1);
+    }
+    return days;
 });
 
 const hasEnoughBalance = computed(() => {

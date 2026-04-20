@@ -67,10 +67,42 @@ class LeaveController extends Controller
 
         $balances = $this->service->getBalances($employee, now()->year);
 
+        $schedule    = app(\App\Services\WorkScheduleService::class)->getEmployeeSchedule($employee);
+        $weekendDays = $schedule['weekend_days'] ?? [0, 6];
+        $holidayDates = $this->collectHolidayDates($employee);
+
         return Inertia::render('Employee/Leave/create', [
-            'leaveTypes' => $leaveTypes,
-            'balances'   => $balances,
+            'leaveTypes'   => $leaveTypes,
+            'balances'     => $balances,
+            'weekendDays'  => $weekendDays,
+            'holidayDates' => $holidayDates,
         ]);
+    }
+
+    // Expand active company holidays (current + next year) into a flat list of Y-m-d strings for the frontend calc.
+    private function collectHolidayDates(Employee $employee): array
+    {
+        $from = now()->startOfYear();
+        $to   = now()->addYear()->endOfYear();
+
+        $holidays = \App\Models\Holiday::where('company_id', $employee->company_id)
+            ->where('status', true)
+            ->where('start_date', '<=', $to)
+            ->where('end_date', '>=', $from)
+            ->get(['start_date', 'end_date']);
+
+        $dates = [];
+        foreach ($holidays as $h) {
+            $start = $h->start_date->greaterThan($from) ? $h->start_date : $from;
+            $end   = $h->end_date->lessThan($to) ? $h->end_date : $to;
+            $cursor = $start->copy();
+            while ($cursor->lte($end)) {
+                $dates[] = $cursor->toDateString();
+                $cursor->addDay();
+            }
+        }
+
+        return array_values(array_unique($dates));
     }
 
     public function store(LeaveRequestFormRequest $request): RedirectResponse
