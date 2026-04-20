@@ -3,6 +3,7 @@
 namespace App\Services\Backend;
 
 use App\Enums\BloodGroup;
+use App\Enums\DesignationLevel;
 use App\Enums\EmpStatus;
 use App\Enums\Gender;
 use App\Enums\MaritalStatus;
@@ -95,7 +96,9 @@ class EmployeeService
         $data = [
             'companies'            => $this->shared->companies(),
             'departments'          => $this->shared->departments(),
-            'designations'         => $this->shared->designations(),
+            'designations'         => $this->shared->designations(
+                excludeLevels: [DesignationLevel::TopExecutive->value],
+            ),
             'employees'            => $this->shared->employees($employee?->id),
             'genderOptions'        => Gender::toOptions(),
             'bloodGroupOptions'    => BloodGroup::toOptions(),
