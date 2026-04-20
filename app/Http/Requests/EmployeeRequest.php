@@ -58,6 +58,8 @@ class EmployeeRequest extends FormRequest
             'date_of_birth'     => ['nullable', 'date', 'before:today'],
             'joining_date'      => ['nullable', 'date'],
             'password'          => ['nullable', 'string', 'min:8', 'confirmed'],
+            'roles'             => ['nullable', 'array'],
+            'roles.*'           => ['integer', 'exists:roles,id'],
         ];
     }
 

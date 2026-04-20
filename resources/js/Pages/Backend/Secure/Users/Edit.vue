@@ -30,7 +30,7 @@ const submit = () => {
 
 onMounted(() => {
     form = Object.assign(form, props.item);
-    form.role = props.selectedRole || null;
+    form.role = Array.isArray(props.selectedRole) ? [...props.selectedRole] : [];
 });
 </script>
 

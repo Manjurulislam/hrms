@@ -79,7 +79,10 @@ class UserService
 
         if ($user) {
             $data['item']         = $user;
-            $data['selectedRole'] = $user->roles()->pluck('role_id')->toArray();
+            $data['selectedRole'] = $user->roles()
+                ->whereNotIn('slug', self::EXCLUDED_ROLE_SLUGS)
+                ->pluck('role_id')
+                ->toArray();
         }
 
         return $data;

@@ -17,6 +17,8 @@ const props = defineProps({
     bloodGroupOptions: Array,
     maritalStatusOptions: Array,
     empStatusOptions: Array,
+    roles: {type: Array, default: () => []},
+    selectedRoles: {type: Array, default: () => []},
 });
 
 let form = useForm({
@@ -41,6 +43,7 @@ let form = useForm({
     date_of_birth: '',
     joining_date: '',
     status: true,
+    roles: [],
 });
 
 const filteredDepartments = computed(() => {
@@ -75,6 +78,7 @@ const submit = () => {
 
 onMounted(() => {
     form = Object.assign(form, props.item);
+    form.roles = Array.isArray(props.selectedRoles) ? [...props.selectedRoles] : [];
 });
 </script>
 
@@ -191,7 +195,7 @@ onMounted(() => {
                                         </v-card-text>
                                     </v-card>
 
-                                    <v-card variant="outlined">
+                                    <v-card variant="outlined" class="mb-5">
                                         <v-toolbar density="compact" color="transparent" class="border-b">
                                             <v-icon class="ml-4" size="small">mdi-heart-pulse</v-icon>
                                             <v-toolbar-title class="text-body-2 font-weight-bold">Personal Details</v-toolbar-title>
@@ -201,6 +205,31 @@ onMounted(() => {
                                             <v-select v-model="form.blood_group" :error-messages="form.errors.blood_group" :items="bloodGroupOptions" clearable density="compact" item-title="label" item-value="value" label="Blood Group" variant="outlined"/>
                                             <TextInput v-model="form.qualification" :error-messages="form.errors.qualification" label="Qualification"/>
                                             <TextInput v-model="form.sec_phone" :error-messages="form.errors.sec_phone" label="Secondary Phone" type="tel"/>
+                                        </v-card-text>
+                                    </v-card>
+
+                                    <v-card v-if="item?.user" variant="outlined">
+                                        <v-toolbar density="compact" color="transparent" class="border-b">
+                                            <v-icon class="ml-4" size="small">mdi-shield-key-outline</v-icon>
+                                            <v-toolbar-title class="text-body-2 font-weight-bold">Roles & Access</v-toolbar-title>
+                                        </v-toolbar>
+                                        <v-card-text>
+                                            <v-select
+                                                v-model="form.roles"
+                                                :error-messages="form.errors.roles"
+                                                :items="roles"
+                                                chips
+                                                clearable
+                                                closable-chips
+                                                density="compact"
+                                                hint="Employee role is always active. Assign extra roles (Admin, HR, Manager) here."
+                                                item-title="name"
+                                                item-value="id"
+                                                label="Additional Roles"
+                                                multiple
+                                                persistent-hint
+                                                variant="outlined"
+                                            />
                                         </v-card-text>
                                     </v-card>
                                 </v-col>

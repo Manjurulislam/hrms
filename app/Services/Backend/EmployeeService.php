@@ -56,13 +56,16 @@ class EmployeeService
     {
         return DB::transaction(function () use ($employee, $data) {
             $password = data_get($data, 'password');
-            $employee->update(collect($data)->except('password')->toArray());
+            $roleIds  = data_get($data, 'roles', []);
+
+            $employee->update(collect($data)->except(['password', 'roles'])->toArray());
 
             if (filled($password)) {
                 $this->updateUserPassword($employee, $password);
             }
 
             $this->syncUser($employee);
+            $this->syncUserRoles($employee, $roleIds);
 
             return $employee;
         });
@@ -104,11 +107,13 @@ class EmployeeService
             'bloodGroupOptions'    => BloodGroup::toOptions(),
             'maritalStatusOptions' => MaritalStatus::toOptions(),
             'empStatusOptions'     => EmpStatus::toOptions(),
+            'roles'                => $this->getAssignableRoles(),
         ];
 
         if ($employee) {
             $employee->load(['department:id,name,company_id', 'designation:id,title', 'manager:id,first_name,last_name', 'user:id,employee_id,email,status']);
-            $data['item'] = $employee;
+            $data['item']          = $employee;
+            $data['selectedRoles'] = $this->getSelectedRoleIds($employee);
         }
 
         return $data;
@@ -151,5 +156,49 @@ class EmployeeService
         if ($employeeRole) {
             $user->roles()->attach($employeeRole);
         }
+    }
+
+    // Assignable roles on the Employee edit page — excludes super_admin (system) and employee (auto-assigned).
+    protected function getAssignableRoles()
+    {
+        return Role::select('id', 'name', 'slug')
+            ->whereNotIn('slug', ['super_admin', 'employee'])
+            ->where('status', true)
+            ->orderBy('name')
+            ->get();
+    }
+
+    protected function getSelectedRoleIds(Employee $employee): array
+    {
+        if (!$employee->user) {
+            return [];
+        }
+
+        return $employee->user->roles()
+            ->whereNotIn('slug', ['super_admin', 'employee'])
+            ->pluck('roles.id')
+            ->toArray();
+    }
+
+    // Sync extra roles on the linked user while always preserving the base employee role
+    // and never allowing super_admin to be granted via this path.
+    protected function syncUserRoles(Employee $employee, array $roleIds): void
+    {
+        if (!$employee->user) {
+            return;
+        }
+
+        $employeeRoleId   = Role::where('slug', 'employee')->value('id');
+        $superAdminRoleId = Role::where('slug', 'super_admin')->value('id');
+
+        $finalIds = collect($roleIds)
+            ->reject(fn($id) => (int) $id === (int) $superAdminRoleId)
+            ->when($employeeRoleId, fn($c) => $c->push($employeeRoleId))
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+
+        $employee->user->roles()->sync($finalIds);
     }
 }
