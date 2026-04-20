@@ -290,69 +290,23 @@ class LeaveApprovalService
         return $this->resolveByDesignationLevel($employee, $designation->level->value);
     }
 
+    // Resolve the approver at EXACTLY the target designation level within the employee's company.
+    // The workflow step's level is the level that must act — we do not walk the manager chain and
+    // we do not escalate to a higher rank when the exact level is missing, because that would
+    // skip entire designation levels (e.g. routing a PM-level step to the CTO).
+    //
+    // If multiple employees share the target level, the match with the lowest id is chosen
+    // deterministically. If no active employee at that level exists (excluding the submitter),
+    // NULL is returned — the caller decides whether to skip, finalize, or fall back.
     private function resolveByDesignationLevel(Employee $employee, int $targetLevel): ?Employee
     {
-        $managerIds = $this->collectManagerChainIds($employee);
-
-        if (empty($managerIds)) {
-            return null;
-        }
-
-        $managers = $this->loadManagersWithDesignations($managerIds);
-
-        return $this->findManagerAtLevel($employee, $managers, $targetLevel);
-    }
-
-    private function collectManagerChainIds(Employee $employee): array
-    {
-        $managerIds = [];
-        $current = $employee;
-        $visited = [];
-
-        while ($current->manager_id && !in_array($current->manager_id, $visited)) {
-            $visited[] = $current->manager_id;
-            $managerIds[] = $current->manager_id;
-            $current = Employee::select('id', 'manager_id')->find($current->manager_id);
-
-            if (!$current) {
-                break;
-            }
-        }
-
-        return $managerIds;
-    }
-
-    private function loadManagersWithDesignations(array $managerIds)
-    {
         return Employee::with('designation')
-            ->whereIn('id', $managerIds)
-            ->get()
-            ->keyBy('id');
-    }
-
-    private function findManagerAtLevel(Employee $employee, $managers, int $targetLevel): ?Employee
-    {
-        $current = $employee;
-        $visited = [];
-
-        while ($current->manager_id && !in_array($current->manager_id, $visited)) {
-            $visited[] = $current->manager_id;
-            $manager = $managers->get($current->manager_id);
-
-            if (!$manager) {
-                break;
-            }
-
-            $managerLevel = $manager->designation?->level?->value;
-
-            if ($managerLevel !== null && $managerLevel <= $targetLevel) {
-                return $manager;
-            }
-
-            $current = $manager;
-        }
-
-        return null;
+            ->where('company_id', $employee->company_id)
+            ->where('id', '!=', $employee->id)
+            ->where('status', true)
+            ->whereHas('designation', fn($q) => $q->where('level', $targetLevel))
+            ->orderBy('id')
+            ->first();
     }
 
     private function resolveDepartmentHead(Employee $employee): ?Employee
