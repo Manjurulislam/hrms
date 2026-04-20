@@ -36,6 +36,7 @@ const progressPercentage = ref(0)
 const totalWorkedSeconds = ref(0)
 const totalBreakTime = ref(null)
 const isLoading = ref(false)
+const clientIp = ref(null)
 
 // Timer intervals
 let clockInterval = null
@@ -470,6 +471,16 @@ const syncWithServer = async () => {
     }
 }
 
+const fetchClientIp = async () => {
+    try {
+        const res = await fetch('https://api.ipify.org?format=json')
+        const data = await res.json()
+        clientIp.value = data.ip || null
+    } catch (e) {
+        clientIp.value = null
+    }
+}
+
 // Lifecycle
 onMounted(() => {
     updateClock()
@@ -477,6 +488,9 @@ onMounted(() => {
 
     // Initialize from server data
     initializeFromServerData()
+
+    // Fetch real client IP (server sees proxy/LAN IP)
+    fetchClientIp()
 
     // Sync with server every 30 seconds
     syncInterval = setInterval(syncWithServer, 30000)
@@ -503,9 +517,9 @@ onUnmounted(() => {
                     <v-icon class="me-1" size="small">mdi-clock-outline</v-icon>
                     Office Time : {{ officeHours.start }} - {{ officeHours.end }}
                 </div>
-                <div v-if="officeHours.my_ip" class="text-body-2 office-hours-inline mt-2">
+                <div v-if="clientIp" class="text-body-2 office-hours-inline mt-2">
                     <v-icon class="me-1" size="small">mdi-ip-network</v-icon>
-                    My IP : {{ officeHours.my_ip }}
+                    My IP : {{ clientIp }}
                 </div>
             </v-card>
         </v-col>
