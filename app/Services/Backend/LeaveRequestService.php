@@ -6,10 +6,12 @@ use App\Enums\LeaveApprovalStatus;
 use App\Enums\LeaveMessage;
 use App\Enums\LeaveRequestStatus;
 use App\Models\Employee;
+use App\Models\Holiday;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Services\NotificationService;
+use App\Services\WorkScheduleService;
 use App\Traits\PaginateQuery;
 use App\Traits\QueryParams;
 use Carbon\Carbon;
@@ -40,8 +42,12 @@ class LeaveRequestService
     {
         $startDate = Carbon::parse(data_get($data, 'started_at'));
         $endDate = Carbon::parse(data_get($data, 'ended_at'));
-        $totalDays = $startDate->diffInDays($endDate) + 1;
+        $totalDays = $this->calculateWorkingDays($employee, $startDate, $endDate);
         $leaveTypeId = data_get($data, 'leave_type_id');
+
+        if ($totalDays < 1) {
+            return LeaveMessage::NoWorkingDays->value;
+        }
 
         if ($error = $this->validateLeaveBalance($employee, $leaveTypeId, $startDate->year, $totalDays)) {
             return $error;
@@ -52,6 +58,47 @@ class LeaveRequestService
         }
 
         return $this->createLeaveRequest($employee, $data, $totalDays);
+    }
+
+    // Count only company working days, excluding weekends (per CompanyWorkingDay) and active holidays.
+    private function calculateWorkingDays(Employee $employee, Carbon $start, Carbon $end): int
+    {
+        $schedule = app(WorkScheduleService::class);
+        $holidayDates = $this->holidayDatesBetween($employee, $start, $end);
+
+        $days = 0;
+        $cursor = $start->copy();
+
+        while ($cursor->lte($end)) {
+            if ($schedule->isWorkingDay($employee, $cursor) && !$holidayDates->contains($cursor->toDateString())) {
+                $days++;
+            }
+            $cursor->addDay();
+        }
+
+        return $days;
+    }
+
+    private function holidayDatesBetween(Employee $employee, Carbon $start, Carbon $end): \Illuminate\Support\Collection
+    {
+        $holidays = Holiday::where('company_id', $employee->company_id)
+            ->where('status', true)
+            ->where('start_date', '<=', $end)
+            ->where('end_date', '>=', $start)
+            ->get(['start_date', 'end_date']);
+
+        $dates = collect();
+        foreach ($holidays as $h) {
+            $from = $h->start_date->gt($start) ? $h->start_date : $start;
+            $to   = $h->end_date->lt($end) ? $h->end_date : $end;
+            $cursor = $from->copy();
+            while ($cursor->lte($to)) {
+                $dates->push($cursor->toDateString());
+                $cursor->addDay();
+            }
+        }
+
+        return $dates->unique();
     }
 
     public function cancel(LeaveRequest $leaveRequest): bool|string

@@ -17,6 +17,7 @@ enum LeaveMessage: string
     case AlreadyReviewed   = 'This leave request has already been reviewed by an approver and cannot be cancelled.';
     case InsufficientBalance = 'Insufficient leave balance. You have :remaining day(s) remaining.';
     case OverlappingDates  = 'You already have a leave request that overlaps with the selected dates.';
+    case NoWorkingDays     = 'Selected dates contain no working days. Leave cannot be applied on weekends or holidays only.';
 
     public function with(array $replacements): string
     {

@@ -14,6 +14,7 @@ Super admins can act on any pending/in-review request regardless of the approval
 - [Approval Workflow Configuration](#approval-workflow-configuration)
 - [Complete Leave Request Flow](#complete-leave-request-flow)
 - [Phase 1: Employee Submits Leave Request](#phase-1-employee-submits-leave-request)
+- [Leave Day Calculation](#leave-day-calculation)
 - [Phase 2: Approval Workflow Initialization](#phase-2-approval-workflow-initialization)
 - [Phase 3: Approver Takes Action](#phase-3-approver-takes-action)
 - [Phase 4: Employee Cancellation](#phase-4-employee-cancellation)
@@ -150,16 +151,58 @@ Status: In Review
 | Field          | Rules                                      |
 |----------------|--------------------------------------------|
 | `leave_type_id`| Required, must exist in `leave_types` table|
-| `started_at`   | Required, date, must be today or later     |
+| `started_at`   | Required, date (past dates allowed — e.g. retroactive sick leave) |
 | `ended_at`     | Required, date, must be >= `started_at`    |
 | `title`        | Optional, max 255 characters               |
 | `notes`        | Optional, string                           |
 
 ### Step 2: Business Validation
 
-1. **Calculate total days**: `end_date - start_date + 1`
-2. **Check leave balance**: If `remaining < totalDays` -> error: *"Insufficient leave balance. You have X day(s) remaining."*
-3. **Check overlapping dates**: No overlap with existing pending/in_review/approved leaves -> error: *"You already have a leave request that overlaps with the selected dates."*
+1. **Calculate total days** — see [Leave Day Calculation](#leave-day-calculation) below.
+2. **Reject zero-working-day ranges** — if the selected range lands entirely on weekends/holidays, reject with *"Selected dates contain no working days. Leave cannot be applied on weekends or holidays only."*
+3. **Check leave balance**: If `remaining < totalDays` -> error: *"Insufficient leave balance. You have X day(s) remaining."*
+4. **Check overlapping dates**: No overlap with existing pending/in_review/approved leaves -> error: *"You already have a leave request that overlaps with the selected dates."*
+
+---
+
+## Leave Day Calculation
+
+`total_days` is the count of **company working days** in the selected range — NOT calendar days. Weekends (per `company_working_days`) and active company holidays are excluded.
+
+### Algorithm
+
+```
+days = 0
+for date in range(started_at..ended_at):
+    if not WorkScheduleService::isWorkingDay(employee, date):
+        continue   # weekend per CompanyWorkingDay
+    if date is inside any active Holiday (company-scoped, status=true):
+        continue   # public holiday
+    days += 1
+return days
+```
+
+Implementation: `LeaveRequestService::calculateWorkingDays()` → uses `WorkScheduleService::isWorkingDay()` (the same helper attendance uses for "working day" checks, so leave and attendance stay consistent).
+
+### Example: 15 Apr → 19 Apr 2026 (Company 1: Sun–Thu working, Fri+Sat weekend)
+
+| Date | Day | Working? | Holiday? | Counted |
+|------|-----|----------|----------|---------|
+| 15 Apr 2026 | Wed | ✓ | — | **yes** |
+| 16 Apr 2026 | Thu | ✓ | — | **yes** |
+| 17 Apr 2026 | Fri | ✗ | — | no |
+| 18 Apr 2026 | Sat | ✗ | — | no |
+| 19 Apr 2026 | Sun | ✓ | — | **yes** |
+
+- **Calendar days:** 5
+- **Working days (counted as `total_days`):** **3**
+- If employee's Sick Leave balance was `total=14, used=0`, after final approval: `used=3, remaining=11`.
+
+### Notes / limitations
+
+- **Year-boundary requests** (e.g. Dec 28 → Jan 3) currently deduct the full `total_days` from the start-year's balance. Splitting across years is not yet supported.
+- **Half-days** are not supported — `total_days` is always an integer.
+- **Pro-rating for mid-year joiners** is not yet implemented — new employees get full annual entitlement on first balance creation.
 
 ### Step 3: Create Leave Request
 
@@ -417,7 +460,7 @@ If no `LeaveBalance` record exists for an employee/leave-type/year combination, 
 | id                  | bigint   | Primary key                                            |
 | title               | string   | Optional title/subject                                 |
 | notes               | text     | Reason/notes for the leave                             |
-| total_days          | integer  | Calculated: end_date - start_date + 1                  |
+| total_days          | integer  | Company working days in range (weekends + holidays excluded — see [Leave Day Calculation](#leave-day-calculation)) |
 | company_id          | bigint   | FK -> companies                                        |
 | employee_id         | bigint   | FK -> employees (who applied)                          |
 | leave_type_id       | bigint   | FK -> leave_types                                      |
