@@ -9,9 +9,7 @@ use App\Http\Requests\Attendance\CheckInRequest;
 use App\Http\Requests\Attendance\CheckOutRequest;
 use App\Http\Requests\MonthlyDataRequest;
 use App\Services\AttendanceService;
-use App\Services\Utility\CatchIPService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,7 +17,6 @@ class EmployeeAttendanceController extends Controller
 {
     public function __construct(
         protected readonly AttendanceService $service,
-        protected readonly CatchIPService    $ipService,
     ) {}
 
     public function index()
@@ -52,7 +49,7 @@ class EmployeeAttendanceController extends Controller
 
         $result = $this->service->checkIn(
             $employee,
-            $this->resolveIp($request),
+            $request->ip(),
             $request->getSanitizedData()
         );
 
@@ -75,7 +72,7 @@ class EmployeeAttendanceController extends Controller
 
         $result = $this->service->checkOut(
             $employee,
-            $this->resolveIp($request),
+            $request->ip(),
             $request->getSanitizedData()
         );
 
@@ -99,7 +96,7 @@ class EmployeeAttendanceController extends Controller
 
         $result = $this->service->startBreak(
             $employee,
-            $this->resolveIp($request),
+            $request->ip(),
             $request->input('break_type'),
             $request->input('reason')
         );
@@ -121,7 +118,7 @@ class EmployeeAttendanceController extends Controller
         $employee = $request->user()->employee;
         abort_unless($employee, 403, 'No employee profile linked to your account.');
 
-        $result = $this->service->endBreak($employee, $this->resolveIp($request));
+        $result = $this->service->endBreak($employee, $request->ip());
 
         if (!$result['success']) {
             return response()->json($result, 422);
@@ -165,8 +162,4 @@ class EmployeeAttendanceController extends Controller
         ]);
     }
 
-    protected function resolveIp(Request $request): string
-    {
-        return $this->ipService->getPublicIp() ?? $request->ip();
-    }
 }

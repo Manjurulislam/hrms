@@ -32,10 +32,27 @@ class AttendanceRecordService
 
     public function resolveEmployeeId(Request $request): ?int
     {
-        if ($request->filled('employee_id')) {
+        $user = Auth::user();
+
+        if ($request->filled('employee_id') && $this->canQueryOthers($user)) {
             return $request->integer('employee_id');
         }
 
-        return Auth::user()?->employee?->id;
+        return $user?->employee?->id;
+    }
+
+    protected function canQueryOthers(?\App\Models\User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        foreach (['super_admin', 'admin', 'hr'] as $role) {
+            if ($user->hasRole($role)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

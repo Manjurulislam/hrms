@@ -41,9 +41,10 @@
         }
 
         .header {
-            background-color: #344767;
+            background-color: #ffffff;
             padding: 24px;
             text-align: center;
+            border-bottom: 1px solid #e8e8ef;
         }
 
         .header img {

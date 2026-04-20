@@ -5,7 +5,7 @@ import TrackerClock from "@/Components/modules/employee/attendance/trackerClock.
 import EmpStats from "@/Components/modules/employee/attendance/empStats.vue";
 
 import {computed, ref} from 'vue'
-import {Head} from "@inertiajs/vue3";
+import {Head, router} from "@inertiajs/vue3";
 
 // Props from Inertia backend
 const props = defineProps({
@@ -47,6 +47,7 @@ const statusColor = computed(() => {
 const recordsRef = ref(null)
 
 const onAttendanceChanged = () => {
+    router.reload({ only: ['todayData', 'monthlyStats'] })
     recordsRef.value?.reload()
 }
 </script>

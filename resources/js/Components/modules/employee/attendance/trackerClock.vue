@@ -404,8 +404,16 @@ const handleToggleAttendance = () => {
 
 // Sync with server periodically
 const syncWithServer = async () => {
+    // Skip while a check-in/out/break mutation is in flight — stale poll data
+    // can otherwise flip local state back before the mutation response lands.
+    if (isLoading.value) return
+
     try {
         const response = await axios.get(route('emp-attendance.current-status'))
+
+        // A mutation may have started during the network round-trip — drop the
+        // now-stale response rather than applying it over fresh local state.
+        if (isLoading.value) return
 
         if (response.data.success && response.data.data) {
             const serverData = response.data.data

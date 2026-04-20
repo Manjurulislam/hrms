@@ -13,7 +13,6 @@ use App\Models\AttendanceSummary;
 use App\Models\Employee;
 use App\Models\Holiday;
 use App\Models\LeaveRequest;
-use App\Services\Utility\CatchIPService;
 use App\Traits\CompanySettings;
 use Carbon\Carbon;
 use Exception;
@@ -26,7 +25,6 @@ class AttendanceService
 
     public function __construct(
         protected readonly WorkScheduleService $scheduleService,
-        protected readonly CatchIPService      $ipService,
     ) {}
 
     // ─── Check In ────────────────────────────────────────────────
@@ -279,6 +277,9 @@ class AttendanceService
     // Validate all check-in preconditions
     private function validateCheckIn(Employee $employee, Carbon $today): ?array
     {
+        // Auto-close any prior-day Active rows so a forgotten check-out doesn't block today
+        $this->closeStaleActiveRecords($employee, $today);
+
         // Check if today is a holiday
         if ($holiday = $this->findHolidayForDate($employee, $today)) {
             return $this->error(AttendanceMessage::HolidayRestricted->with($holiday->name));
@@ -326,22 +327,44 @@ class AttendanceService
     // Query Helper Methods
     // ═══════════════════════════════════════════════════════════════
 
-    // Find active session for employee today
+    // Find any active session (unscoped by date so cross-midnight check-outs still work)
     private function findActiveSession(Employee $employee): ?AttendanceSession
     {
         return AttendanceSession::forEmployee($employee->id)
-            ->today()
             ->active()
+            ->latest('check_in_time')
             ->first();
     }
 
-    // Find active break for employee today
+    // Find any active break (unscoped by date; auto-close handles stale prior-day rows)
     private function findActiveBreak(Employee $employee): ?AttendanceBreak
     {
         return AttendanceBreak::where('employee_id', $employee->id)
-            ->whereDate('attendance_date', today())
             ->where('status', BreakStatus::Active)
+            ->latest('break_start')
             ->first();
+    }
+
+    // Auto-close any active session/break from a previous day so today's check-in isn't blocked
+    private function closeStaleActiveRecords(Employee $employee, Carbon $today): void
+    {
+        AttendanceSession::forEmployee($employee->id)
+            ->active()
+            ->whereDate('attendance_date', '<', $today)
+            ->get()
+            ->each(fn($session) => $session->autoClose());
+
+        AttendanceBreak::where('employee_id', $employee->id)
+            ->where('status', BreakStatus::Active)
+            ->whereDate('attendance_date', '<', $today)
+            ->get()
+            ->each(function ($break) {
+                $break->update([
+                    'break_end'     => $break->break_start,
+                    'status'        => BreakStatus::Completed,
+                    'break_end_ip'  => null,
+                ]);
+            });
     }
 
     // Get all sessions for employee today
@@ -538,7 +561,6 @@ class AttendanceService
             'end'        => Carbon::parse($schedule['work_end_time'])->format('g:i A'),
             'delay'      => $this->companySetting($employee->company, 'late_grace'),
             'office_ip'  => $schedule['office_ip'],
-            'my_ip'      => $this->ipService->getPublicIp(),
             'company'    => $employee->company?->name ?? 'N/A',
             'department' => $employee->department?->name ?? 'N/A',
         ];
