@@ -1,28 +1,35 @@
 <script setup>
 import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head, Link, router} from '@inertiajs/vue3';
-import {reactive} from 'vue';
+import {computed, reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 import {useToast} from 'vue-toastification';
+import {useDisplay} from 'vuetify';
 
 const toast = useToast();
+const {smAndDown} = useDisplay();
 
 const props = defineProps({
     statusOptions: Array,
 });
 
+const allHeaders = [
+    {title: 'SL', align: 'start', sortable: false, key: 'id', mobile: true},
+    {title: 'Leave Type', key: 'leave_type', mobile: true},
+    {title: 'Title', key: 'title', mobile: false},
+    {title: 'Start Date', key: 'started_at', mobile: true},
+    {title: 'End Date', key: 'ended_at', mobile: true},
+    {title: 'Days', key: 'total_days', mobile: true},
+    {title: 'Status', key: 'status', sortable: false, mobile: true},
+    {title: 'Current Approver', key: 'current_approver', mobile: false},
+    {title: 'Actions', key: 'actions', sortable: false, width: '5%', mobile: true},
+];
+
+const headers = computed(() =>
+    smAndDown.value ? allHeaders.filter(h => h.mobile) : allHeaders
+);
+
 const state = reactive({
-    headers: [
-        {title: 'SL', align: 'start', sortable: false, key: 'id'},
-        {title: 'Leave Type', key: 'leave_type'},
-        {title: 'Title', key: 'title'},
-        {title: 'Start Date', key: 'started_at'},
-        {title: 'End Date', key: 'ended_at'},
-        {title: 'Days', key: 'total_days'},
-        {title: 'Status', key: 'status', sortable: false},
-        {title: 'Current Approver', key: 'current_approver'},
-        {title: 'Actions', key: 'actions', sortable: false, width: '5%'},
-    ],
     pagination: {
         itemsPerPage: 50,
         totalItems: 0,
@@ -132,7 +139,7 @@ const getStatusLabel = (status) => {
                         </v-row>
 
                         <v-data-table-server
-                            :headers="state.headers"
+                            :headers="headers"
                             :items="state.serverItems"
                             :items-length="state.pagination.totalItems"
                             :items-per-page="state.pagination.itemsPerPage"

@@ -2,18 +2,26 @@
 import axios from 'axios';
 import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head, Link} from '@inertiajs/vue3';
-import {reactive} from 'vue';
+import {computed, reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
+import {useDisplay} from 'vuetify';
+
+const {smAndDown} = useDisplay();
+
+const allHeaders = [
+    {title: 'SL', align: 'start', sortable: false, key: 'id', mobile: true},
+    {title: 'Title', key: 'title', mobile: true},
+    {title: 'Department', key: 'department', mobile: false},
+    {title: 'Published', key: 'published_at', mobile: true},
+    {title: 'Expires', key: 'expired_at', mobile: false},
+    {title: 'Actions', key: 'actions', sortable: false, width: '5%', mobile: true},
+];
+
+const headers = computed(() =>
+    smAndDown.value ? allHeaders.filter(h => h.mobile) : allHeaders
+);
 
 const state = reactive({
-    headers: [
-        {title: 'SL', align: 'start', sortable: false, key: 'id'},
-        {title: 'Title', key: 'title'},
-        {title: 'Department', key: 'department'},
-        {title: 'Published', key: 'published_at'},
-        {title: 'Expires', key: 'expired_at'},
-        {title: 'Actions', key: 'actions', sortable: false, width: '5%'},
-    ],
     search: '',
     serverItems: [],
     loading: true,
@@ -68,7 +76,7 @@ const handleSearch = () => {
                         </v-row>
 
                         <v-data-table
-                            :headers="state.headers"
+                            :headers="headers"
                             :items="state.serverItems"
                             :loading="state.loading"
                             density="compact"

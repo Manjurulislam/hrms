@@ -514,27 +514,27 @@ onUnmounted(() => {
 
 <template>
     <v-row>
-        <v-col cols="4">
+        <v-col cols="12" md="4">
             <v-card
-                class="custom-blue text-white text-center d-flex flex-column justify-center align-center"
+                class="custom-blue text-white text-center info-card d-flex flex-column justify-center align-center"
                 elevation="3">
-                <div class="text-h4 font-weight-light mb-2">{{ currentTime }}</div>
-                <div class="text-body-1 mb-1">{{ currentWeekday }},</div>
-                <div class="text-body-1 mb-3">{{ currentDateOnly }}</div>
-                <div class="text-body-2 office-hours-inline">
+                <div class="time-display font-weight-light mb-2">{{ currentTime }}</div>
+                <div class="text-body-2 text-sm-body-1 mb-1">{{ currentWeekday }},</div>
+                <div class="text-body-2 text-sm-body-1 mb-3">{{ currentDateOnly }}</div>
+                <div class="text-caption text-sm-body-2 office-hours-inline">
                     <v-icon class="me-1" size="small">mdi-clock-outline</v-icon>
                     Office Time : {{ officeHours.start }} - {{ officeHours.end }}
                 </div>
-                <div v-if="clientIp" class="text-body-2 office-hours-inline mt-2">
+                <div v-if="clientIp" class="text-caption text-sm-body-2 office-hours-inline mt-2 d-none d-sm-inline-block">
                     <v-icon class="me-1" size="small">mdi-ip-network</v-icon>
                     My IP : {{ clientIp }}
                 </div>
             </v-card>
         </v-col>
-        <v-col cols="8">
+        <v-col cols="12" md="8">
             <v-card class="tracker-card text-center py-5" elevation="3">
                 <div class="circular-progress-container">
-                    <svg height="200" style="transform: rotate(-90deg);" width="200">
+                    <svg class="progress-ring" viewBox="0 0 200 200" style="transform: rotate(-90deg);">
                         <circle cx="100" cy="100" fill="none"
                                 r="85"
                                 stroke="rgba(255,255,255,0.2)"
@@ -601,21 +601,21 @@ onUnmounted(() => {
                 <v-icon class="me-2">mdi-calendar-today</v-icon>
                 Today's Summary
             </v-card-title>
-            <v-row class="text-center">
-                <v-col cols="3">
-                    <div class="text-h6">{{ startTime }}</div>
+            <v-row class="text-center" dense>
+                <v-col cols="6" sm="3">
+                    <div class="text-subtitle-1 text-sm-h6">{{ startTime }}</div>
                     <div class="text-caption" style="opacity: 0.7;">Start Time</div>
                 </v-col>
-                <v-col cols="3">
-                    <div class="text-h6">{{ endTime }}</div>
+                <v-col cols="6" sm="3">
+                    <div class="text-subtitle-1 text-sm-h6">{{ endTime }}</div>
                     <div class="text-caption" style="opacity: 0.7;">End Time</div>
                 </v-col>
-                <v-col cols="3">
-                    <div class="text-h6" style="color: #5DADE2;">{{ totalHours }}</div>
+                <v-col cols="6" sm="3">
+                    <div class="text-subtitle-1 text-sm-h6" style="color: #5DADE2;">{{ totalHours }}</div>
                     <div class="text-caption" style="opacity: 0.7;">Total Hours</div>
                 </v-col>
-                <v-col cols="3">
-                    <div class="text-h6" :style="isOnBreak ? 'color: #F39C12;' : ''">
+                <v-col cols="6" sm="3">
+                    <div class="text-subtitle-1 text-sm-h6" :style="isOnBreak ? 'color: #F39C12;' : ''">
                         {{ isOnBreak ? breakTimer : (totalBreakTime || '--:--') }}
                     </div>
                     <div class="text-caption" style="opacity: 0.7;">
@@ -631,6 +631,22 @@ onUnmounted(() => {
 .custom-blue {
     background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%) !important;
     height: 100%;
+    padding: 16px;
+}
+
+.info-card {
+    min-height: 160px;
+}
+
+.time-display {
+    font-size: 2rem;
+    line-height: 1.1;
+}
+
+.progress-ring {
+    width: 200px;
+    height: 200px;
+    max-width: 100%;
 }
 
 .tracker-card {
@@ -673,17 +689,26 @@ onUnmounted(() => {
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
-    .d-flex.flex-column.flex-md-row {
-        align-items: stretch !important;
+@media (max-width: 600px) {
+    .time-display {
+        font-size: 1.5rem;
     }
 
-    .d-flex.flex-column.flex-sm-row {
-        width: 100%;
+    .info-card {
+        min-height: auto;
     }
 
-    .v-select, .v-text-field {
-        min-width: 100% !important;
+    .progress-ring {
+        width: 170px;
+        height: 170px;
+    }
+
+    .timer-display {
+        font-size: 1.25rem;
+    }
+
+    .office-hours-inline {
+        padding: 6px 12px;
     }
 }
 </style>

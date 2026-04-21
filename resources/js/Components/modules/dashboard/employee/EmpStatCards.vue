@@ -15,15 +15,15 @@ const cards = [
 
 <template>
     <v-row dense>
-        <v-col v-for="card in cards" :key="card.key" cols="6" md="2">
+        <v-col v-for="card in cards" :key="card.key" cols="6" sm="4" md="2">
             <v-card class="stat-card" elevation="4">
-                <v-card-text class="pa-4">
+                <v-card-text class="pa-3 pa-sm-4">
                     <v-row align="center" no-gutters>
-                        <v-col>
-                            <div class="text-overline text-grey-darken-1 mb-1 font-weight-medium">
+                        <v-col class="text-truncate">
+                            <div class="text-overline text-grey-darken-1 mb-1 font-weight-medium text-truncate">
                                 {{ card.label.toUpperCase() }}
                             </div>
-                            <div class="text-h4 font-weight-bold text-grey-darken-3">
+                            <div class="stat-number font-weight-bold text-grey-darken-3">
                                 {{ stats[card.key] }}{{ card.suffix || '' }}
                             </div>
                         </v-col>
@@ -31,14 +31,11 @@ const cards = [
                             <v-sheet
                                 :color="card.bgColor"
                                 class="icon-container d-flex align-center justify-center"
-                                height="50"
                                 rounded="lg"
-                                width="50"
                             >
                                 <v-icon
                                     :color="card.iconColor"
                                     :icon="card.icon"
-                                    size="26"
                                 />
                             </v-sheet>
                         </v-col>
@@ -63,5 +60,31 @@ const cards = [
 
 .icon-container {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    width: 50px;
+    height: 50px;
+}
+
+.icon-container :deep(.v-icon) {
+    font-size: 26px;
+}
+
+.stat-number {
+    font-size: 2rem;
+    line-height: 1.2;
+}
+
+@media (max-width: 600px) {
+    .stat-number {
+        font-size: 1.4rem;
+    }
+
+    .icon-container {
+        width: 36px;
+        height: 36px;
+    }
+
+    .icon-container :deep(.v-icon) {
+        font-size: 20px;
+    }
 }
 </style>

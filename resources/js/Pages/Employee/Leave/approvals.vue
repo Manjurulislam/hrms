@@ -1,25 +1,32 @@
 <script setup>
 import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head, Link} from '@inertiajs/vue3';
-import {reactive} from 'vue';
+import {computed, reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 import {useToast} from 'vue-toastification';
+import {useDisplay} from 'vuetify';
 
 const toast = useToast();
+const {smAndDown} = useDisplay();
+
+const allHeaders = [
+    {title: 'SL', align: 'start', sortable: false, key: 'id', mobile: true},
+    {title: 'Employee', key: 'employee', mobile: true},
+    {title: 'Emp ID', key: 'emp_id', mobile: false},
+    {title: 'Leave Type', key: 'leave_type', mobile: false},
+    {title: 'Start Date', key: 'started_at', mobile: true},
+    {title: 'End Date', key: 'ended_at', mobile: true},
+    {title: 'Days', key: 'total_days', mobile: true},
+    {title: 'Notes', key: 'notes', sortable: false, mobile: false},
+    {title: 'Status', key: 'status', sortable: false, mobile: true},
+    {title: 'Actions', key: 'actions', sortable: false, width: '5%', mobile: true},
+];
+
+const headers = computed(() =>
+    smAndDown.value ? allHeaders.filter(h => h.mobile) : allHeaders
+);
 
 const state = reactive({
-    headers: [
-        {title: 'SL', align: 'start', sortable: false, key: 'id'},
-        {title: 'Employee', key: 'employee'},
-        {title: 'Emp ID', key: 'emp_id'},
-        {title: 'Leave Type', key: 'leave_type'},
-        {title: 'Start Date', key: 'started_at'},
-        {title: 'End Date', key: 'ended_at'},
-        {title: 'Days', key: 'total_days'},
-        {title: 'Notes', key: 'notes', sortable: false},
-        {title: 'Status', key: 'status', sortable: false},
-        {title: 'Actions', key: 'actions', sortable: false, width: '5%'},
-    ],
     serverItems: [],
     loading: true,
 });
@@ -75,7 +82,7 @@ const formatDate = (date) => {
 
                     <v-card-text>
                         <v-data-table
-                            :headers="state.headers"
+                            :headers="headers"
                             :items="state.serverItems"
                             :loading="state.loading"
                             density="compact"

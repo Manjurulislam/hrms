@@ -24,16 +24,16 @@ defineProps({
         <v-card class="welcome-card mb-4" elevation="4">
             <v-card-text class="pa-4">
                 <v-row align="center" no-gutters>
-                    <v-col>
-                        <div class="text-h5 font-weight-bold text-grey-darken-3">
+                    <v-col cols="12" sm="auto" class="flex-grow-1">
+                        <div class="text-subtitle-1 text-sm-h5 font-weight-bold text-grey-darken-3">
                             Welcome back, {{ employeeName }}
                         </div>
-                        <div class="text-body-2 text-grey-darken-1 mt-1">
+                        <div class="text-caption text-sm-body-2 text-grey-darken-1 mt-1">
                             {{ designation }} &bull; {{ department }}
                         </div>
                     </v-col>
-                    <v-col cols="auto">
-                        <div class="d-flex ga-2">
+                    <v-col cols="12" sm="auto" class="mt-3 mt-sm-0">
+                        <div class="d-flex ga-2 flex-wrap">
                             <Link :href="route('emp-attendance.index')">
                                 <v-btn
                                     color="primary"
