@@ -25,6 +25,10 @@ class LeaveApprovalService
     public function approve(LeaveRequest $leaveRequest, Employee $approver, ?string $remarks = null): array
     {
         return DB::transaction(function () use ($leaveRequest, $approver, $remarks) {
+            if ($this->isSimplifiedFlow($leaveRequest->employee)) {
+                return $this->approveSimplifiedFlow($leaveRequest, $approver, $remarks);
+            }
+
             $currentApproval = $this->resolveOrCreateApproval($leaveRequest, $approver, LeaveApprovalStatus::Approved, $remarks);
 
             $leaveType = $leaveRequest->leaveType;
@@ -70,6 +74,11 @@ class LeaveApprovalService
      */
     public function initializeApproval(LeaveRequest $leaveRequest, Employee $employee): void
     {
+        if ($this->isSimplifiedFlow($employee)) {
+            $this->initializeSimplifiedFlow($leaveRequest, $employee);
+            return;
+        }
+
         $workflow = $leaveRequest->leaveType->approvalWorkflow;
 
         if (!$workflow || !$workflow->is_active) {
@@ -101,6 +110,94 @@ class LeaveApprovalService
 
         $this->createPendingApproval($leaveRequest, $approver, $firstStep);
         $leaveRequest->update(['current_approver_id' => $approver->id]);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Simplified Flow (Team Leads & Kabir's reports)
+    // ═══════════════════════════════════════════════════════════════
+
+    // The standard 4-step workflow assumes a chain of distinct levels (TL→PM→CTO→CEO).
+    // Two cases break that assumption and use a simpler "manager → CTO" flow instead:
+    //   1. Submitter is a Team Lead (L4) — peer-level routing makes no sense.
+    //   2. Submitter's manager is at Project Manager level (L3, currently Kabir) — the
+    //      submitter has no L4 in their reporting chain, so the workflow's first step
+    //      can't be satisfied cleanly.
+    private function isSimplifiedFlow(Employee $employee): bool
+    {
+        if ($employee->designation?->level?->value === 4) {
+            return true;
+        }
+
+        if (!$employee->manager_id) {
+            return false;
+        }
+
+        $managerLevel = Employee::with('designation')
+            ->find($employee->manager_id)
+            ?->designation?->level?->value;
+
+        return $managerLevel === 3;
+    }
+
+    private function initializeSimplifiedFlow(LeaveRequest $leaveRequest, Employee $employee): void
+    {
+        if (!$employee->manager_id) {
+            Log::warning('Simplified flow: submitter has no manager — leave cannot progress', [
+                'leave_request_id' => $leaveRequest->id,
+                'employee_id'      => $employee->id,
+            ]);
+            return;
+        }
+
+        $manager = Employee::with('designation')->find($employee->manager_id);
+
+        if (!$manager) {
+            return;
+        }
+
+        LeaveApproval::create([
+            'leave_request_id' => $leaveRequest->id,
+            'approver_id'      => $manager->id,
+            'level'            => $this->getApproverLevel($manager),
+            'status'           => LeaveApprovalStatus::Pending,
+        ]);
+
+        $leaveRequest->update(['current_approver_id' => $manager->id]);
+    }
+
+    private function approveSimplifiedFlow(LeaveRequest $leaveRequest, Employee $approver, ?string $remarks): array
+    {
+        $this->resolveOrCreateApproval($leaveRequest, $approver, LeaveApprovalStatus::Approved, $remarks);
+
+        $cto = $this->resolveCtoEmployee($leaveRequest);
+
+        // CTO has acted (or no CTO exists) — finalize.
+        if (!$cto || $approver->id === $cto->id) {
+            return $this->finalApprove($leaveRequest);
+        }
+
+        LeaveApproval::create([
+            'leave_request_id' => $leaveRequest->id,
+            'approver_id'      => $cto->id,
+            'level'            => $this->getApproverLevel($cto),
+            'status'           => LeaveApprovalStatus::Pending,
+        ]);
+
+        $this->updateLeaveRequestStatus($leaveRequest, LeaveRequestStatus::InReview, $cto->id);
+
+        app(NotificationService::class)->leaveRequestForwarded($leaveRequest, $cto);
+
+        return $this->success(LeaveMessage::ForwardedTo->with(['name' => $cto->full_name]));
+    }
+
+    private function resolveCtoEmployee(LeaveRequest $leaveRequest): ?Employee
+    {
+        return Employee::with('designation')
+            ->where('company_id', $leaveRequest->company_id)
+            ->where('status', true)
+            ->whereHas('designation', fn($q) => $q->where('level', 2))
+            ->orderBy('id')
+            ->first();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -290,16 +387,31 @@ class LeaveApprovalService
         return $this->resolveByDesignationLevel($employee, $designation->level->value);
     }
 
-    // Resolve the approver at EXACTLY the target designation level within the employee's company.
-    // The workflow step's level is the level that must act — we do not walk the manager chain and
-    // we do not escalate to a higher rank when the exact level is missing, because that would
-    // skip entire designation levels (e.g. routing a PM-level step to the CTO).
+    // Resolve the approver at the target designation level within the employee's company.
     //
-    // If multiple employees share the target level, the match with the lowest id is chosen
-    // deterministically. If no active employee at that level exists (excluding the submitter),
-    // NULL is returned — the caller decides whether to skip, finalize, or fall back.
+    // Resolution order:
+    //   1. Direct manager if they're at the target level (honors the assigned manager_id
+    //      so the submitter's actual supervisor approves rather than a peer with a lower id).
+    //   2. Direct manager if the submitter is at-or-above the target level — peers can't
+    //      authorize, so escalation upward is the only sensible move.
+    //   3. Otherwise the lowest-id active employee at the target level, excluding the submitter.
+    //
+    // NULL means no match found; the caller decides whether to skip, finalize, or fall back.
     private function resolveByDesignationLevel(Employee $employee, int $targetLevel): ?Employee
     {
+        if ($employee->manager_id) {
+            $manager = Employee::with('designation')->find($employee->manager_id);
+            if ($manager && $manager->designation?->level?->value === $targetLevel) {
+                return $manager;
+            }
+        }
+
+        $submitterLevel = $employee->designation?->level?->value;
+
+        if ($submitterLevel !== null && $submitterLevel <= $targetLevel) {
+            return $this->resolveDirectManager($employee);
+        }
+
         return Employee::with('designation')
             ->where('company_id', $employee->company_id)
             ->where('id', '!=', $employee->id)
