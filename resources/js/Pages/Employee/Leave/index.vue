@@ -67,12 +67,21 @@ const refreshData = () => {
     getData({page: 1, itemsPerPage: state.pagination.itemsPerPage, sortBy: []});
 };
 
-const cancelRequest = (id) => {
-    if (confirm('Are you sure you want to cancel this leave request?')) {
-        router.post(route('emp-leave.cancel', id), {}, {
-            onSuccess: () => refreshData(),
-        });
+const CANCEL_WINDOW_DAYS = 3;
+
+const isCancellable = (item) => {
+    if (item.status !== 'pending' || !item.created_at) {
+        return false;
     }
+    const createdAt = new Date(item.created_at).getTime();
+    const cutoff = Date.now() - CANCEL_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+    return createdAt >= cutoff;
+};
+
+const cancelRequest = (id) => {
+    router.post(route('emp-leave.cancel', id), {}, {
+        onSuccess: () => refreshData(),
+    });
 };
 
 const getStatusColor = (status) => {
@@ -177,14 +186,23 @@ const getStatusLabel = (status) => {
                                 <span v-else class="text-medium-emphasis">-</span>
                             </template>
                             <template v-slot:item.actions="{ item }">
-                                <v-btn
-                                    v-if="item.status === 'pending'"
-                                    color="error"
-                                    icon="mdi-close-circle"
-                                    size="x-small"
-                                    variant="text"
-                                    @click="cancelRequest(item.id)"
-                                />
+                                <el-popconfirm
+                                    v-if="isCancellable(item)"
+                                    cancel-button-text="No"
+                                    confirm-button-text="Yes"
+                                    title="Are you sure you want to cancel this leave request?"
+                                    width="260"
+                                    @confirm="cancelRequest(item.id)"
+                                >
+                                    <template #reference>
+                                        <v-btn
+                                            color="error"
+                                            icon="mdi-close-circle"
+                                            size="x-small"
+                                            variant="text"
+                                        />
+                                    </template>
+                                </el-popconfirm>
                             </template>
                         </v-data-table-server>
                     </v-card-text>
