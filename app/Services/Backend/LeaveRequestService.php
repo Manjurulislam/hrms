@@ -22,6 +22,8 @@ class LeaveRequestService
 {
     use PaginateQuery, QueryParams;
 
+    private const CANCEL_WINDOW_DAYS = 3;
+
     public function list(Request $request): array
     {
         $query = LeaveRequest::query()
@@ -107,6 +109,10 @@ class LeaveRequestService
             return LeaveMessage::CannotCancel->value;
         }
 
+        if ($this->isCancelWindowClosed($leaveRequest)) {
+            return LeaveMessage::CancelWindowClosed->with(['days' => self::CANCEL_WINDOW_DAYS]);
+        }
+
         if ($this->hasApprovalAction($leaveRequest)) {
             return LeaveMessage::AlreadyReviewed->value;
         }
@@ -167,6 +173,12 @@ class LeaveRequestService
     {
         return collect([LeaveRequestStatus::Pending, LeaveRequestStatus::InReview])
             ->contains($leaveRequest->status);
+    }
+
+    private function isCancelWindowClosed(LeaveRequest $leaveRequest): bool
+    {
+        return $leaveRequest->created_at
+            && $leaveRequest->created_at->lt(now()->subDays(self::CANCEL_WINDOW_DAYS));
     }
 
     private function hasApprovalAction(LeaveRequest $leaveRequest): bool
