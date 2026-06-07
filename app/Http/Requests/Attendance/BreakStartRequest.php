@@ -19,8 +19,9 @@ class BreakStartRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'break_type' => 'required|in:lunch,tea,personal,prayer,other',
-            'reason' => 'nullable|required_if:break_type,other|string|max:255',
+            'break_type' => ['required', 'in:lunch,tea,personal,prayer,other'],
+            'reason' => ['nullable', 'required_if:break_type,other', 'string', 'max:255'],
+            'client_ip' => ['nullable', 'ip'],
         ];
     }
 

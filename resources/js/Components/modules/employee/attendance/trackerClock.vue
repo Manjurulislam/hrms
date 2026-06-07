@@ -233,7 +233,8 @@ const startWork = async () => {
     try {
         const response = await axios.post(route('emp-attendance.start-work'), {
             location: 'office',
-            note: null
+            note: null,
+            client_ip: clientIp.value
         })
 
         if (response.data.success) {
@@ -282,7 +283,8 @@ const endWork = async () => {
     try {
         const response = await axios.post(route('emp-attendance.end-work'), {
             location: 'office',
-            note: null
+            note: null,
+            client_ip: clientIp.value
         })
 
         if (response.data.success) {
@@ -337,7 +339,8 @@ const startBreak = async () => {
     try {
         const response = await axios.post(route('emp-attendance.start-break'), {
             break_type: 'personal',
-            reason: null
+            reason: null,
+            client_ip: clientIp.value
         })
 
         if (response.data.success) {
@@ -370,7 +373,9 @@ const endBreak = async () => {
     isLoading.value = true
 
     try {
-        const response = await axios.post(route('emp-attendance.end-break'))
+        const response = await axios.post(route('emp-attendance.end-break'), {
+            client_ip: clientIp.value
+        })
 
         if (response.data.success) {
             isOnBreak.value = false

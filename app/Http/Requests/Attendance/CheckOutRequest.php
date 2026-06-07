@@ -19,10 +19,11 @@ class CheckOutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'location' => 'nullable|string|max:255',
-            'lat' => 'nullable|numeric|between:-90,90',
-            'long' => 'nullable|numeric|between:-180,180',
-            'note' => 'nullable|string|max:500',
+            'location' => ['nullable', 'string', 'max:255'],
+            'lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'long' => ['nullable', 'numeric', 'between:-180,180'],
+            'note' => ['nullable', 'string', 'max:500'],
+            'client_ip' => ['nullable', 'ip'],
         ];
     }
 

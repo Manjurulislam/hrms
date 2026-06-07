@@ -49,7 +49,7 @@ class EmployeeAttendanceController extends Controller
 
         $result = $this->service->checkIn(
             $employee,
-            $request->ip(),
+            $request->resolvedClientIp(),
             $request->getSanitizedData()
         );
 
@@ -72,7 +72,7 @@ class EmployeeAttendanceController extends Controller
 
         $result = $this->service->checkOut(
             $employee,
-            $request->ip(),
+            $request->resolvedClientIp(),
             $request->getSanitizedData()
         );
 
@@ -96,7 +96,7 @@ class EmployeeAttendanceController extends Controller
 
         $result = $this->service->startBreak(
             $employee,
-            $request->ip(),
+            $request->resolvedClientIp(),
             $request->input('break_type'),
             $request->input('reason')
         );
@@ -118,7 +118,7 @@ class EmployeeAttendanceController extends Controller
         $employee = $request->user()->employee;
         abort_unless($employee, 403, 'No employee profile linked to your account.');
 
-        $result = $this->service->endBreak($employee, $request->ip());
+        $result = $this->service->endBreak($employee, $request->resolvedClientIp());
 
         if (!$result['success']) {
             return response()->json($result, 422);
