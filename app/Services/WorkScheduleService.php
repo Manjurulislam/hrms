@@ -114,6 +114,10 @@ class WorkScheduleService
         $startTime->setDate($time->year, $time->month, $time->day);
         $endTime->setDate($time->year, $time->month, $time->day);
 
+        // Allow early check-in: open the window early_grace minutes before office start
+        $earlyGrace = (int) $this->companySetting($company, 'early_grace');
+        $startTime->subMinutes($earlyGrace);
+
         return $time->between($startTime, $endTime);
     }
 
