@@ -193,13 +193,16 @@ class AttendanceSummary extends Model
             }
         }
 
-        // Calculate early leave minutes from last check-out vs scheduled end
+        // Calculate early leave minutes from last check-out vs scheduled end (with early grace)
         $earlyLeaveMinutes = 0;
         if ($lastCheckOut && $this->scheduled_end_time) {
             $scheduledEnd = \Carbon\Carbon::parse($this->scheduled_end_time)
                 ->setDate($lastCheckOut->year, $lastCheckOut->month, $lastCheckOut->day);
 
-            if ($lastCheckOut->lt($scheduledEnd)) {
+            $earlyGrace = (int) $this->companySetting($this->company, 'early_grace');
+            $scheduledEndWithGrace = $scheduledEnd->copy()->subMinutes($earlyGrace);
+
+            if ($lastCheckOut->lt($scheduledEndWithGrace)) {
                 $earlyLeaveMinutes = (int) abs($lastCheckOut->diffInMinutes($scheduledEnd));
             }
         }

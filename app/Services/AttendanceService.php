@@ -237,13 +237,31 @@ class AttendanceService
 
     public function autoCloseActiveSessions(): int
     {
-        $activeSessions = AttendanceSession::where('status', SessionStatus::Active)
-            ->whereDate('attendance_date', '<', today())
-            ->get();
+        $activeSessions = AttendanceSession::where('status', SessionStatus::Active)->get();
 
         $count = 0;
 
         foreach ($activeSessions as $session) {
+            $company = $session->company;
+
+            // Respect the per-company auto-close toggle
+            if ($company && !$company->auto_close) {
+                continue;
+            }
+
+            // Only close once the company's auto-close time has passed for that day
+            // (prior days are always past; today's sessions wait until auto_close_at)
+            $closeAt = Carbon::parse($this->companySetting($company, 'auto_close_at'))
+                ->setDate(
+                    $session->attendance_date->year,
+                    $session->attendance_date->month,
+                    $session->attendance_date->day
+                );
+
+            if (now()->lt($closeAt)) {
+                continue;
+            }
+
             $session->autoClose();
             $count++;
 

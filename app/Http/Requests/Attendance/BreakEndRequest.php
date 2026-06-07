@@ -19,7 +19,8 @@ class BreakEndRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'note' => 'nullable|string|max:255',
+            'note' => ['nullable', 'string', 'max:255'],
+            'client_ip' => ['nullable', 'ip'],
         ];
     }
 

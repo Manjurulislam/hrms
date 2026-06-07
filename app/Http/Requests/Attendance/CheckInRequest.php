@@ -18,11 +18,12 @@ class CheckInRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'location' => 'nullable|string|max:255',
-            'lat' => 'nullable|numeric|between:-90,90',
-            'long' => 'nullable|numeric|between:-180,180',
-            'note' => 'nullable|string|max:500',
-            'session_type' => 'nullable|in:regular,overtime,break_return',
+            'location' => ['nullable', 'string', 'max:255'],
+            'lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'long' => ['nullable', 'numeric', 'between:-180,180'],
+            'note' => ['nullable', 'string', 'max:500'],
+            'session_type' => ['nullable', 'in:regular,overtime,break_return'],
+            'client_ip' => ['nullable', 'ip'],
         ];
     }
 
@@ -35,7 +36,9 @@ class CheckInRequest extends FormRequest
             $this->validateOfficeHours($validator, $employee);
             $this->validateOfficeHoursNotCompleted($validator, $employee);
             $this->validateNoActiveSession($validator, $employee);
-            // $this->validateSessionGap($validator, $employee);
+            $this->validateOfficeNetwork($validator, $employee);
+            $this->validateLocationTracking($validator, $employee);
+            $this->validateSessionGap($validator, $employee);
             $this->validateMaxSessions($validator, $employee);
         });
     }
@@ -80,6 +83,44 @@ class CheckInRequest extends FormRequest
 
         if ($this->findActiveSession($employee)) {
             $validator->errors()->add('session', 'You already have an active session. Please check out first.');
+        }
+    }
+
+    private function validateLocationTracking($validator, $employee): void
+    {
+        if ($validator->errors()->isNotEmpty()) return;
+
+        $company = $employee->company;
+
+        // When location tracking is enabled, GPS coordinates are required to check in
+        if (!$company || !$company->track_location) return;
+
+        if (blank($this->input('lat')) || blank($this->input('long'))) {
+            $validator->errors()->add(
+                'location',
+                'Location is required to check in. Please enable GPS/location access.'
+            );
+        }
+    }
+
+    private function validateOfficeNetwork($validator, $employee): void
+    {
+        if ($validator->errors()->isNotEmpty()) return;
+
+        $company = $employee->company;
+
+        // Only enforce when IP tracking is enabled and an office IP is configured
+        if (!$company || !$company->track_ip || blank($company->office_ip)) return;
+
+        // Office-network restriction applies to in-office check-ins only;
+        // remote/WFH sessions (non-office location) are exempt
+        if ($this->input('location', 'office') !== 'office') return;
+
+        if ($this->ip() !== $company->office_ip) {
+            $validator->errors()->add(
+                'session',
+                'You can only check in from the office network.'
+            );
         }
     }
 

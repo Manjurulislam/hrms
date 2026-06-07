@@ -19,6 +19,18 @@ trait AttendanceValidation
         return $this->user()?->employee;
     }
 
+    // Real client public IP reported by the browser (ipify), falling back to the
+    // server-detected IP. Used for STORAGE only — never for the office-network gate,
+    // which must use the unforgeable server-side request()->ip().
+    protected function resolvedClientIp(): string
+    {
+        $clientIp = $this->input('client_ip');
+
+        return is_string($clientIp) && filter_var($clientIp, FILTER_VALIDATE_IP)
+            ? $clientIp
+            : $this->ip();
+    }
+
     protected function findActiveSession(Employee $employee): ?AttendanceSession
     {
         return AttendanceSession::where('employee_id', $employee->id)
