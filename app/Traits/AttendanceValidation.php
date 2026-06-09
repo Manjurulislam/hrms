@@ -22,7 +22,7 @@ trait AttendanceValidation
     // Real client public IP reported by the browser (ipify), falling back to the
     // server-detected IP. Used for STORAGE only — never for the office-network gate,
     // which must use the unforgeable server-side request()->ip().
-    protected function resolvedClientIp(): string
+    public function resolvedClientIp(): string
     {
         $clientIp = $this->input('client_ip');
 
