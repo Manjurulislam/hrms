@@ -37,7 +37,7 @@ class CheckInRequest extends FormRequest
             $this->validateOfficeHoursNotCompleted($validator, $employee);
             $this->validateNoActiveSession($validator, $employee);
             $this->validateOfficeNetwork($validator, $employee);
-            $this->validateLocationTracking($validator, $employee);
+            // $this->validateLocationTracking($validator, $employee); // GPS/location requirement disabled
             $this->validateSessionGap($validator, $employee);
             $this->validateMaxSessions($validator, $employee);
         });
@@ -86,22 +86,23 @@ class CheckInRequest extends FormRequest
         }
     }
 
-    private function validateLocationTracking($validator, $employee): void
-    {
-        if ($validator->errors()->isNotEmpty()) return;
-
-        $company = $employee->company;
-
-        // When location tracking is enabled, GPS coordinates are required to check in
-        if (!$company || !$company->track_location) return;
-
-        if (blank($this->input('lat')) || blank($this->input('long'))) {
-            $validator->errors()->add(
-                'location',
-                'Location is required to check in. Please enable GPS/location access.'
-            );
-        }
-    }
+    // GPS/location requirement disabled — kept for future use
+    // private function validateLocationTracking($validator, $employee): void
+    // {
+    //     if ($validator->errors()->isNotEmpty()) return;
+    //
+    //     $company = $employee->company;
+    //
+    //     // When location tracking is enabled, GPS coordinates are required to check in
+    //     if (!$company || !$company->track_location) return;
+    //
+    //     if (blank($this->input('lat')) || blank($this->input('long'))) {
+    //         $validator->errors()->add(
+    //             'location',
+    //             'Location is required to check in. Please enable GPS/location access.'
+    //         );
+    //     }
+    // }
 
     private function validateOfficeNetwork($validator, $employee): void
     {
