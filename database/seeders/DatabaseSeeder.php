@@ -12,14 +12,14 @@ class DatabaseSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
         $this->call([
-            CompanySeeder::class,
-            CompanyWorkingDaySeeder::class,
-            DepartmentSeeder::class,
-            DesignationSeeder::class,
-            HolidaySeeder::class,
-            LeaveTypeSeeder::class,
+//            CompanySeeder::class,
+//            CompanyWorkingDaySeeder::class,
+//            DepartmentSeeder::class,
+//            DesignationSeeder::class,
+//            HolidaySeeder::class,
+//            LeaveTypeSeeder::class,
             RoleSeeder::class,
-            EmployeeSeeder::class,
+//            EmployeeSeeder::class,
             UserSeeder::class,
         ]);
 
