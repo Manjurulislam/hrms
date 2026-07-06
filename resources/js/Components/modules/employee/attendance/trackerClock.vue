@@ -582,8 +582,10 @@ onUnmounted(() => {
                         {{ isWorking ? 'End Work' : 'Start Work' }}
                     </v-btn>
 
+                    <!-- Break button hidden — attendance is simple check-in/check-out only.
+                         Kept in place (v-if="false") so it can be re-enabled later. -->
                     <v-btn
-                        v-if="isWorking"
+                        v-if="false && isWorking"
                         :color="isOnBreak ? 'warning' : 'info'"
                         :disabled="isLoading"
                         :loading="isLoading && isOnBreak"

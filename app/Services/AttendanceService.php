@@ -298,10 +298,11 @@ class AttendanceService
         // Auto-close any prior-day Active rows so a forgotten check-out doesn't block today
         $this->closeStaleActiveRecords($employee, $today);
 
-        // Check if today is a holiday
-        if ($holiday = $this->findHolidayForDate($employee, $today)) {
-            return $this->error(AttendanceMessage::HolidayRestricted->with($holiday->name));
-        }
+        // Holidays no longer block check-in — employees may work on holidays and the
+        // attendance is recorded normally so management can see who worked.
+        // if ($holiday = $this->findHolidayForDate($employee, $today)) {
+        //     return $this->error(AttendanceMessage::HolidayRestricted->with($holiday->name));
+        // }
 
         // Check if employee is on approved leave
         if ($leave = $this->findApprovedLeaveForDate($employee, $today)) {
