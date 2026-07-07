@@ -1,0 +1,384 @@
+{
+  "info": {
+    "name": "HRMS Mobile Employee API (v1)",
+    "description": "Stateless REST API for the native employee mobile app (Laravel Sanctum bearer tokens).\n\nSetup:\n1. Set the `base_url` collection variable (default http://localhost:8000).\n2. Run **Auth → Login** — its test script stores the returned token in the `token` variable, and every other request uses it automatically.\n3. Set `leave_request_id` / `notice_id` variables where a path id is needed.\n\nAll endpoints are under the `/v1` prefix (no `/api`). Envelope: `{ success, message, data }` on success; `{ success, message, error: { code, details } }` on error.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "leave_request_id", "value": "1", "type": "string" },
+    { "key": "notice_id", "value": "1", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.success && res.data && res.data.token) {",
+                  "    pm.collectionVariables.set('token', res.data.token);",
+                  "    console.log('Token stored.');",
+                  "}",
+                  "pm.test('login succeeded', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"employee@example.com\",\n    \"password\": \"secret123\",\n    \"device_name\": \"postman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "auth", "login"]
+            },
+            "description": "email, password, device_name all required. Wrong credentials → 422; rate limited after 5 failures; no linked employee → 403."
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "auth", "logout"]
+            },
+            "description": "Revokes the current token only."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "dashboard"]
+            },
+            "description": "Returns officeHours, monthlyStats, todayData."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "Today",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/attendance/today",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "attendance", "today"]
+            }
+          }
+        },
+        {
+          "name": "Check In",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"lat\": 23.7808,\n    \"long\": 90.4142,\n    \"note\": \"field visit\",\n    \"location\": \"office\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/attendance/check-in",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "attendance", "check-in"]
+            },
+            "description": "All fields optional. No office-hours/network gate; lat/long stored only. Duplicate session / on leave / max sessions → 409/422."
+          }
+        },
+        {
+          "name": "Check Out",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"lat\": 23.7808,\n    \"long\": 90.4142,\n    \"note\": \"done\",\n    \"location\": \"office\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/attendance/check-out",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "attendance", "check-out"]
+            },
+            "description": "No active session → 409."
+          }
+        },
+        {
+          "name": "Monthly",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/attendance/monthly?month=2026-07",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "attendance", "monthly"],
+              "query": [{ "key": "month", "value": "2026-07" }]
+            },
+            "description": "month required, format YYYY-MM."
+          }
+        },
+        {
+          "name": "Records",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/attendance/records?months=3",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "attendance", "records"],
+              "query": [{ "key": "months", "value": "3" }]
+            },
+            "description": "months optional (1-12, default 3)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leave",
+      "item": [
+        {
+          "name": "List (my requests)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/leave?per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "leave"],
+              "query": [{ "key": "per_page", "value": "20" }]
+            }
+          }
+        },
+        {
+          "name": "Types",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/leave/types",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "leave", "types"]
+            }
+          }
+        },
+        {
+          "name": "Balance",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/leave/balance?year=2026",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "leave", "balance"],
+              "query": [{ "key": "year", "value": "2026" }]
+            }
+          }
+        },
+        {
+          "name": "Apply",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('leave_request_id', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"leave_type_id\": 1,\n    \"title\": \"Family trip\",\n    \"notes\": \"Out of town\",\n    \"started_at\": \"2026-07-20\",\n    \"ended_at\": \"2026-07-22\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/leave",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "leave"]
+            },
+            "description": "All fields required; ended_at >= started_at. No working days / insufficient balance / overlap → 422."
+          }
+        },
+        {
+          "name": "Cancel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/leave/{{leave_request_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "leave", "{{leave_request_id}}", "cancel"]
+            },
+            "description": "Owner only, within cancel window, before any approval action. Not owner → 403; not cancellable → 422."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leave Approvals",
+      "item": [
+        {
+          "name": "Approvals (awaiting me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/leave/approvals",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "leave", "approvals"]
+            }
+          }
+        },
+        {
+          "name": "Show approval",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/leave/approvals/{{leave_request_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "leave", "approvals", "{{leave_request_id}}"]
+            },
+            "description": "Not the current approver → 403."
+          }
+        },
+        {
+          "name": "Approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"remarks\": \"Approved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/leave/approvals/{{leave_request_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "leave", "approvals", "{{leave_request_id}}", "approve"]
+            },
+            "description": "remarks optional. Not authorized → 403."
+          }
+        },
+        {
+          "name": "Reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"remarks\": \"Insufficient coverage\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/leave/approvals/{{leave_request_id}}/reject",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "leave", "approvals", "{{leave_request_id}}", "reject"]
+            },
+            "description": "remarks required. Not authorized → 403."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notices",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/notices?per_page=10",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "notices"],
+              "query": [{ "key": "per_page", "value": "10" }]
+            }
+          }
+        },
+        {
+          "name": "Show",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/v1/notices/{{notice_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "notices", "{{notice_id}}"]
+            },
+            "description": "Not visible to the employee → 404."
+          }
+        }
+      ]
+    }
+  ]
+}
