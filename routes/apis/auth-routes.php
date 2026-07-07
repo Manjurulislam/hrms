@@ -1,4 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\Auth\LoginController;
+use App\Http\Controllers\Api\Auth\LogoutController;
+use App\Http\Controllers\Api\Auth\MeController;
 use Illuminate\Support\Facades\Route;
-// filled in a later task
+
+Route::prefix('auth')->group(function () {
+    Route::post('login', LoginController::class);
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('logout', LogoutController::class);
+        Route::get('me', MeController::class);
+    });
+});
