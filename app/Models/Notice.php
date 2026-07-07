@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -55,5 +56,19 @@ class Notice extends Model
             $q->whereNull('expired_at')
               ->orWhere('expired_at', '>=', now()->toDateString());
         });
+    }
+
+    /**
+     * Notices an employee may see: active, published, not expired, in their
+     * company, and either company-wide or targeted at their department.
+     */
+    public function scopeVisibleTo(Builder $query, Employee $employee): Builder
+    {
+        return $query->active()
+            ->published()
+            ->notExpired()
+            ->where('company_id', $employee->company_id)
+            ->where(fn ($q) => $q->whereNull('department_id')
+                ->orWhere('department_id', $employee->department_id));
     }
 }
