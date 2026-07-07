@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,6 +21,14 @@ class LeaveType extends Model
         'status'       => 'boolean',
         'max_per_year' => 'integer',
     ];
+
+    /** Active leave types for a company, ordered by name. */
+    public function scopeActiveForCompany(Builder $query, int $companyId): Builder
+    {
+        return $query->where('company_id', $companyId)
+            ->where('status', true)
+            ->orderBy('name');
+    }
 
     public function company(): BelongsTo
     {
