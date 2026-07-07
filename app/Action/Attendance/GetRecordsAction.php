@@ -16,8 +16,8 @@ class GetRecordsAction
         $months = max(1, min($months, 12));
         $from   = today()->startOfMonth()->subMonths($months - 1);
 
-        $summaries = AttendanceSummary::where('employee_id', $employee->id)
-            ->where('attendance_date', '>=', $from)
+        $summaries = AttendanceSummary::forEmployee($employee->id)
+            ->since($from)
             ->orderByDesc('attendance_date')
             ->get();
 

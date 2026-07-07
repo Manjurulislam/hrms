@@ -13,21 +13,20 @@ class GetMonthlyAction
      */
     public function execute(Employee $employee, int $year, int $month): array
     {
-        $summaries = AttendanceSummary::where('employee_id', $employee->id)
-            ->whereYear('attendance_date', $year)
-            ->whereMonth('attendance_date', $month)
+        $summaries = AttendanceSummary::forEmployee($employee->id)
+            ->forMonth($year, $month)
             ->orderBy('attendance_date')
             ->get();
 
         return [
-            'month'   => sprintf('%04d-%02d', $year, $month),
-            'totals'  => [
+            'month'  => sprintf('%04d-%02d', $year, $month),
+            'totals' => [
                 'present_days'          => $summaries->where('total_sessions', '>', 0)->count(),
                 'total_working_minutes' => (int) $summaries->sum('total_working_minutes'),
                 'overtime_minutes'      => (int) $summaries->sum('overtime_minutes'),
                 'late_minutes'          => (int) $summaries->sum('late_minutes'),
             ],
-            'days'    => AttendanceSummaryResource::collection($summaries),
+            'days'   => AttendanceSummaryResource::collection($summaries),
         ];
     }
 }

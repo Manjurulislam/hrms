@@ -116,6 +116,16 @@ class AttendanceSummary extends Model
             ->whereMonth('attendance_date', $month);
     }
 
+    public function scopeForEmployee($query, $employeeId)
+    {
+        return $query->where('employee_id', $employeeId);
+    }
+
+    public function scopeSince($query, $date)
+    {
+        return $query->where('attendance_date', '>=', $date);
+    }
+
     public function recalculate(): void
     {
         // Get ALL sessions for the day (including active ones for first_check_in)
