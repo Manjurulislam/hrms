@@ -4,7 +4,7 @@
 use App\Http\Controllers\Backend\EmployeeAttendanceController;
 use App\Http\Controllers\Employee\LeaveController;
 use App\Http\Controllers\Employee\NoticeController as EmpNoticeController;
-use App\Http\Controllers\Api\AttendanceRecordController;
+use App\Http\Controllers\Api\Attendance\AttendanceRecordController;
 
 
 Route::controller(EmployeeAttendanceController::class)->name('emp-attendance.')
