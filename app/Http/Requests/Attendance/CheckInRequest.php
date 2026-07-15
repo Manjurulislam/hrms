@@ -33,7 +33,7 @@ class CheckInRequest extends FormRequest
             $employee = $this->getEmployee();
             if (!$employee) return;
 
-            $this->validateOfficeHours($validator, $employee);
+            $this->validateCheckInWindow($validator, $employee);
             $this->validateOfficeHoursNotCompleted($validator, $employee);
             $this->validateNoActiveSession($validator, $employee);
             $this->validateOfficeNetwork($validator, $employee);
@@ -43,18 +43,18 @@ class CheckInRequest extends FormRequest
         });
     }
 
-    private function validateOfficeHours($validator, $employee): void
+    private function validateCheckInWindow($validator, $employee): void
     {
         if ($validator->errors()->isNotEmpty()) return;
 
-        // Skip office hours check for overtime sessions so employees can check in outside regular hours
+        // Skip the window for overtime sessions so employees can work outside regular hours
         if ($this->input('session_type') === 'overtime') return;
 
-        if (!$this->isWithinOfficeHours($employee)) {
-            $range = $this->getOfficeTimeRange($employee);
+        if (!$this->isWithinCheckInWindow($employee)) {
+            $range = $this->getCheckInWindowRange($employee);
             $validator->errors()->add(
                 'session',
-                "You can only start work during office hours ({$range['start']} - {$range['end']})."
+                "You can only check in between {$range['start']} and {$range['end']}."
             );
         }
     }

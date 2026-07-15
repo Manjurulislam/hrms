@@ -1,6 +1,6 @@
 <script setup>
 import {Head, useForm} from '@inertiajs/vue3';
-import {onMounted} from 'vue';
+import {computed, onMounted} from 'vue';
 import {useToast} from 'vue-toastification';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 import CardTitle from '@/Components/common/card/CardTitle.vue';
@@ -8,7 +8,8 @@ import TextInput from '@/Components/common/form/TextInput.vue';
 
 const toast = useToast();
 const props = defineProps({
-    item: Object
+    item: Object,
+    office_ip: String,
 });
 
 let form = useForm({
@@ -20,24 +21,31 @@ let form = useForm({
     website: '',
     office_start: '',
     office_end: '',
-    work_hours: 8,
-    half_day_hours: 4,
-    late_grace: 15,
+    work_hours: 9,
+    half_day_hours: 5,
+    late_grace: 30,
     early_grace: 15,
-    max_sessions: 10,
-    min_session_gap: 2,
-    max_breaks: 5,
-    auto_close: true,
-    auto_close_at: '23:59',
     track_ip: true,
     track_location: true,
 });
 
+// Working hours/day = office end − office start (rounded to whole hours)
+const workHours = computed(() => {
+    const {office_start: start, office_end: end} = form;
+    if (!start || !end) return 0;
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    let minutes = (eh * 60 + em) - (sh * 60 + sm);
+    if (minutes < 0) minutes += 24 * 60; // overnight shift
+    return Math.round(minutes / 60);
+});
+
 const submit = () => {
-    form.put(route('companies.update', props.item.id), {
-        onSuccess: () => toast('Company has been updated successfully.'),
-        onError: () => toast.error('Something is wrong. Please try again.')
-    });
+    form.transform((data) => ({...data, work_hours: workHours.value}))
+        .put(route('companies.update', props.item.id), {
+            onSuccess: () => toast('Company has been updated successfully.'),
+            onError: () => toast.error('Something is wrong. Please try again.')
+        });
 };
 
 onMounted(() => {
@@ -71,16 +79,13 @@ onMounted(() => {
                                             <TextInput v-model="form.name" :error-messages="form.errors.name" label="Name"/>
                                         </v-col>
                                         <v-col cols="12" md="6">
-                                            <TextInput v-model="form.code" :error-messages="form.errors.code" label="Code"/>
-                                        </v-col>
-                                        <v-col cols="12" md="6">
                                             <TextInput v-model="form.email" :error-messages="form.errors.email" label="Email" type="email"/>
                                         </v-col>
                                         <v-col cols="12" md="6">
                                             <TextInput v-model="form.phone" :error-messages="form.errors.phone" label="Phone" type="tel"/>
                                         </v-col>
                                         <v-col cols="12" md="6">
-                                            <TextInput v-model="form.website" :error-messages="form.errors.website" label="Website" placeholder="https://example.com" type="url"/>
+                                            <TextInput v-model="form.code" :error-messages="form.errors.code" label="Code"/>
                                         </v-col>
                                         <v-col cols="12" md="6">
                                             <v-textarea
@@ -95,10 +100,74 @@ onMounted(() => {
                                                 class="pb-3"
                                             />
                                         </v-col>
+                                        <v-col cols="12" md="6">
+                                            <TextInput v-model="form.website" :error-messages="form.errors.website" label="Website" placeholder="https://example.com" type="url"/>
+                                        </v-col>
                                     </v-row>
                                 </v-card-text>
                             </v-card>
 
+                            <!-- Office Schedule -->
+                            <v-card variant="outlined" class="mb-5">
+                                <v-toolbar density="compact" color="transparent" class="border-b">
+                                    <v-icon class="ml-4" size="small">mdi-clock-outline</v-icon>
+                                    <v-toolbar-title class="text-body-2 font-weight-bold">Office Schedule</v-toolbar-title>
+                                </v-toolbar>
+                                <v-card-text>
+                                    <v-row dense>
+                                        <v-col cols="12" md="6">
+                                            <v-label class="mb-2 font-weight-medium text-caption">Office Start</v-label>
+                                            <el-time-picker
+                                                v-model="form.office_start"
+                                                format="hh:mm A"
+                                                value-format="HH:mm"
+                                                placeholder="Start Time"
+                                                size="large"
+                                                style="width: 100%"
+                                            />
+                                            <div v-if="form.errors.office_start" class="text-error text-caption mt-1">{{ form.errors.office_start }}</div>
+                                        </v-col>
+                                        <v-col cols="12" md="6">
+                                            <v-label class="mb-2 font-weight-medium text-caption">Office End</v-label>
+                                            <el-time-picker
+                                                v-model="form.office_end"
+                                                format="hh:mm A"
+                                                value-format="HH:mm"
+                                                placeholder="End Time"
+                                                size="large"
+                                                style="width: 100%"
+                                            />
+                                            <div v-if="form.errors.office_end" class="text-error text-caption mt-1">{{ form.errors.office_end }}</div>
+                                        </v-col>
+                                    </v-row>
+
+                                    <v-divider class="my-4"/>
+                                    <v-row dense>
+                                        <v-col cols="12" md="6">
+                                            <v-text-field
+                                                :model-value="workHours"
+                                                :error-messages="form.errors.work_hours"
+                                                label="Working Hours/Day"
+                                                type="number"
+                                                readonly
+                                                density="compact"
+                                                hide-details="auto"
+                                                class="pb-3"
+                                                hint="Auto-calculated from office start & end"
+                                                persistent-hint
+                                            />
+                                        </v-col>
+                                        <v-col cols="12" md="6">
+                                            <TextInput v-model.number="form.half_day_hours" :error-messages="form.errors.half_day_hours" label="Half Day Hours" type="number"/>
+                                        </v-col>
+                                    </v-row>
+                                </v-card-text>
+                            </v-card>
+
+                        </v-col>
+
+                        <!-- Right Column -->
+                        <v-col cols="12" md="4">
                             <!-- Attendance Rules -->
                             <v-card variant="outlined" class="mb-5">
                                 <v-toolbar density="compact" color="transparent" class="border-b">
@@ -108,97 +177,37 @@ onMounted(() => {
                                 <v-card-text>
                                     <div class="text-subtitle-2 text-medium-emphasis mb-3">Grace Periods</div>
                                     <v-row dense>
-                                        <v-col cols="12" md="4">
+                                        <v-col cols="12" md="6">
                                             <TextInput v-model.number="form.late_grace" :error-messages="form.errors.late_grace" label="Late Grace (min)" type="number"/>
                                         </v-col>
-                                        <v-col cols="12" md="4">
+                                        <v-col cols="12" md="6">
                                             <TextInput v-model.number="form.early_grace" :error-messages="form.errors.early_grace" label="Early Leave Grace (min)" type="number"/>
                                         </v-col>
                                     </v-row>
-
-                                    <v-divider class="my-4"/>
-                                    <div class="text-subtitle-2 text-medium-emphasis mb-3">Limits</div>
-                                    <v-row dense>
-                                        <v-col cols="12" md="4">
-                                            <TextInput v-model.number="form.max_sessions" :error-messages="form.errors.max_sessions" label="Max Sessions/Day" type="number"/>
-                                        </v-col>
-                                        <v-col cols="12" md="4">
-                                            <TextInput v-model.number="form.min_session_gap" :error-messages="form.errors.min_session_gap" label="Min Gap (min)" type="number"/>
-                                        </v-col>
-                                        <v-col cols="12" md="4">
-                                            <TextInput v-model.number="form.max_breaks" :error-messages="form.errors.max_breaks" label="Max Breaks/Day" type="number"/>
-                                        </v-col>
-                                    </v-row>
-                                </v-card-text>
-                            </v-card>
-                        </v-col>
-
-                        <!-- Right Column -->
-                        <v-col cols="12" md="4">
-                            <!-- Office Schedule -->
-                            <v-card variant="outlined" class="mb-5">
-                                <v-toolbar density="compact" color="transparent" class="border-b">
-                                    <v-icon class="ml-4" size="small">mdi-clock-outline</v-icon>
-                                    <v-toolbar-title class="text-body-2 font-weight-bold">Office Schedule</v-toolbar-title>
-                                </v-toolbar>
-                                <v-card-text>
-                                    <v-label class="mb-2 font-weight-medium text-caption">Office Start</v-label>
-                                    <el-time-picker
-                                        v-model="form.office_start"
-                                        format="hh:mm A"
-                                        value-format="HH:mm"
-                                        placeholder="Start Time"
-                                        size="large"
-                                        style="width: 100%"
-                                    />
-                                    <div v-if="form.errors.office_start" class="text-error text-caption mt-1">{{ form.errors.office_start }}</div>
-
-                                    <v-label class="mb-2 mt-4 font-weight-medium text-caption">Office End</v-label>
-                                    <el-time-picker
-                                        v-model="form.office_end"
-                                        format="hh:mm A"
-                                        value-format="HH:mm"
-                                        placeholder="End Time"
-                                        size="large"
-                                        style="width: 100%"
-                                    />
-                                    <div v-if="form.errors.office_end" class="text-error text-caption mt-1">{{ form.errors.office_end }}</div>
-
-                                    <v-divider class="my-4"/>
-                                    <TextInput v-model.number="form.work_hours" :error-messages="form.errors.work_hours" label="Working Hours/Day" type="number"/>
-                                    <TextInput v-model.number="form.half_day_hours" :error-messages="form.errors.half_day_hours" label="Half Day Hours" type="number"/>
-
-                                    <!-- Office IP (if set) -->
-                                    <div v-if="item.office_ip" class="mt-3">
-                                        <v-chip size="small" variant="tonal" color="info" prepend-icon="mdi-ip-network">
-                                            Office IP: {{ item.office_ip }}
-                                        </v-chip>
+                                    <div class="text-caption text-medium-emphasis">
+                                        Late grace: 0–60 min. Arriving later than the grace period is marked
+                                        <strong>Late</strong>.
                                     </div>
                                 </v-card-text>
                             </v-card>
 
-                            <!-- Auto Close & Tracking -->
+                            <!-- Tracking -->
                             <v-card variant="outlined" class="mb-5">
                                 <v-toolbar density="compact" color="transparent" class="border-b">
                                     <v-icon class="ml-4" size="small">mdi-cog-outline</v-icon>
-                                    <v-toolbar-title class="text-body-2 font-weight-bold">Auto Close & Tracking</v-toolbar-title>
+                                    <v-toolbar-title class="text-body-2 font-weight-bold">Tracking</v-toolbar-title>
                                 </v-toolbar>
                                 <v-card-text>
-                                    <v-switch v-model="form.auto_close" color="primary" density="compact" hide-details label="Auto Close Sessions"/>
-                                    <div v-if="form.auto_close" class="mt-3">
-                                        <v-label class="mb-2 font-weight-medium text-caption">Auto Close Time</v-label>
-                                        <el-time-picker
-                                            v-model="form.auto_close_at"
-                                            format="hh:mm A"
-                                            value-format="HH:mm"
-                                            placeholder="Auto Close Time"
-                                            size="large"
-                                            style="width: 100%"
-                                        />
-                                    </div>
-                                    <v-divider class="my-4"/>
                                     <v-switch v-model="form.track_ip" color="primary" density="compact" hide-details label="Track IP Address" class="mb-2"/>
                                     <v-switch v-model="form.track_location" color="primary" density="compact" hide-details label="Track Location"/>
+                                    <div v-if="office_ip" class="mt-4">
+                                        <v-label class="mb-2 font-weight-medium text-caption">Office IP</v-label>
+                                        <div>
+                                            <v-chip size="small" variant="tonal" color="info" prepend-icon="mdi-ip-network">
+                                                {{ office_ip }}
+                                            </v-chip>
+                                        </div>
+                                    </div>
                                 </v-card-text>
                             </v-card>
                         </v-col>

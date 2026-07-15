@@ -77,16 +77,16 @@ trait AttendanceValidation
             ->count();
     }
 
-    protected function isWithinOfficeHours(Employee $employee): bool
+    protected function isWithinCheckInWindow(Employee $employee): bool
     {
-        return app(WorkScheduleService::class)->isWithinOfficeHours($employee);
+        return app(WorkScheduleService::class)->isWithinCheckInWindow($employee);
     }
 
-    protected function getOfficeTimeRange(Employee $employee): array
+    protected function getCheckInWindowRange(Employee $employee): array
     {
         $company = $employee->company;
 
-        $start = Carbon::parse($this->companySetting($company, 'office_start'))->format('g:i A');
+        $start = Carbon::parse($this->companySetting($company, 'check_in_open'))->format('g:i A');
         $end   = Carbon::parse($this->companySetting($company, 'office_end'))->format('g:i A');
 
         return ['start' => $start, 'end' => $end];

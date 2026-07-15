@@ -11,7 +11,7 @@ class CatchIPService
     public function getPublicIp(): ?string
     {
         try {
-            $response = Http::get('https://api.ipify.org');
+            $response = Http::timeout(3)->get('https://api.ipify.org');
             return $response->body();
         } catch (Exception $e) {
             Log::error('Failed to get public IP: ' . $e->getMessage());

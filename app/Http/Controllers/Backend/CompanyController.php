@@ -32,7 +32,7 @@ class CompanyController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('Backend/Company/create');
+        return Inertia::render('Backend/Company/create', $this->service->formData());
     }
 
     public function store(CompanyRequest $request): RedirectResponse

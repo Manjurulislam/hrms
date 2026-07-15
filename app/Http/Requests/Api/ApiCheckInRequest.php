@@ -26,8 +26,10 @@ class ApiCheckInRequest extends FormRequest
     }
 
     /**
-     * Mobile check-in keeps ONLY the daily max-sessions guard — no office-hours
-     * or office-network gates. lat/long are stored, never used to gate.
+     * Mobile check-in enforces the check-in window (no check-in after office hours,
+     * allowed from check_in_open until office_end) and the daily max-sessions guard.
+     * No office-network gate — mobile employees may check in from anywhere.
+     * lat/long are stored, never used to gate.
      */
     public function withValidator(Validator $validator): void
     {
@@ -35,6 +37,14 @@ class ApiCheckInRequest extends FormRequest
             $employee = $this->getEmployee();
 
             if (! $employee) {
+                return;
+            }
+
+            // No check-in outside the check-in window (check_in_open → office_end).
+            if (! $this->isWithinCheckInWindow($employee)) {
+                $range = $this->getCheckInWindowRange($employee);
+                $validator->errors()->add('session', "You can only check in between {$range['start']} and {$range['end']}.");
+
                 return;
             }
 

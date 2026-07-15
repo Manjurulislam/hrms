@@ -20,9 +20,9 @@ return new class extends Migration {
             $table->ipAddress('office_ip')->nullable();
 
             // Attendance settings
-            $table->unsignedTinyInteger('work_hours')->default(8);
-            $table->unsignedTinyInteger('half_day_hours')->default(4);
-            $table->unsignedTinyInteger('late_grace')->default(15);
+            $table->unsignedTinyInteger('work_hours')->default(9);
+            $table->unsignedTinyInteger('half_day_hours')->default(5);
+            $table->unsignedTinyInteger('late_grace')->default(30);
             $table->unsignedTinyInteger('early_grace')->default(15);
             $table->unsignedTinyInteger('max_sessions')->default(10);
             $table->unsignedTinyInteger('min_session_gap')->default(2);

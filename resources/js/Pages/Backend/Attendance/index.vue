@@ -29,8 +29,6 @@ const state = reactive({
         {title: 'Check In', key: 'first_check_in_display'},
         {title: 'Check Out', key: 'last_check_out_display'},
         {title: 'Working', key: 'working_hours'},
-        {title: 'Break', key: 'break_hours'},
-        {title: 'Sessions', key: 'total_sessions'},
         {title: 'Status', key: 'status_label', sortable: false},
         {title: 'Actions', key: 'actions', sortable: false, width: '5%'},
     ],

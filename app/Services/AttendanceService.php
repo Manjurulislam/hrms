@@ -211,6 +211,11 @@ class AttendanceService
 
     public function getTodayCompleteData(Employee $employee): array
     {
+        // No scheduler runs in this deployment, so this is the safety net for a
+        // forgotten check-out: whenever the employee opens their attendance (on
+        // login / app open), close any stale prior-day session and fix its summary.
+        $this->closeStaleActiveRecords($employee, today());
+
         $sessions      = $this->getTodaySessions($employee);
         $activeSession = $sessions->where('status', SessionStatus::Active)->first();
         $activeBreak   = $this->findActiveBreak($employee);
@@ -367,23 +372,39 @@ class AttendanceService
     // Auto-close any active session/break from a previous day so today's check-in isn't blocked
     private function closeStaleActiveRecords(Employee $employee, Carbon $today): void
     {
+        $affectedDates = collect();
+
         AttendanceSession::forEmployee($employee->id)
             ->active()
             ->whereDate('attendance_date', '<', $today)
             ->get()
-            ->each(fn($session) => $session->autoClose());
+            ->each(function ($session) use ($affectedDates) {
+                $session->autoClose();
+                $affectedDates->push($session->attendance_date->toDateString());
+            });
 
         AttendanceBreak::where('employee_id', $employee->id)
             ->where('status', BreakStatus::Active)
             ->whereDate('attendance_date', '<', $today)
             ->get()
-            ->each(function ($break) {
+            ->each(function ($break) use ($affectedDates) {
                 $break->update([
                     'break_end'     => $break->break_start,
                     'status'        => BreakStatus::Completed,
                     'break_end_ip'  => null,
                 ]);
+                $affectedDates->push($break->attendance_date->toDateString());
             });
+
+        // autoClose() updates the session but not the daily summary, which would
+        // otherwise stay frozen at its check-in snapshot (0 min / Absent) for the
+        // forgotten-checkout day. Recalculate each affected day's summary.
+        $affectedDates->unique()->each(function ($date) use ($employee) {
+            AttendanceSummary::where('employee_id', $employee->id)
+                ->whereDate('attendance_date', $date)
+                ->first()
+                ?->recalculate();
+        });
     }
 
     // Get all sessions for employee today

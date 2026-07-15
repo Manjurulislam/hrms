@@ -3,8 +3,11 @@
 namespace App\Models;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\LeaveRequestStatus;
 use App\Enums\SessionStatus;
+use App\Services\WorkScheduleService;
 use App\Traits\CompanySettings;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -136,9 +139,10 @@ class AttendanceSummary extends Model
 
         if ($allSessions->isEmpty()) {
             $this->update([
-                'status'                => AttendanceStatus::Absent,
+                'status'                => $this->determineStatus(0, false, false, false),
                 'total_working_minutes' => 0,
                 'total_sessions'        => 0,
+                'is_working_day'        => $this->isWorkingDay(),
             ]);
             return;
         }
@@ -187,15 +191,22 @@ class AttendanceSummary extends Model
             ->values()
             ->toArray();
 
-        $standardMinutes = $this->companySetting($this->company, 'work_hours') * 60;
-        $overtimeMinutes = max(0, $totalMinutes - $standardMinutes);
+        // On a non-working day (holiday/weekend) the whole day is extra work, so all
+        // worked minutes are overtime. On a working day, only time beyond the standard
+        // working day (derived from office start/end).
+        $isWorkingDay    = $this->isWorkingDay();
+        $overtimeMinutes = $isWorkingDay
+            ? max(0, $totalMinutes - $this->fullDayMinutes())
+            : $totalMinutes;
 
-        // Calculate late minutes from first check-in vs scheduled start
-        $lateMinutes = 0;
+        // Calculate late minutes from first check-in vs scheduled start, using the
+        // company's CURRENT late-grace policy (not the value snapshotted at check-in,
+        // which goes stale when the policy changes).
+        $graceMinutes = (int) $this->companySetting($this->company, 'late_grace');
+        $lateMinutes  = 0;
         if ($firstCheckIn && $this->scheduled_start_time) {
-            $scheduledStart = \Carbon\Carbon::parse($this->scheduled_start_time)
+            $scheduledStart = Carbon::parse($this->scheduled_start_time)
                 ->setDate($firstCheckIn->year, $firstCheckIn->month, $firstCheckIn->day);
-            $graceMinutes = $this->grace_minutes ?? 0;
             $scheduledStartWithGrace = $scheduledStart->copy()->addMinutes($graceMinutes);
 
             if ($firstCheckIn->gt($scheduledStartWithGrace)) {
@@ -206,7 +217,7 @@ class AttendanceSummary extends Model
         // Calculate early leave minutes from last check-out vs scheduled end (with early grace)
         $earlyLeaveMinutes = 0;
         if ($lastCheckOut && $this->scheduled_end_time) {
-            $scheduledEnd = \Carbon\Carbon::parse($this->scheduled_end_time)
+            $scheduledEnd = Carbon::parse($this->scheduled_end_time)
                 ->setDate($lastCheckOut->year, $lastCheckOut->month, $lastCheckOut->day);
 
             $earlyGrace = (int) $this->companySetting($this->company, 'early_grace');
@@ -217,9 +228,11 @@ class AttendanceSummary extends Model
             }
         }
 
-        // Determine status
+        // Determine status by precedence: leave → holiday → weekend → in-progress →
+        // absent → present/late/half-day. Lateness is carried by late_minutes.
         $netWorkingMinutes = $totalMinutes - $breakMinutes;
-        $status            = $this->determineStatus($netWorkingMinutes);
+        $inProgress        = $allSessions->contains('status', SessionStatus::Active);
+        $status            = $this->determineStatus($netWorkingMinutes, $inProgress, $lateMinutes > 0, $earlyLeaveMinutes > 0);
 
         // Update summary
         $this->update([
@@ -230,8 +243,10 @@ class AttendanceSummary extends Model
             'overtime_minutes'      => $overtimeMinutes,
             'late_minutes'          => $lateMinutes,
             'early_leave_minutes'   => $earlyLeaveMinutes,
+            'grace_minutes'         => $graceMinutes,
             'total_sessions'        => $allSessions->count(),
             'status'                => $status,
+            'is_working_day'        => $isWorkingDay,
             'ip_addresses'          => $ipAddresses,
             'locations'             => $locations,
         ]);
@@ -246,21 +261,89 @@ class AttendanceSummary extends Model
             ->orderBy('session_number');
     }
 
-    private function determineStatus($netWorkingMinutes): AttendanceStatus
+    // Resolve the day's status by precedence (first match wins). Status is driven by
+    // arrival (on time vs late) and whether the employee stayed the full day (vs
+    // leaving early) — not by a strict minute count against the scheduled hours.
+    // `Late` = worked a working day but arrived after the grace period.
+    private function determineStatus(int $netWorkingMinutes, bool $inProgress, bool $isLate, bool $leftEarly): AttendanceStatus
     {
-        $hours   = $netWorkingMinutes / 60;
-        $fullDay = $this->companySetting($this->company, 'work_hours');
-        $halfDay = $this->companySetting($this->company, 'half_day_hours');
+        // 1. Approved leave.
+        if ($this->hasApprovedLeave()) {
+            return AttendanceStatus::Leave;
+        }
 
-        if ($hours >= $fullDay) {
-            return AttendanceStatus::Present;
-        } elseif ($hours >= $halfDay) {
-            return AttendanceStatus::HalfDay;
-        } elseif ($hours > 0) {
+        // 2. Holiday / 3. Weekend — worked hours become overtime (see recalculate),
+        //    but the day keeps its Holiday/Weekend label so the calendar is honest.
+        if ($this->isHoliday()) {
+            return AttendanceStatus::Holiday;
+        }
+
+        if (!$this->isWorkingDay()) {
+            return AttendanceStatus::Weekend;
+        }
+
+        // Working day from here.
+        // Still checked in (in progress): Late if they arrived late, else Present.
+        if ($inProgress) {
+            return $isLate ? AttendanceStatus::Late : AttendanceStatus::Present;
+        }
+
+        // No work recorded → Absent.
+        if ($netWorkingMinutes <= 0) {
+            return AttendanceStatus::Absent;
+        }
+
+        // Arrived late → Late, regardless of how many hours were worked.
+        if ($isLate) {
             return AttendanceStatus::Late;
         }
 
-        return AttendanceStatus::Absent;
+        // On time and stayed the full day (not an early leave) → Present.
+        if (!$leftEarly) {
+            return AttendanceStatus::Present;
+        }
+
+        // On time but left early → Half Day if at least half the day was worked,
+        // otherwise Absent.
+        $halfMinutes = (int) $this->companySetting($this->company, 'half_day_hours') * 60;
+
+        return $netWorkingMinutes >= $halfMinutes
+            ? AttendanceStatus::HalfDay
+            : AttendanceStatus::Absent;
+    }
+
+    // Full working day in minutes, always taken from the company work_hours setting.
+    private function fullDayMinutes(): int
+    {
+        return (int) $this->companySetting($this->company, 'work_hours') * 60;
+    }
+
+    // Working day for this employee/date (holiday & weekend aware)
+    private function isWorkingDay(): bool
+    {
+        return $this->employee
+            ? app(WorkScheduleService::class)->isWorkingDay($this->employee, $this->attendance_date)
+            : true;
+    }
+
+    private function isHoliday(): bool
+    {
+        return $this->employee
+            ? app(WorkScheduleService::class)->isHoliday($this->employee, $this->attendance_date)
+            : false;
+    }
+
+    private function hasApprovedLeave(): bool
+    {
+        if (!$this->employee_id) {
+            return false;
+        }
+
+        return LeaveRequest::where('employee_id', $this->employee_id)
+            ->where('status', LeaveRequestStatus::Approved)
+            ->whereDate('started_at', '<=', $this->attendance_date)
+            ->whereDate('ended_at', '>=', $this->attendance_date)
+            ->exists();
     }
 
     public function addIpAddress($ip): void

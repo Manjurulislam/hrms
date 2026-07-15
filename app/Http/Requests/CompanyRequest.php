@@ -15,9 +15,8 @@ class CompanyRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'office_start'  => $this->office_start ? substr($this->office_start, 0, 5) : null,
-            'office_end'    => $this->office_end ? substr($this->office_end, 0, 5) : null,
-            'auto_close_at' => $this->auto_close_at ? substr($this->auto_close_at, 0, 5) : null,
+            'office_start' => $this->office_start ? substr($this->office_start, 0, 5) : null,
+            'office_end'   => $this->office_end ? substr($this->office_end, 0, 5) : null,
         ]);
     }
 
@@ -36,13 +35,8 @@ class CompanyRequest extends FormRequest
             'office_ip'       => ['nullable', 'ip'],
             'work_hours'      => ['nullable', 'integer', 'min:1', 'max:24'],
             'half_day_hours'  => ['nullable', 'integer', 'min:1', 'max:12'],
-            'late_grace'      => ['nullable', 'integer', 'min:0', 'max:120'],
+            'late_grace'      => ['nullable', 'integer', 'min:0', 'max:60'],
             'early_grace'     => ['nullable', 'integer', 'min:0', 'max:120'],
-            'max_sessions'    => ['nullable', 'integer', 'min:1', 'max:50'],
-            'min_session_gap' => ['nullable', 'integer', 'min:0', 'max:60'],
-            'max_breaks'      => ['nullable', 'integer', 'min:1', 'max:50'],
-            'auto_close'      => ['boolean'],
-            'auto_close_at'   => ['nullable', 'date_format:H:i'],
             'track_ip'        => ['boolean'],
             'track_location'  => ['boolean'],
             'status'          => ['boolean'],
@@ -64,10 +58,6 @@ class CompanyRequest extends FormRequest
             'half_day_hours'  => 'half day hours',
             'late_grace'      => 'late grace period',
             'early_grace'     => 'early leave grace',
-            'max_sessions'    => 'max sessions per day',
-            'min_session_gap' => 'min session gap',
-            'max_breaks'      => 'max breaks per day',
-            'auto_close_at'   => 'auto close time',
         ];
     }
 

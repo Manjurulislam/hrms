@@ -54,7 +54,9 @@ class CompanyService
 
     public function formData(?Company $company = null): array
     {
-        $data = [];
+        $data = [
+            'office_ip' => $this->resolveOfficeIp($company?->office_ip),
+        ];
 
         if ($company) {
             $data['item'] = $company;
