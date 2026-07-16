@@ -25,14 +25,14 @@ const state = reactive({
         {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
     ],
     pagination: {
-        itemsPerPage: 50,
+        itemsPerPage: 30,
         totalItems: 0
     },
     filters: {
         search: '',
         company_id: props.defaultCompanyId,
         status: null,
-        per_page: 50
+        per_page: 30
     },
     serverItems: [],
     loading: true
@@ -94,6 +94,12 @@ const truncateText = (text, length = 40) => {
                             :items="state.serverItems"
                             :items-length="state.pagination.totalItems"
                             :items-per-page="state.pagination.itemsPerPage"
+                            :items-per-page-options="[
+                                { value: 30, title: '30' },
+                                { value: 50, title: '50' },
+                                { value: 100, title: '100' },
+                                { value: -1, title: 'All' }
+                            ]"
                             :loading="state.loading"
                             :search="state.searchParam"
                             density="compact"
@@ -116,9 +122,8 @@ const truncateText = (text, length = 40) => {
                                 <v-chip
                                     v-if="item.company"
                                     class="font-weight-regular"
-                                    color="primary"
                                     size="x-small"
-                                    variant="tonal"
+                                    variant="outlined"
                                 >
                                     {{ item.company.name }}
                                 </v-chip>
@@ -129,7 +134,7 @@ const truncateText = (text, length = 40) => {
                                     class="font-weight-medium"
                                     color="secondary"
                                     size="x-small"
-                                    variant="tonal"
+                                    variant="outlined"
                                 >
                                     {{ item.level_label }}
                                 </v-chip>
@@ -140,7 +145,7 @@ const truncateText = (text, length = 40) => {
                                     class="font-weight-regular"
                                     color="info"
                                     size="x-small"
-                                    variant="tonal"
+                                    variant="outlined"
                                 >
                                     {{ item.parent.title }}
                                 </v-chip>
@@ -159,7 +164,7 @@ const truncateText = (text, length = 40) => {
                             <template v-slot:item.actions="{ item }">
                                 <btn-link
                                     :route="route('designations.edit', item.id)"
-                                    color="bg-darkprimary"
+                                    color="text-primary"
                                     icon="mdi-pencil"/>
                             </template>
                         </v-data-table-server>

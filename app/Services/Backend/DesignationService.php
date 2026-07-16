@@ -25,7 +25,7 @@ class DesignationService
 
         $query = $this->designationQuery($query, $request);
 
-        return $this->paginateOrFetchAll($query, $request->integer('per_page', 10));
+        return $this->paginateOrFetchAll($query, $request->integer('per_page', 30));
     }
 
     public function create(array $data): Designation
