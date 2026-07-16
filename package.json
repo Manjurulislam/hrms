@@ -33,6 +33,7 @@
         "pinia": "2.2.2",
         "remixicon": "4.1.0",
         "vite-plugin-vuetify": "2.0.1",
+        "vue-draggable-plus": "^0.6.1",
         "vue-easy-lightbox": "^1.19.0",
         "vue-scrollto": "2.20.0",
         "vue-tabler-icons": "2.21.0",
