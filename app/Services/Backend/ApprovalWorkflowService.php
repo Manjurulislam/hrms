@@ -48,8 +48,8 @@ class ApprovalWorkflowService
     {
         return DB::transaction(function () use ($workflow, $data) {
             $workflow->update([
-                'name'      => data_get($data, 'name'),
-                'is_active' => data_get($data, 'is_active', true),
+                'name'       => data_get($data, 'name'),
+                'company_id' => data_get($data, 'company_id'),
             ]);
 
             $workflow->steps()->delete();
