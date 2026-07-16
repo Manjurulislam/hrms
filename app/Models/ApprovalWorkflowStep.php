@@ -25,6 +25,7 @@ class ApprovalWorkflowStep extends Model
         'is_mandatory'   => 'boolean',
         'condition_type' => StepConditionType::class,
         'condition_value' => 'integer',
+        'approver_value' => 'integer',
     ];
 
     public function workflow(): BelongsTo

@@ -9,6 +9,7 @@ const props = defineProps({
     designations: {type: Array, default: () => []},
     employees: {type: Array, default: () => []},
     errors: {type: Object, default: () => ({})},
+    canDelete: {type: Boolean, default: true},
 });
 
 defineEmits(['close', 'delete']);
@@ -117,7 +118,7 @@ watch(() => props.step?.condition_type, (type, old) => {
             </span>
         </div>
 
-        <v-btn block color="error" prepend-icon="mdi-trash-can-outline" variant="outlined" @click="$emit('delete')">
+        <v-btn :disabled="!canDelete" block color="error" prepend-icon="mdi-trash-can-outline" variant="outlined" @click="$emit('delete')">
             Delete Step
         </v-btn>
     </div>

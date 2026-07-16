@@ -222,6 +222,7 @@ const optionalSteps = computed(() => props.steps.filter(s => !s.is_mandatory).le
         <WorkflowNodeDrawer
             :key="selectedIndex"
             :approver-types="approverTypes"
+            :can-delete="steps.length > 1"
             :condition-types="conditionTypes"
             :designations="designations"
             :employees="employees"
