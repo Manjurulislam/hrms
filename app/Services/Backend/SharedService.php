@@ -48,4 +48,15 @@ class SharedService
             ->orderBy('first_name')
             ->get();
     }
+
+    public function managers(?int $companyId = null): Collection
+    {
+        return Employee::select('id', 'first_name', 'last_name', 'company_id')
+            ->whereIn('id', fn($q) => $q->select('manager_id')
+                ->from('employees')
+                ->whereNotNull('manager_id'))
+            ->when($companyId, fn($q) => $q->where('company_id', $companyId))
+            ->orderBy('first_name')
+            ->get();
+    }
 }

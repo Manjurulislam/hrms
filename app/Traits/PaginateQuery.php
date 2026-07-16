@@ -109,7 +109,7 @@ trait PaginateQuery
 
             return array_merge($item->toArray(), [
                 'attendance_date_display' => $date->format('d M Y'),
-                'day'                     => $date->format('D'),
+                'day'                     => $date->format('l'),
                 'first_check_in_display'  => $item->first_check_in
                     ? Carbon::parse($item->first_check_in)->format('g:i a')
                     : '--:--',
@@ -137,7 +137,7 @@ trait PaginateQuery
             return array_merge($item->toArray(), [
                 'avatar_url'              => $item->employee?->getFirstMediaUrl('avatar') ?: null,
                 'attendance_date_display' => $date->format('d M Y'),
-                'day'                     => $date->format('D'),
+                'day'                     => $date->format('l'),
                 'first_check_in_display'  => $item->first_check_in
                     ? Carbon::parse($item->first_check_in)->format('g:i a')
                     : '--:--',

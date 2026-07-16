@@ -10,6 +10,9 @@ import ImportEmployeeDialog from "@/Components/modules/employee/ImportEmployeeDi
 const props = defineProps({
     companies: Array,
     departments: Array,
+    designations: Array,
+    managers: Array,
+    genderOptions: Array,
     empStatusOptions: Array,
     defaultCompanyId: Number,
 })
@@ -19,28 +22,33 @@ const toast = useToast();
 const state = reactive({
     headers: [
         {title: 'SL', align: 'start', sortable: false, key: 'id'},
-        {title: 'Name', key: 'full_name'},
         {title: 'Emp ID', key: 'id_no'},
+        {title: 'Name', key: 'full_name'},
         {title: 'Email', key: 'email'},
         {title: 'Phone', key: 'phone'},
         {title: 'Department', key: 'department'},
         {title: 'Designation', key: 'designation'},
         {title: 'Manager', key: 'manager'},
-        {title: 'Joined', key: 'joining_date'},
+        {title: 'Joining', key: 'joining_date'},
         {title: 'Status', key: 'status', sortable: false, width: '8%'},
-        {title: 'Actions', key: 'actions', sortable: false, width: '8%'}
+        {title: 'Action', key: 'actions', sortable: false, width: '8%'}
     ],
     pagination: {
-        itemsPerPage: 50,
+        itemsPerPage: 30,
         totalItems: 0
     },
     filters: {
         search: '',
         company_id: props.defaultCompanyId,
         department_id: null,
+        designation_id: null,
+        manager_id: null,
+        gender: null,
+        joining_from: null,
+        joining_to: null,
         status: null,
         emp_status: null,
-        per_page: 50
+        per_page: 30
     },
     serverItems: [],
     loading: true
@@ -79,19 +87,6 @@ const formatDate = (date) => {
         month: 'short',
         day: 'numeric'
     });
-};
-
-const getJoiningDateColor = (date) => {
-    if (!date) return 'default';
-    const today = new Date();
-    const joiningDate = new Date(date);
-    const diffTime = today.getTime() - joiningDate.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 30) return 'success';
-    if (diffDays < 180) return 'info';
-    if (diffDays < 365) return 'warning';
-    return 'primary';
 };
 
 const getFullName = (item) => {
@@ -148,6 +143,9 @@ const handleImportSuccess = () => {
                         :filters="state.filters"
                         :companies="props.companies"
                         :departments="props.departments"
+                        :designations="props.designations"
+                        :managers="props.managers"
+                        :genderOptions="props.genderOptions"
                         :empStatusOptions="props.empStatusOptions"
                         @handleFilter="handleSearch"
                     />
@@ -157,6 +155,12 @@ const handleImportSuccess = () => {
                             :items="state.serverItems"
                             :items-length="state.pagination.totalItems"
                             :items-per-page="state.pagination.itemsPerPage"
+                            :items-per-page-options="[
+                                { value: 30, title: '30' },
+                                { value: 50, title: '50' },
+                                { value: 100, title: '100' },
+                                { value: -1, title: 'All' }
+                            ]"
                             :loading="state.loading"
                             :search="state.searchParam"
                             density="compact"
@@ -177,27 +181,18 @@ const handleImportSuccess = () => {
                             </template>
                             <template v-slot:item.id_no="{ item }">
                                 <v-chip
+                                    v-if="item.id_no"
                                     class="font-weight-medium"
-                                    color="primary"
                                     size="x-small"
-                                    variant="tonal"
+                                    variant="outlined"
                                 >
-                                    {{ item.id_no || '-' }}
+                                    {{ item.id_no }}
                                 </v-chip>
+                                <span v-else class="text-muted">-</span>
                             </template>
                             <template v-slot:item.full_name="{ item }">
-                                <div class="d-flex align-center ga-2">
-                                    <v-avatar size="30" color="primary" variant="tonal">
-                                        <v-img v-if="item.avatar_url" :src="item.avatar_url" cover/>
-                                        <span v-else class="text-caption text-uppercase">
-                                            {{ item.first_name?.charAt(0) }}{{ item.last_name?.charAt(0) }}
-                                        </span>
-                                    </v-avatar>
-                                    <div>
-                                        <div class="font-weight-medium">{{ getFullName(item) }}</div>
-                                        <div class="text-caption text-medium-emphasis">{{ item.gender || '-' }}</div>
-                                    </div>
-                                </div>
+                                <div class="font-weight-medium">{{ getFullName(item) }}</div>
+                                <div class="text-caption text-medium-emphasis">{{ item.gender || '-' }}</div>
                             </template>
                             <template v-slot:item.email="{ item }">
                                 <span
@@ -219,56 +214,25 @@ const handleImportSuccess = () => {
                                 <span v-else class="text-muted">-</span>
                             </template>
                             <template v-slot:item.department="{ item }">
-                                <v-chip
-                                    v-if="item.department"
-                                    class="font-weight-regular"
-                                    color="primary"
-                                    size="x-small"
-                                    variant="tonal"
-                                >
-                                    {{ item.department.name }}
-                                </v-chip>
+                                <span v-if="item.department" class="text-body-2">{{ item.department.name }}</span>
                                 <span v-else class="text-muted">-</span>
                             </template>
                             <template v-slot:item.designation="{ item }">
-                                <v-chip
-                                    v-if="item.designation"
-                                    class="font-weight-regular"
-                                    color="secondary"
-                                    size="x-small"
-                                    variant="tonal"
-                                >
-                                    {{ item.designation.title }}
-                                </v-chip>
+                                <span v-if="item.designation" class="text-body-2">{{ item.designation.title }}</span>
                                 <span v-else class="text-muted">-</span>
                             </template>
                             <template v-slot:item.manager="{ item }">
-                                <v-chip
-                                    v-if="item.manager"
-                                    class="font-weight-regular"
-                                    color="info"
-                                    size="x-small"
-                                    variant="tonal"
-                                >
-                                    {{ item.manager.first_name }} {{ item.manager.last_name }}
-                                </v-chip>
+                                <span v-if="item.manager" class="text-body-2">{{ item.manager.first_name }} {{ item.manager.last_name }}</span>
                                 <span v-else class="text-muted">-</span>
                             </template>
                             <template v-slot:item.joining_date="{ item }">
-                                <v-chip
-                                    :color="getJoiningDateColor(item.joining_date)"
-                                    class="font-weight-regular"
-                                    size="x-small"
-                                    variant="tonal"
-                                >
-                                    {{ formatDate(item.joining_date) }}
-                                </v-chip>
+                                <span class="text-body-2">{{ formatDate(item.joining_date) }}</span>
                             </template>
                             <template v-slot:item.actions="{ item }">
                                 <div class="d-flex ga-1">
                                     <btn-link
                                         :route="route('employees.edit', item.id)"
-                                        color="bg-darkprimary"
+                                        color="text-primary"
                                         icon="mdi-pencil"
                                         size="small"
                                     />

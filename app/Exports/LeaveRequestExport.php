@@ -22,7 +22,9 @@ class LeaveRequestExport implements FromCollection, WithHeadings, WithMapping
     {
         $query = LeaveRequest::query()
             ->with([
-                'employee:id,first_name,last_name,id_no,phone',
+                'employee:id,first_name,last_name,id_no,phone,department_id,designation_id',
+                'employee.department:id,name',
+                'employee.designation:id,title',
                 'leaveType:id,name',
             ])
             ->orderBy('created_at', 'desc');
@@ -38,6 +40,8 @@ class LeaveRequestExport implements FromCollection, WithHeadings, WithMapping
             'ID',
             'Name',
             'Phone',
+            'Department',
+            'Designation',
             'Leave',
             'Start',
             'End',
@@ -54,6 +58,8 @@ class LeaveRequestExport implements FromCollection, WithHeadings, WithMapping
             $record->employee?->id_no ?? '-',
             $record->employee ? trim($record->employee->first_name . ' ' . $record->employee->last_name) : '-',
             $record->employee?->phone ?? '-',
+            $record->employee?->department?->name ?? '-',
+            $record->employee?->designation?->title ?? '-',
             $record->leaveType?->name ?? '-',
             $record->started_at ? Carbon::parse($record->started_at)->format('d M Y') : '-',
             $record->ended_at ? Carbon::parse($record->ended_at)->format('d M Y') : '-',

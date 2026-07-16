@@ -28,7 +28,7 @@ class AttendanceController extends Controller
         return Inertia::render('Backend/Attendance/index', [
             'companies'        => $companies,
             'departments'      => $this->shared->departments(),
-            'employees'        => $this->shared->employees(),
+            'designations'     => $this->shared->designations(),
             'defaultCompanyId' => $companies->first()?->id,
             'statusOptions'    => collect(AttendanceStatus::cases())->map(fn($s) => [
                 'label' => ucwords(str_replace('_', ' ', $s->value)),

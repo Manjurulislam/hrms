@@ -30,6 +30,9 @@ class EmployeeController extends Controller
         return Inertia::render('Backend/Employee/index', [
             'companies'        => $data['companies'],
             'departments'      => $data['departments'],
+            'designations'     => $data['designations'],
+            'managers'         => $this->service->managers(),
+            'genderOptions'    => $data['genderOptions'],
             'empStatusOptions' => $data['empStatusOptions'],
             'defaultCompanyId' => $data['companies']->first()?->id,
         ]);

@@ -64,13 +64,6 @@ const handleSearch = (filters) => {
     getData(state.filters);
 };
 
-const getDaysColor = (days) => {
-    if (days <= 5) return 'error';
-    if (days <= 15) return 'warning';
-    if (days <= 30) return 'info';
-    return 'success';
-};
-
 const getDaysLabel = (days) => {
     if (days === 1) return '1 Day';
     return `${days} Days`;
@@ -123,9 +116,8 @@ const getDaysLabel = (days) => {
                                 <v-chip
                                     v-if="item.company"
                                     class="font-weight-regular"
-                                    color="primary"
                                     size="x-small"
-                                    variant="tonal"
+                                    variant="outlined"
                                 >
                                     {{ item.company.name }}
                                 </v-chip>
@@ -133,10 +125,10 @@ const getDaysLabel = (days) => {
                             </template>
                             <template v-slot:item.max_per_year="{ item }">
                                 <v-chip
-                                    :color="getDaysColor(item.max_per_year)"
                                     class="font-weight-medium"
+                                    color="primary"
                                     size="x-small"
-                                    variant="tonal"
+                                    variant="outlined"
                                 >
                                     <v-icon size="small" start>mdi-calendar-clock</v-icon>
                                     {{ getDaysLabel(item.max_per_year) }}

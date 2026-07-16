@@ -1,10 +1,6 @@
 <template>
-    <Link :class="color"
-          :href="linkHrf"
-          class="v-btn mx-1 v-btn--elevated v-btn--icon
-        v-theme--light bg-primary v-btn--density-default v-btn--size-x-small
-        v-btn--variant-elevated">
-        <i :class="icon"
+    <Link :href="linkHrf" class="d-inline-flex mx-1">
+        <i :class="[icon, color]"
            :title="buttonTitle"
            aria-hidden="true"
            class="mdi v-icon"

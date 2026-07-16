@@ -21,7 +21,7 @@ class CompanyAttendanceExport implements FromCollection, WithHeadings, WithMappi
     public function collection()
     {
         $query = AttendanceSummary::query()
-            ->with(['employee:id,first_name,last_name,id_no', 'department:id,name'])
+            ->with(['employee:id,first_name,last_name,id_no,phone,designation_id', 'employee.designation:id,title', 'department:id,name'])
             ->orderBy('attendance_date');
 
         $query = $this->attendanceQuery($query, $this->request);
@@ -32,16 +32,15 @@ class CompanyAttendanceExport implements FromCollection, WithHeadings, WithMappi
     public function headings(): array
     {
         return [
-            'Employee Name',
             'Emp ID',
+            'Name',
+            'Phone',
             'Department',
-            'Date',
+            'Designation',
             'Day',
             'Check In',
             'Check Out',
-            'Working Hours',
-            'Break Hours',
-            'Sessions',
+            'Date',
             'Status',
         ];
     }
@@ -50,25 +49,16 @@ class CompanyAttendanceExport implements FromCollection, WithHeadings, WithMappi
     {
         $date = Carbon::parse($record->attendance_date);
 
-        $workingHours = $record->total_working_minutes
-            ? sprintf('%dh %dm', floor($record->total_working_minutes / 60), $record->total_working_minutes % 60)
-            : '0h 0m';
-
-        $breakHours = $record->total_break_minutes
-            ? sprintf('%dh %dm', floor($record->total_break_minutes / 60), $record->total_break_minutes % 60)
-            : '0h 0m';
-
         return [
-            $record->employee ? trim($record->employee->first_name . ' ' . $record->employee->last_name) : '-',
             $record->employee?->id_no ?? '-',
+            $record->employee ? trim($record->employee->first_name . ' ' . $record->employee->last_name) : '-',
+            $record->employee?->phone ?? '-',
             $record->department?->name ?? '-',
-            $date->format('Y-m-d'),
-            $date->format('D'),
+            $record->employee?->designation?->title ?? '-',
+            $date->format('l'),
             $record->first_check_in ? Carbon::parse($record->first_check_in)->format('g:i a') : '--:--',
             $record->last_check_out ? Carbon::parse($record->last_check_out)->format('g:i a') : '--:--',
-            $workingHours,
-            $breakHours,
-            $record->total_sessions ?? 0,
+            $date->format('Y-m-d'),
             ucwords(str_replace('_', ' ', $record->status?->value ?? $record->status)),
         ];
     }

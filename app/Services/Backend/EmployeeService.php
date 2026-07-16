@@ -12,6 +12,7 @@ use App\Models\Role;
 use App\Traits\PaginateQuery;
 use App\Traits\QueryParams;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class EmployeeService
@@ -35,7 +36,7 @@ class EmployeeService
 
         $query = $this->employeeQuery($query, $request);
 
-        return $this->transformEmployees($query, $request->integer('per_page', 10));
+        return $this->transformEmployees($query, $request->integer('per_page', 30));
     }
 
     public function create(array $data): Employee
@@ -93,6 +94,11 @@ class EmployeeService
     // ──────────────────────────────────────────────
     // Form Data
     // ──────────────────────────────────────────────
+
+    public function managers(): Collection
+    {
+        return $this->shared->managers();
+    }
 
     public function formData(?Employee $employee = null): array
     {

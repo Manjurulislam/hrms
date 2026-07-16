@@ -31,7 +31,7 @@ const confirmEvent = () => {
         @confirm="confirmEvent"
     >
         <template #reference>
-            <v-btn color="error" icon="mdi-delete" size="x-small"/>
+            <v-btn color="error" icon="mdi-delete" size="small" variant="text"/>
         </template>
     </el-popconfirm>
 </template>

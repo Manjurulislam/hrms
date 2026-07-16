@@ -1,5 +1,6 @@
 <script setup>
 import CardTitle from '@/Components/common/card/CardTitle.vue';
+import LeaveRequestFilter from '@/Components/common/filter/LeaveRequestFilter.vue';
 import {Head, Link} from '@inertiajs/vue3';
 import {reactive} from 'vue';
 import {useToast} from 'vue-toastification';
@@ -18,14 +19,17 @@ const props = defineProps({
 const state = reactive({
     headers: [
         {title: 'SL', align: 'start', sortable: false, key: 'id'},
-        {title: 'Employee', key: 'employee_name'},
-        {title: 'Leave Type', key: 'leave_type'},
-        {title: 'Title', key: 'title'},
-        {title: 'Start Date', key: 'started_at'},
-        {title: 'End Date', key: 'ended_at'},
+        {title: 'Name', key: 'employee_name'},
+        {title: 'Phone', key: 'employee_phone', sortable: false},
+        {title: 'Department', key: 'employee_department', sortable: false},
+        {title: 'Designation', key: 'employee_designation', sortable: false},
+        {title: 'Reason', key: 'title'},
+        {title: 'Leave', key: 'leave_type'},
+        {title: 'Approver', key: 'current_approver'},
         {title: 'Days', key: 'total_days'},
+        {title: 'Start', key: 'started_at'},
+        {title: 'End', key: 'ended_at'},
         {title: 'Status', key: 'status', sortable: false},
-        {title: 'Current Approver', key: 'current_approver'},
         {title: 'Actions', key: 'actions', sortable: false, width: '5%'},
     ],
     pagination: {
@@ -33,9 +37,11 @@ const state = reactive({
         totalItems: 0,
     },
     filters: {
+        search: '',
         company_id: props.defaultCompanyId,
-        employee_id: null,
         leave_type_id: null,
+        date_from: null,
+        date_to: null,
         status: null,
         per_page: 50,
     },
@@ -70,16 +76,18 @@ const exportData = () => {
         return;
     }
     const params = new URLSearchParams();
+    if (state.filters.search) params.append('search', state.filters.search);
     if (state.filters.company_id) params.append('company_id', state.filters.company_id);
-    if (state.filters.employee_id) params.append('employee_id', state.filters.employee_id);
     if (state.filters.leave_type_id) params.append('leave_type_id', state.filters.leave_type_id);
+    if (state.filters.date_from) params.append('date_from', state.filters.date_from);
+    if (state.filters.date_to) params.append('date_to', state.filters.date_to);
     if (state.filters.status) params.append('status', state.filters.status);
     window.location.href = route('leave-requests.export') + '?' + params.toString();
 };
 
 const getStatusColor = (status) => {
     const colors = {
-        'pending': 'warning',
+        'pending': 'error',
         'in_review': 'info',
         'approved': 'success',
         'rejected': 'error',
@@ -121,66 +129,15 @@ const getStatusLabel = (status) => {
                         </template>
                     </CardTitle>
 
-                    <v-card-text>
-                        <v-row class="mb-4" dense>
-                            <v-col cols="12" md="2">
-                                <v-select
-                                    v-model="state.filters.company_id"
-                                    :items="companies"
-                                    clearable
-                                    density="compact"
-                                    hide-details
-                                    item-title="name"
-                                    item-value="id"
-                                    label="Company"
-                                    variant="outlined"
-                                    @update:model-value="refreshData"
-                                />
-                            </v-col>
-                            <v-col cols="12" md="3">
-                                <v-autocomplete
-                                    v-model="state.filters.employee_id"
-                                    :items="employees"
-                                    :item-title="item => item.first_name + ' ' + (item.last_name || '')"
-                                    clearable
-                                    density="compact"
-                                    hide-details
-                                    item-value="id"
-                                    label="Employee"
-                                    variant="outlined"
-                                    @update:model-value="refreshData"
-                                />
-                            </v-col>
-                            <v-col cols="12" md="2">
-                                <v-select
-                                    v-model="state.filters.leave_type_id"
-                                    :items="leaveTypes"
-                                    clearable
-                                    density="compact"
-                                    hide-details
-                                    item-title="name"
-                                    item-value="id"
-                                    label="Leave Type"
-                                    variant="outlined"
-                                    @update:model-value="refreshData"
-                                />
-                            </v-col>
-                            <v-col cols="12" md="2">
-                                <v-select
-                                    v-model="state.filters.status"
-                                    :items="statusOptions"
-                                    clearable
-                                    density="compact"
-                                    hide-details
-                                    item-title="label"
-                                    item-value="value"
-                                    label="Status"
-                                    variant="outlined"
-                                    @update:model-value="refreshData"
-                                />
-                            </v-col>
-                        </v-row>
+                    <LeaveRequestFilter
+                        :filters="state.filters"
+                        :companies="companies"
+                        :leaveTypes="leaveTypes"
+                        :statusOptions="statusOptions"
+                        @refresh="refreshData"
+                    />
 
+                    <v-card-text>
                         <v-data-table-server
                             :headers="state.headers"
                             :items="state.serverItems"
@@ -195,13 +152,19 @@ const getStatusLabel = (status) => {
                                 {{ index + 1 }}
                             </template>
                             <template v-slot:item.employee_name="{ item }">
-                                <div v-if="item.employee" class="d-flex align-center ga-2">
-                                    <v-avatar size="28" color="primary" variant="tonal">
-                                        <v-img v-if="item.employee.avatar_url" :src="item.employee.avatar_url" cover/>
-                                        <span v-else class="text-caption text-uppercase">{{ item.employee.first_name?.charAt(0) }}{{ item.employee.last_name?.charAt(0) }}</span>
-                                    </v-avatar>
-                                    <span>{{ item.employee.first_name }} {{ item.employee.last_name }}</span>
-                                </div>
+                                <span v-if="item.employee" class="font-weight-medium">{{ item.employee.first_name }} {{ item.employee.last_name }}</span>
+                                <span v-else class="text-medium-emphasis">-</span>
+                            </template>
+                            <template v-slot:item.employee_phone="{ item }">
+                                <span v-if="item.employee?.phone">{{ item.employee.phone }}</span>
+                                <span v-else class="text-medium-emphasis">-</span>
+                            </template>
+                            <template v-slot:item.employee_department="{ item }">
+                                <span v-if="item.employee?.department">{{ item.employee.department.name }}</span>
+                                <span v-else class="text-medium-emphasis">-</span>
+                            </template>
+                            <template v-slot:item.employee_designation="{ item }">
+                                <span v-if="item.employee?.designation">{{ item.employee.designation.title }}</span>
                                 <span v-else class="text-medium-emphasis">-</span>
                             </template>
                             <template v-slot:item.leave_type="{ item }">
@@ -218,15 +181,20 @@ const getStatusLabel = (status) => {
                                     :color="getStatusColor(item.status)"
                                     class="font-weight-regular"
                                     size="x-small"
-                                    variant="tonal"
+                                    variant="outlined"
                                 >
                                     {{ getStatusLabel(item.status) }}
                                 </v-chip>
                             </template>
                             <template v-slot:item.current_approver="{ item }">
-                                <span v-if="item.current_approver">
+                                <v-chip
+                                    v-if="item.current_approver"
+                                    class="font-weight-regular"
+                                    size="x-small"
+                                    variant="outlined"
+                                >
                                     {{ item.current_approver.first_name }} {{ item.current_approver.last_name }}
-                                </span>
+                                </v-chip>
                                 <span v-else class="text-medium-emphasis">-</span>
                             </template>
                             <template v-slot:item.actions="{ item }">

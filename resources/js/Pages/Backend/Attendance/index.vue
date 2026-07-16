@@ -1,5 +1,6 @@
 <script setup>
 import CardTitle from '@/Components/common/card/CardTitle.vue';
+import AttendanceFilter from '@/Components/common/filter/AttendanceFilter.vue';
 import {Head, Link} from '@inertiajs/vue3';
 import {reactive, ref} from 'vue';
 import {useToast} from 'vue-toastification';
@@ -10,7 +11,7 @@ const toast = useToast();
 const props = defineProps({
     companies: Array,
     departments: Array,
-    employees: Array,
+    designations: Array,
     statusOptions: Array,
     defaultCompanyId: Number,
 });
@@ -42,6 +43,7 @@ const state = reactive({
         month: null,
         company_id: props.defaultCompanyId,
         department_id: null,
+        designation_id: null,
         employee_id: null,
         status: null,
         per_page: 50
@@ -180,102 +182,18 @@ const getBreakTypeLabel = (type) => {
                         </template>
                     </CardTitle>
 
-                    <v-card-text>
-                        <v-row class="mb-4" dense>
-                            <v-col cols="12" md="2">
-                                <v-btn-toggle
-                                    :model-value="state.filterMode"
-                                    color="primary"
-                                    density="compact"
-                                    mandatory
-                                    variant="outlined"
-                                >
-                                    <v-btn size="small" value="date" @click="switchFilterMode('date')">Date</v-btn>
-                                    <v-btn size="small" value="month" @click="switchFilterMode('month')">Month</v-btn>
-                                </v-btn-toggle>
-                            </v-col>
-                            <v-col cols="12" md="2">
-                                <el-date-picker
-                                    v-if="state.filterMode === 'date'"
-                                    v-model="state.filters.date"
-                                    format="YYYY-MM-DD"
-                                    placeholder="Select date"
-                                    size="large"
-                                    style="width: 100%"
-                                    type="date"
-                                    value-format="YYYY-MM-DD"
-                                    @change="refreshData"
-                                />
-                                <el-date-picker
-                                    v-else
-                                    v-model="state.filters.month"
-                                    format="YYYY-MM"
-                                    placeholder="Select month"
-                                    size="large"
-                                    style="width: 100%"
-                                    type="month"
-                                    value-format="YYYY-MM"
-                                    @change="refreshData"
-                                />
-                            </v-col>
-                            <v-col cols="12" md="2">
-                                <v-select
-                                    v-model="state.filters.company_id"
-                                    :items="companies"
-                                    clearable
-                                    density="compact"
-                                    hide-details
-                                    item-title="name"
-                                    item-value="id"
-                                    label="Company"
-                                    variant="outlined"
-                                    @update:model-value="refreshData"
-                                />
-                            </v-col>
-                            <v-col cols="12" md="2">
-                                <v-select
-                                    v-model="state.filters.department_id"
-                                    :items="departments"
-                                    clearable
-                                    density="compact"
-                                    hide-details
-                                    item-title="name"
-                                    item-value="id"
-                                    label="Department"
-                                    variant="outlined"
-                                    @update:model-value="refreshData"
-                                />
-                            </v-col>
-                            <v-col cols="12" md="2">
-                                <v-autocomplete
-                                    v-model="state.filters.employee_id"
-                                    :items="employees"
-                                    :item-title="item => item.first_name + ' ' + (item.last_name || '')"
-                                    clearable
-                                    density="compact"
-                                    hide-details
-                                    item-value="id"
-                                    label="Employee"
-                                    variant="outlined"
-                                    @update:model-value="refreshData"
-                                />
-                            </v-col>
-                            <v-col cols="12" md="2">
-                                <v-select
-                                    v-model="state.filters.status"
-                                    :items="statusOptions"
-                                    clearable
-                                    density="compact"
-                                    hide-details
-                                    item-title="label"
-                                    item-value="value"
-                                    label="Status"
-                                    variant="outlined"
-                                    @update:model-value="refreshData"
-                                />
-                            </v-col>
-                        </v-row>
+                    <AttendanceFilter
+                        :filters="state.filters"
+                        :filterMode="state.filterMode"
+                        :companies="companies"
+                        :departments="departments"
+                        :designations="designations"
+                        :statusOptions="statusOptions"
+                        @refresh="refreshData"
+                        @switchMode="switchFilterMode"
+                    />
 
+                    <v-card-text>
                         <v-data-table-server
                             v-model:expanded="expanded"
                             :headers="state.headers"
@@ -283,7 +201,6 @@ const getBreakTypeLabel = (type) => {
                             :items-length="state.pagination.totalItems"
                             :items-per-page="state.pagination.itemsPerPage"
                             :loading="state.loading"
-                            :search="state.filters.search"
                             density="compact"
                             item-value="id"
                             show-expand
@@ -293,13 +210,7 @@ const getBreakTypeLabel = (type) => {
                                 {{ index + 1 }}
                             </template>
                             <template v-slot:item.employee_name="{ item }">
-                                <div v-if="item.employee" class="d-flex align-center ga-2">
-                                    <v-avatar size="28" color="primary" variant="tonal">
-                                        <v-img v-if="item.avatar_url" :src="item.avatar_url" cover/>
-                                        <span v-else class="text-caption text-uppercase">{{ item.employee.first_name?.charAt(0) }}{{ item.employee.last_name?.charAt(0) }}</span>
-                                    </v-avatar>
-                                    <span>{{ item.employee.first_name }} {{ item.employee.last_name }}</span>
-                                </div>
+                                <span v-if="item.employee">{{ item.employee.first_name }} {{ item.employee.last_name }}</span>
                                 <span v-else class="text-muted">-</span>
                             </template>
                             <template v-slot:item.emp_id="{ item }">

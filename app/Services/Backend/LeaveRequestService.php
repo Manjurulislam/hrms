@@ -28,11 +28,14 @@ class LeaveRequestService
     {
         $query = LeaveRequest::query()
             ->with([
-                'employee:id,first_name,last_name,id_no',
+                'employee:id,first_name,last_name,id_no,phone,department_id,designation_id',
+                'employee.department:id,name',
+                'employee.designation:id,title',
                 'employee.media',
                 'leaveType:id,name',
                 'currentApprover:id,first_name,last_name',
             ])
+            ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
             ->orderBy('created_at', 'desc');
 
         $query = $this->leaveRequestQuery($query, $request);

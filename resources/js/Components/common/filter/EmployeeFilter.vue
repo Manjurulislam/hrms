@@ -28,24 +28,6 @@
                         </v-col>
 
                         <v-col cols="12" lg="3" md="6">
-                            <label class="text-caption font-weight-medium mb-1 d-block">Company</label>
-                            <el-select
-                                v-model="filters.company_id"
-                                clearable
-                                filterable
-                                placeholder="Select Company"
-                                style="width: 100%"
-                            >
-                                <el-option
-                                    v-for="company in companies"
-                                    :key="company.id"
-                                    :label="company.name"
-                                    :value="company.id"
-                                />
-                            </el-select>
-                        </v-col>
-
-                        <v-col cols="12" lg="3" md="6">
                             <label class="text-caption font-weight-medium mb-1 d-block">Department</label>
                             <el-select
                                 v-model="filters.department_id"
@@ -64,15 +46,73 @@
                         </v-col>
 
                         <v-col cols="12" lg="3" md="6">
-                            <label class="text-caption font-weight-medium mb-1 d-block">Status</label>
+                            <label class="text-caption font-weight-medium mb-1 d-block">Designation</label>
                             <el-select
-                                v-model="filters.status"
+                                v-model="filters.designation_id"
                                 clearable
-                                placeholder="All Status"
+                                filterable
+                                placeholder="Select Designation"
                                 style="width: 100%"
                             >
-                                <el-option :value="1" label="Active"/>
-                                <el-option :value="0" label="Inactive"/>
+                                <el-option
+                                    v-for="designation in designations"
+                                    :key="designation.id"
+                                    :label="designation.title"
+                                    :value="designation.id"
+                                />
+                            </el-select>
+                        </v-col>
+
+                        <v-col cols="12" lg="3" md="6">
+                            <label class="text-caption font-weight-medium mb-1 d-block">Gender</label>
+                            <el-select
+                                v-model="filters.gender"
+                                clearable
+                                placeholder="All Genders"
+                                style="width: 100%"
+                            >
+                                <el-option
+                                    v-for="option in genderOptions"
+                                    :key="option.value"
+                                    :label="option.label"
+                                    :value="option.value"
+                                />
+                            </el-select>
+                        </v-col>
+
+                        <v-col cols="12" lg="3" md="6">
+                            <label class="text-caption font-weight-medium mb-1 d-block">Manager</label>
+                            <el-select
+                                v-model="filters.manager_id"
+                                clearable
+                                filterable
+                                placeholder="Select Manager"
+                                style="width: 100%"
+                            >
+                                <el-option
+                                    v-for="manager in managers"
+                                    :key="manager.id"
+                                    :label="`${manager.first_name} ${manager.last_name}`"
+                                    :value="manager.id"
+                                />
+                            </el-select>
+                        </v-col>
+
+                        <v-col cols="12" lg="3" md="6">
+                            <label class="text-caption font-weight-medium mb-1 d-block">Company</label>
+                            <el-select
+                                v-model="filters.company_id"
+                                clearable
+                                filterable
+                                placeholder="Select Company"
+                                style="width: 100%"
+                            >
+                                <el-option
+                                    v-for="company in companies"
+                                    :key="company.id"
+                                    :label="company.name"
+                                    :value="company.id"
+                                />
                             </el-select>
                         </v-col>
 
@@ -91,6 +131,32 @@
                                     :value="option.value"
                                 />
                             </el-select>
+                        </v-col>
+
+                        <v-col cols="12" lg="3" md="6">
+                            <label class="text-caption font-weight-medium mb-1 d-block">Status</label>
+                            <el-select
+                                v-model="filters.status"
+                                clearable
+                                placeholder="All Status"
+                                style="width: 100%"
+                            >
+                                <el-option :value="1" label="Active"/>
+                                <el-option :value="0" label="Inactive"/>
+                            </el-select>
+                        </v-col>
+
+                        <v-col cols="12" lg="3" md="6">
+                            <label class="text-caption font-weight-medium mb-1 d-block">Joining Date</label>
+                            <el-date-picker
+                                v-model="joiningRange"
+                                end-placeholder="To"
+                                range-separator="To"
+                                start-placeholder="From"
+                                style="width: 100%"
+                                type="daterange"
+                                value-format="YYYY-MM-DD"
+                            />
                         </v-col>
 
                         <v-col cols="12">
@@ -139,6 +205,18 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
+    designations: {
+        type: Array,
+        default: () => []
+    },
+    managers: {
+        type: Array,
+        default: () => []
+    },
+    genderOptions: {
+        type: Array,
+        default: () => []
+    },
     empStatusOptions: {
         type: Array,
         default: () => []
@@ -152,13 +230,28 @@ const filteredDepartments = computed(() => {
     return props.departments.filter(d => d.company_id === props.filters.company_id);
 });
 
+const joiningRange = computed({
+    get: () => {
+        const {joining_from, joining_to} = props.filters;
+        return joining_from && joining_to ? [joining_from, joining_to] : [];
+    },
+    set: (val) => {
+        props.filters.joining_from = val?.[0] ?? null;
+        props.filters.joining_to = val?.[1] ?? null;
+    }
+});
+
 const activeFilterCount = computed(() => {
     let count = 0;
     if (props.filters.search) count++;
-    if (props.filters.company_id) count++;
     if (props.filters.department_id) count++;
-    if (props.filters.status !== null && props.filters.status !== undefined && props.filters.status !== '') count++;
+    if (props.filters.designation_id) count++;
+    if (props.filters.gender) count++;
+    if (props.filters.manager_id) count++;
+    if (props.filters.company_id) count++;
     if (props.filters.emp_status) count++;
+    if (props.filters.status !== null && props.filters.status !== undefined && props.filters.status !== '') count++;
+    if (props.filters.joining_from || props.filters.joining_to) count++;
     return count;
 });
 
@@ -168,10 +261,15 @@ const handleSearch = () => {
 
 const clearFilter = () => {
     props.filters.search = '';
-    props.filters.company_id = null;
     props.filters.department_id = null;
-    props.filters.status = null;
+    props.filters.designation_id = null;
+    props.filters.gender = null;
+    props.filters.manager_id = null;
+    props.filters.company_id = null;
     props.filters.emp_status = null;
+    props.filters.status = null;
+    props.filters.joining_from = null;
+    props.filters.joining_to = null;
     emit('handleFilter', props.filters);
 };
 </script>
