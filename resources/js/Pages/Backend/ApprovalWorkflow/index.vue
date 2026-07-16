@@ -3,6 +3,7 @@ import axios from 'axios';
 import CardTitle from '@/Components/common/card/CardTitle.vue';
 import {Head} from '@inertiajs/vue3';
 import BtnLink from '@/Components/common/utility/BtnLink.vue';
+import ApprovalWorkflowFilter from '@/Components/common/filter/ApprovalWorkflowFilter.vue';
 import {reactive} from 'vue';
 import DefaultLayout from '@/Layouts/DefaultLayout.vue';
 import {useToast} from 'vue-toastification';
@@ -78,35 +79,11 @@ const handleSearch = () => {
                         title="Approval Workflows"
                     />
 
-                    <v-card-text class="pb-0">
-                        <v-row>
-                            <v-col cols="12" md="4">
-                                <v-select
-                                    v-model="state.filters.company_id"
-                                    :items="props.companies"
-                                    clearable
-                                    density="compact"
-                                    item-title="name"
-                                    item-value="id"
-                                    label="Company"
-                                    variant="outlined"
-                                    @update:model-value="handleSearch"
-                                />
-                            </v-col>
-                            <v-col cols="12" md="4">
-                                <v-text-field
-                                    v-model="state.filters.search"
-                                    clearable
-                                    density="compact"
-                                    label="Search"
-                                    prepend-inner-icon="mdi-magnify"
-                                    variant="outlined"
-                                    @keyup.enter="handleSearch"
-                                    @click:clear="handleSearch"
-                                />
-                            </v-col>
-                        </v-row>
-                    </v-card-text>
+                    <ApprovalWorkflowFilter
+                        :filters="state.filters"
+                        :companies="props.companies"
+                        @refresh="handleSearch"
+                    />
 
                     <v-card-text>
                         <v-data-table-server
@@ -121,13 +98,13 @@ const handleSearch = () => {
                         >
                             <template v-slot:item.id="{index}">{{ index + 1 }}</template>
                             <template v-slot:item.company="{item}">
-                                <v-chip v-if="item.company" color="primary" size="x-small" variant="tonal">
+                                <v-chip v-if="item.company" size="x-small" variant="outlined">
                                     {{ item.company.name }}
                                 </v-chip>
                                 <span v-else>-</span>
                             </template>
                             <template v-slot:item.steps_count="{item}">
-                                <v-chip color="info" size="x-small" variant="tonal">
+                                <v-chip color="info" size="x-small" variant="outlined">
                                     {{ item.steps_count }} {{ item.steps_count === 1 ? 'step' : 'steps' }}
                                 </v-chip>
                             </template>
@@ -143,7 +120,7 @@ const handleSearch = () => {
                             <template v-slot:item.actions="{item}">
                                 <btn-link
                                     :route="route('approval-workflows.edit', item.id)"
-                                    color="bg-darkprimary"
+                                    color="text-primary"
                                     icon="mdi-pencil"
                                 />
                             </template>
