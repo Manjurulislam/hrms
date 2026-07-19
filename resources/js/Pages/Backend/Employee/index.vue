@@ -218,7 +218,9 @@ const handleImportSuccess = () => {
                                 <span v-else class="text-muted">-</span>
                             </template>
                             <template v-slot:item.designation="{ item }">
-                                <span v-if="item.designation" class="text-body-2">{{ item.designation.title }}</span>
+                                <v-chip v-if="item.designation" size="x-small" variant="outlined" label>
+                                    {{ item.designation.title }}
+                                </v-chip>
                                 <span v-else class="text-muted">-</span>
                             </template>
                             <template v-slot:item.manager="{ item }">

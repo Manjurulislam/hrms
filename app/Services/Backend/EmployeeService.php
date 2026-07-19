@@ -7,6 +7,7 @@ use App\Enums\DesignationLevel;
 use App\Enums\EmpStatus;
 use App\Enums\Gender;
 use App\Enums\MaritalStatus;
+use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\Role;
 use App\Services\Utility\MenuService;
@@ -32,6 +33,8 @@ class EmployeeService
     {
         $query = Employee::query()
             ->with(['department:id,name', 'designation:id,title', 'manager:id,first_name,last_name', 'user:id,employee_id,email,status', 'media'])
+            ->whereDoesntHave('designation', fn($q) => $q->where('title', 'CEO'))
+            ->orderBy(Designation::select('level')->whereColumn('id', 'employees.designation_id'))
             ->orderBy('first_name')
             ->orderBy('last_name');
 
