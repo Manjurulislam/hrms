@@ -16,9 +16,9 @@ class GetDashboardAction
     public function execute(Employee $employee): array
     {
         return [
-            'officeHours'  => $this->service->getOfficeHours($employee),
-            'monthlyStats' => $this->service->getMonthlyStats($employee),
-            'todayData'    => $this->service->getTodayCompleteData($employee),
+            'officeHours'  => $this->service->officeHours($employee),
+            'monthlyStats' => $this->service->monthlyStats($employee),
+            'todayData'    => $this->service->todayData($employee),
         ];
     }
 }

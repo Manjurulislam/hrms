@@ -43,7 +43,7 @@ class CheckOutRequest extends FormRequest
         $activeSession = $this->findActiveSession($employee);
 
         if (!$activeSession) {
-            $validator->errors()->add('session', 'No active check-in found. Please check in first.');
+            $validator->errors()->add('session', 'Not checked in yet.');
             return;
         }
 
@@ -61,7 +61,7 @@ class CheckOutRequest extends FormRequest
             $remaining = 60 - $sessionSeconds;
             $validator->errors()->add(
                 'session',
-                "Session too short. Please wait {$remaining} more second(s) before ending work."
+                "Too soon to check out. Wait {$remaining}s."
             );
         }
     }

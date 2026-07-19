@@ -111,10 +111,10 @@ trait PaginateQuery
                 'attendance_date_display' => $date->format('d M Y'),
                 'day'                     => $date->format('l'),
                 'first_check_in_display'  => $item->first_check_in
-                    ? Carbon::parse($item->first_check_in)->format('g:i a')
+                    ? Carbon::parse($item->first_check_in)->format('g:i A')
                     : '--:--',
                 'last_check_out_display'  => $item->last_check_out
-                    ? Carbon::parse($item->last_check_out)->format('g:i a')
+                    ? Carbon::parse($item->last_check_out)->format('g:i A')
                     : '--:--',
                 'working_hours'  => self::formatMinutesToHours($item->total_working_minutes),
                 'break_hours'    => self::formatMinutesToHours($item->total_break_minutes),
@@ -139,10 +139,10 @@ trait PaginateQuery
                 'attendance_date_display' => $date->format('d M Y'),
                 'day'                     => $date->format('l'),
                 'first_check_in_display'  => $item->first_check_in
-                    ? Carbon::parse($item->first_check_in)->format('g:i a')
+                    ? Carbon::parse($item->first_check_in)->format('g:i A')
                     : '--:--',
                 'last_check_out_display'  => $item->last_check_out
-                    ? Carbon::parse($item->last_check_out)->format('g:i a')
+                    ? Carbon::parse($item->last_check_out)->format('g:i A')
                     : '--:--',
                 'working_hours'  => self::formatMinutesToHours($item->total_working_minutes),
                 'break_hours'    => self::formatMinutesToHours($item->total_break_minutes),
@@ -177,14 +177,14 @@ trait PaginateQuery
 
             $grouped[$key][] = [
                 'session_number' => $session->session_number,
-                'check_in_time'  => $session->check_in_time?->format('g:i a') ?? '--:--',
-                'check_out_time' => $session->check_out_time?->format('g:i a') ?? '--:--',
+                'check_in_time'  => $session->check_in_time?->format('g:i A') ?? '--:--',
+                'check_out_time' => $session->check_out_time?->format('g:i A') ?? '--:--',
                 'duration'       => self::formatMinutesToHours($session->duration_minutes),
                 'status'         => $session->status instanceof \BackedEnum ? $session->status->value : $session->status,
                 'breaks'         => $session->breaks->map(fn($b) => [
                     'break_type'  => $b->break_type instanceof \BackedEnum ? $b->break_type->value : $b->break_type,
-                    'break_start' => $b->break_start?->format('g:i a') ?? '--:--',
-                    'break_end'   => $b->break_end?->format('g:i a') ?? '--:--',
+                    'break_start' => $b->break_start?->format('g:i A') ?? '--:--',
+                    'break_end'   => $b->break_end?->format('g:i A') ?? '--:--',
                     'duration'    => self::formatMinutesToHours($b->duration_minutes),
                     'reason'      => $b->reason,
                     'status'      => $b->status instanceof \BackedEnum ? $b->status->value : $b->status,

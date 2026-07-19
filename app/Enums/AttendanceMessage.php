@@ -5,26 +5,26 @@ namespace App\Enums;
 enum AttendanceMessage: string
 {
     // Success messages
-    case CheckInSuccess    = 'Checked in successfully.';
-    case CheckOutSuccess   = 'Checked out successfully.';
-    case BreakStartSuccess = 'Break started successfully.';
-    case BreakEndSuccess   = 'Break ended successfully.';
+    case CheckInSuccess    = 'Checked in.';
+    case CheckOutSuccess   = 'Checked out.';
+    case BreakStartSuccess = 'Break started.';
+    case BreakEndSuccess   = 'Break ended.';
 
     // Validation messages
-    case HolidayRestricted    = 'Today is a holiday (:name). Attendance is not allowed.';
-    case LeaveRestricted      = 'You are on approved leave (:name). Attendance is not allowed.';
-    case ActiveSessionExists  = 'You already have an active session. Please check out first.';
-    case ActiveBreakExists    = 'You have an active break. Please end your break first.';
-    case NoActiveSession      = 'No active check-in found for today.';
-    case NoActiveSessionBreak = 'No active session found. Please check in first.';
-    case AlreadyOnBreak       = 'You already have an active break.';
-    case NoActiveBreak        = 'No active break found.';
+    case HolidayRestricted    = 'Holiday (:name). Check-in not allowed.';
+    case LeaveRestricted      = 'On leave (:name). Check-in not allowed.';
+    case ActiveSessionExists  = 'Already checked in. Check out first.';
+    case ActiveBreakExists    = 'End your break first.';
+    case NoActiveSession      = 'Not checked in yet.';
+    case NoActiveSessionBreak = 'Check in before taking a break.';
+    case AlreadyOnBreak       = 'Already on a break.';
+    case NoActiveBreak        = 'No active break.';
 
     // Failure messages
-    case CheckInFailed    = 'Failed to check in.';
-    case CheckOutFailed   = 'Failed to check out.';
-    case BreakStartFailed = 'Failed to start break.';
-    case BreakEndFailed   = 'Failed to end break.';
+    case CheckInFailed    = 'Check-in failed. Try again.';
+    case CheckOutFailed   = 'Check-out failed. Try again.';
+    case BreakStartFailed = 'Could not start break.';
+    case BreakEndFailed   = 'Could not end break.';
 
     // Replace :name placeholder with actual value
     public function with(string $name): string

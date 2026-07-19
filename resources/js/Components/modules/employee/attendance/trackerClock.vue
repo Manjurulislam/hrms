@@ -14,6 +14,11 @@ const props = defineProps({
     todayData: {
         type: Object,
         default: null
+    },
+    // Public client IP resolved once at the page level (used in check-in/out payloads)
+    clientIp: {
+        type: String,
+        default: null
     }
 })
 
@@ -24,24 +29,18 @@ const emit = defineEmits(['work-started', 'work-ended', 'attendance-updated'])
 const currentTime = ref('00:00:00')
 const currentDate = ref('')
 const isWorking = ref(false)
-const isOnBreak = ref(false)
 const workStartTime = ref(null)
-const breakStartTime = ref(null)
 const startTime = ref('--:--')
 const endTime = ref('--:--')
 const totalHours = ref('0h 0m')
 const workTimer = ref('00:00:00')
-const breakTimer = ref('00:00:00')
 const progressPercentage = ref(0)
 const totalWorkedSeconds = ref(0)
-const totalBreakTime = ref(null)
 const isLoading = ref(false)
-const clientIp = ref(null)
 
 // Timer intervals
 let clockInterval = null
 let workInterval = null
-let breakInterval = null
 let syncInterval = null
 
 // Initialize from server data
@@ -60,22 +59,11 @@ const initializeFromServerData = () => {
             updateWorkTimer()
         }
 
-        // Check for active break
-        if (props.todayData.currentBreak) {
-            isOnBreak.value = true
-            breakStartTime.value = new Date(props.todayData.currentBreak.startTime)
-
-            // Start the break timer
-            breakInterval = setInterval(updateBreakTimer, 1000)
-            updateBreakTimer()
-        }
-
         // Set summary times
         if (props.todayData.summary) {
             startTime.value = props.todayData.summary.firstCheckIn || '--:--'
             endTime.value = props.todayData.summary.lastCheckOut || '--:--'
             totalHours.value = props.todayData.summary.totalHours || '0h 0m'
-            totalBreakTime.value = props.todayData.summary.totalBreakTime || null
         }
 
         // Update progress
@@ -104,28 +92,14 @@ const isOfficeHoursComplete = computed(() => {
     return totalSeconds >= totalOfficeSeconds
 })
 
-const progressLabel = computed(() => {
-    if (isOfficeHoursComplete.value && !isWorking.value) {
-        return 'Completed'
-    } else if (isWorking.value) {
-        return 'Work Duration'
-    } else if (totalWorkedSeconds.value > 0) {
-        return 'Total Today'
-    } else {
-        return 'Ready to Work'
-    }
-})
+// Hero progress ring (r=104 → circumference ≈ 653)
+const RING_CIRCUMFERENCE = 653
+const ringDashoffset = computed(() =>
+    RING_CIRCUMFERENCE * (1 - Math.min(progressPercentage.value, 100) / 100)
+)
 
-const progressColor = computed(() => {
-    if (progressPercentage.value >= 75) return '#27AE60' // Green
-    if (progressPercentage.value >= 50) return '#3498DB' // Blue
-    return '#F39C12' // Orange
-})
-
-const progressOffset = computed(() => {
-    const circumference = 534
-    return circumference - (progressPercentage.value / 100) * circumference
-})
+const ctaLabel = computed(() => (isWorking.value ? 'CHECK OUT' : 'CHECK IN'))
+const ctaSub = computed(() => (isWorking.value ? 'Tap to end work' : 'Tap to start work'))
 
 // Helper function for time formatting
 const formatTime = (date, includeSeconds = false) => {
@@ -198,19 +172,6 @@ const updateWorkTimer = () => {
     })
 }
 
-// Update break timer
-const updateBreakTimer = () => {
-    if (!isOnBreak.value || !breakStartTime.value) return
-
-    const now = new Date()
-    const breakSeconds = Math.floor((now - breakStartTime.value) / 1000)
-
-    const hours = Math.floor(breakSeconds / 3600)
-    const minutes = Math.floor((breakSeconds % 3600) / 60)
-    const seconds = breakSeconds % 60
-    breakTimer.value = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-}
-
 // Update progress calculation
 const updateProgress = () => {
     let totalSeconds = totalWorkedSeconds.value
@@ -234,7 +195,7 @@ const startWork = async () => {
         const response = await axios.post(route('emp-attendance.start-work'), {
             location: 'office',
             note: null,
-            client_ip: clientIp.value
+            client_ip: props.clientIp
         })
 
         if (response.data.success) {
@@ -284,7 +245,7 @@ const endWork = async () => {
         const response = await axios.post(route('emp-attendance.end-work'), {
             location: 'office',
             note: null,
-            client_ip: clientIp.value
+            client_ip: props.clientIp
         })
 
         if (response.data.success) {
@@ -299,7 +260,6 @@ const endWork = async () => {
             if (todayData.summary) {
                 endTime.value = todayData.summary.lastCheckOut || formatTime(new Date())
                 totalHours.value = todayData.summary.totalHours || totalHours.value
-                totalBreakTime.value = todayData.summary.totalBreakTime || totalBreakTime.value
             }
 
             // Clear work timer
@@ -330,76 +290,6 @@ const endWork = async () => {
     }
 }
 
-// Start break using axios
-const startBreak = async () => {
-    if (isLoading.value || !isWorking.value) return
-
-    isLoading.value = true
-
-    try {
-        const response = await axios.post(route('emp-attendance.start-break'), {
-            break_type: 'personal',
-            reason: null,
-            client_ip: clientIp.value
-        })
-
-        if (response.data.success) {
-            isOnBreak.value = true
-            breakStartTime.value = new Date()
-
-            // Start break timer
-            breakInterval = setInterval(updateBreakTimer, 1000)
-            updateBreakTimer()
-
-            toast.success(response.data.message || 'Break started successfully!')
-        }
-    } catch (error) {
-        console.error('Start break error:', error)
-        if (error.response && error.response.status === 422) {
-            const message = error.response.data.message || error.response.data.errors?.break?.[0] || 'Failed to start break'
-            toast.error(message)
-        } else {
-            toast.error('An error occurred while starting break: ' + (error.message || 'Unknown error'))
-        }
-    } finally {
-        isLoading.value = false
-    }
-}
-
-// End break using axios
-const endBreak = async () => {
-    if (isLoading.value || !isOnBreak.value) return
-
-    isLoading.value = true
-
-    try {
-        const response = await axios.post(route('emp-attendance.end-break'), {
-            client_ip: clientIp.value
-        })
-
-        if (response.data.success) {
-            isOnBreak.value = false
-
-            // Clear break timer
-            clearInterval(breakInterval)
-            breakInterval = null
-            breakTimer.value = '00:00:00'
-            breakStartTime.value = null
-
-            toast.success(response.data.message || 'Break ended successfully!')
-        }
-    } catch (error) {
-        console.error('End break error:', error)
-        if (error.response && error.response.status === 422) {
-            const message = error.response.data.message || error.response.data.errors?.break?.[0] || 'Failed to end break'
-            toast.error(message)
-        } else {
-            toast.error('An error occurred while ending break: ' + (error.message || 'Unknown error'))
-        }
-    } finally {
-        isLoading.value = false
-    }
-}
 
 // Toggle attendance
 const handleToggleAttendance = () => {
@@ -409,7 +299,7 @@ const handleToggleAttendance = () => {
 
 // Sync with server periodically
 const syncWithServer = async () => {
-    // Skip while a check-in/out/break mutation is in flight — stale poll data
+    // Skip while a check-in/out mutation is in flight — stale poll data
     // can otherwise flip local state back before the mutation response lands.
     if (isLoading.value) return
 
@@ -459,38 +349,9 @@ const syncWithServer = async () => {
                 // Just update totals
                 totalHours.value = serverData.summary.totalHours || totalHours.value
             }
-
-            // Check if break status changed
-            if (serverData.currentBreak && !isOnBreak.value) {
-                // Break started elsewhere
-                isOnBreak.value = true
-                breakStartTime.value = new Date(serverData.currentBreak.startTime)
-
-                if (!breakInterval) {
-                    breakInterval = setInterval(updateBreakTimer, 1000)
-                }
-                updateBreakTimer()
-            } else if (!serverData.currentBreak && isOnBreak.value) {
-                // Break ended elsewhere
-                isOnBreak.value = false
-                clearInterval(breakInterval)
-                breakInterval = null
-                breakTimer.value = '00:00:00'
-                breakStartTime.value = null
-            }
         }
     } catch (error) {
         console.error('Failed to sync with server:', error)
-    }
-}
-
-const fetchClientIp = async () => {
-    try {
-        const res = await fetch('https://api.ipify.org?format=json')
-        const data = await res.json()
-        clientIp.value = data.ip || null
-    } catch (e) {
-        clientIp.value = null
     }
 }
 
@@ -502,9 +363,6 @@ onMounted(() => {
     // Initialize from server data
     initializeFromServerData()
 
-    // Fetch real client IP (server sees proxy/LAN IP)
-    fetchClientIp()
-
     // Sync with server every 30 seconds
     syncInterval = setInterval(syncWithServer, 30000)
 })
@@ -512,210 +370,78 @@ onMounted(() => {
 onUnmounted(() => {
     clearInterval(clockInterval)
     clearInterval(workInterval)
-    clearInterval(breakInterval)
     clearInterval(syncInterval)
 })
 </script>
 
 <template>
-    <v-row>
-        <v-col cols="12" md="4">
-            <v-card
-                class="custom-blue text-white text-center info-card d-flex flex-column justify-center align-center"
-                elevation="3">
-                <div class="time-display font-weight-light mb-2">{{ currentTime }}</div>
-                <div class="text-body-2 text-sm-body-1 mb-1">{{ currentWeekday }},</div>
-                <div class="text-body-2 text-sm-body-1 mb-3">{{ currentDateOnly }}</div>
-                <div class="text-caption text-sm-body-2 office-hours-inline">
-                    <v-icon class="me-1" size="small">mdi-clock-outline</v-icon>
-                    Office Time : {{ officeHours.start }} - {{ officeHours.end }}
-                </div>
-                <div v-if="clientIp" class="text-caption text-sm-body-2 office-hours-inline mt-2 d-none d-sm-inline-block">
-                    <v-icon class="me-1" size="small">mdi-ip-network</v-icon>
-                    My IP : {{ clientIp }}
-                </div>
-            </v-card>
-        </v-col>
-        <v-col cols="12" md="8">
-            <v-card class="tracker-card text-center py-5" elevation="3">
-                <div class="circular-progress-container">
-                    <svg class="progress-ring" viewBox="0 0 200 200" style="transform: rotate(-90deg);">
-                        <circle cx="100" cy="100" fill="none"
-                                r="85"
-                                stroke="rgba(255,255,255,0.2)"
-                                stroke-width="10">
-                        </circle>
-                        <circle :stroke="progressColor" :stroke-dashoffset="progressOffset" cx="100"
-                                cy="100"
-                                fill="none"
-                                r="85"
-                                stroke-dasharray="534"
-                                stroke-linecap="round"
-                                stroke-width="10"
-                                style="transition: stroke-dashoffset 0.3s ease, stroke 0.3s ease;">
-                        </circle>
-                    </svg>
-                    <div class="progress-content">
-                        <div class="timer-display text-white">
-                            {{ isWorking ? workTimer : totalHours }}
-                        </div>
-                        <div class="progress-label text-white" style="opacity: 0.8;">{{ progressLabel }}</div>
-                    </div>
-                </div>
-                <div v-if="isOfficeHoursComplete && !isWorking" class="mt-4">
-                    <v-chip color="success" variant="flat" size="small">
-                        <v-icon start size="small">mdi-check-circle</v-icon>
-                        Office hours completed for today
-                    </v-chip>
-                </div>
-                <div v-else class="d-flex gap-2 mt-4 flex-wrap justify-center">
-                    <v-btn
-                        :color="isWorking ? 'error' : 'success'"
-                        :disabled="isLoading || isOnBreak"
-                        :loading="isLoading && !isOnBreak"
-                        class="px-6"
-                        elevation="2"
-                        size="small"
-                        @click="handleToggleAttendance"
-                    >
-                        <v-icon class="me-2">{{ isWorking ? 'mdi-stop' : 'mdi-play' }}</v-icon>
-                        {{ isWorking ? 'End Work' : 'Start Work' }}
-                    </v-btn>
+    <section class="card hero" :class="{ working: isWorking }">
+        <div class="hero-col">
+            <div class="clock tnum">{{ currentTime }}</div>
+            <div class="date">{{ currentWeekday }}, {{ currentDateOnly }}</div>
 
-                    <!-- Break button hidden — attendance is simple check-in/check-out only.
-                         Kept in place (v-if="false") so it can be re-enabled later. -->
-                    <v-btn
-                        v-if="false && isWorking"
-                        :color="isOnBreak ? 'warning' : 'info'"
-                        :disabled="isLoading"
-                        :loading="isLoading && isOnBreak"
-                        class="px-6"
-                        elevation="2"
-                        size="small"
-                        @click="isOnBreak ? endBreak() : startBreak()"
-                    >
-                        <v-icon class="me-2">{{ isOnBreak ? 'mdi-play-circle' : 'mdi-coffee' }}</v-icon>
-                        {{ isOnBreak ? 'End Break' : 'Start Break' }}
-                    </v-btn>
+            <div class="tapwrap">
+                <span class="pulse" v-if="!isLoading"></span>
+                <svg class="ring" viewBox="0 0 224 224" aria-hidden="true">
+                    <circle cx="112" cy="112" r="104" fill="none" class="ring-track" stroke-width="7"/>
+                    <circle cx="112" cy="112" r="104" fill="none" stroke="url(#ring-grad)" stroke-width="7"
+                            stroke-linecap="round" stroke-dasharray="653" :stroke-dashoffset="ringDashoffset"
+                            class="ring-fill"/>
+                    <defs>
+                        <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" :stop-color="isWorking ? '#FF5C93' : '#4F7BFF'"/>
+                            <stop offset="1" :stop-color="isWorking ? '#C23CD4' : '#7A5CFF'"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <button
+                    class="tapbtn"
+                    type="button"
+                    :disabled="isLoading"
+                    @click="handleToggleAttendance"
+                >
+                    <v-progress-circular v-if="isLoading" indeterminate size="40" width="3" color="white"/>
+                    <template v-else>
+                        <svg class="hand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5V4a1.5 1.5 0 0 1 3 0v6m0-1V6a1.5 1.5 0 0 1 3 0v6.5m0 0V9a1.5 1.5 0 0 1 3 0v6.2c0 3.2-2.4 5.8-6 5.8-2.3 0-3.6-.8-4.9-2.2l-3.7-4a1.6 1.6 0 0 1 2.3-2.2L8 15"/>
+                        </svg>
+                        <span class="cta">{{ ctaLabel }}<small>{{ ctaSub }}</small></span>
+                    </template>
+                </button>
+            </div>
+
+            <div class="worktag" :class="{ off: !isWorking }">
+                <span class="live" v-if="isWorking"></span>
+                Work duration <b class="tnum">{{ isWorking ? workTimer : totalHours }}</b>
+            </div>
+
+            <div v-if="isOfficeHoursComplete && !isWorking" class="done-chip">
+                <v-icon size="14" class="me-1">mdi-check-circle</v-icon>
+                Office hours completed for today
+            </div>
+
+            <div class="today">
+                <div class="tstat">
+                    <div class="ic ci">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>
+                    </div>
+                    <div class="tmeta"><div class="val tnum">{{ startTime }}</div><div class="cap">Check In</div></div>
                 </div>
-            </v-card>
-        </v-col>
-    </v-row>
-    <v-card class="summary-card mt-3 text-white" elevation="3">
-        <!-- Today's Summary -->
-        <v-card-text>
-            <v-card-title class="text-subtitle-2 pa-0 mb-3 text-white">
-                <v-icon class="me-2">mdi-calendar-today</v-icon>
-                Today's Summary
-            </v-card-title>
-            <v-row class="text-center" dense>
-                <v-col cols="6" sm="3">
-                    <div class="text-subtitle-1 text-sm-h6">{{ startTime }}</div>
-                    <div class="text-caption" style="opacity: 0.7;">Start Time</div>
-                </v-col>
-                <v-col cols="6" sm="3">
-                    <div class="text-subtitle-1 text-sm-h6">{{ endTime }}</div>
-                    <div class="text-caption" style="opacity: 0.7;">End Time</div>
-                </v-col>
-                <v-col cols="6" sm="3">
-                    <div class="text-subtitle-1 text-sm-h6" style="color: #5DADE2;">{{ totalHours }}</div>
-                    <div class="text-caption" style="opacity: 0.7;">Total Hours</div>
-                </v-col>
-                <v-col cols="6" sm="3">
-                    <div class="text-subtitle-1 text-sm-h6" :style="isOnBreak ? 'color: #F39C12;' : ''">
-                        {{ isOnBreak ? breakTimer : (totalBreakTime || '--:--') }}
+                <div class="tstat">
+                    <div class="ic co">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
                     </div>
-                    <div class="text-caption" style="opacity: 0.7;">
-                        {{ isOnBreak ? 'On Break' : (totalBreakTime ? 'Break Time' : 'No Break') }}
+                    <div class="tmeta"><div class="val tnum">{{ endTime }}</div><div class="cap">Check Out</div></div>
+                </div>
+                <div class="tstat">
+                    <div class="ic wh">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
                     </div>
-                </v-col>
-            </v-row>
-        </v-card-text>
-    </v-card>
+                    <div class="tmeta"><div class="val tnum">{{ totalHours }}</div><div class="cap">Working Hours</div></div>
+                </div>
+            </div>
+        </div>
+    </section>
 </template>
 
-<style scoped>
-.custom-blue {
-    background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%) !important;
-    height: 100%;
-    padding: 16px;
-}
-
-.info-card {
-    min-height: 160px;
-}
-
-.time-display {
-    font-size: 2rem;
-    line-height: 1.1;
-}
-
-.progress-ring {
-    width: 200px;
-    height: 200px;
-    max-width: 100%;
-}
-
-.tracker-card {
-    background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%) !important;
-}
-
-.summary-card {
-    background: linear-gradient(135deg, #1A1A2E 0%, #16213E 50%, #0F3460 100%) !important;
-}
-
-.circular-progress-container {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.progress-content {
-    position: absolute;
-    text-align: center;
-    z-index: 1;
-}
-
-.timer-display {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-}
-
-.progress-label {
-    font-size: 0.875rem;
-}
-
-.office-hours-inline {
-    opacity: 0.9;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 8px 16px;
-    display: inline-block;
-}
-
-/* Responsive adjustments */
-@media (max-width: 600px) {
-    .time-display {
-        font-size: 1.5rem;
-    }
-
-    .info-card {
-        min-height: auto;
-    }
-
-    .progress-ring {
-        width: 170px;
-        height: 170px;
-    }
-
-    .timer-display {
-        font-size: 1.25rem;
-    }
-
-    .office-hours-inline {
-        padding: 6px 12px;
-    }
-}
-</style>

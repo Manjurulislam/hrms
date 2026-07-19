@@ -35,10 +35,11 @@ class EmployeeAttendanceController extends Controller
                 'company'    => $employee->company?->name,
                 'employeeId' => $employee->id,
             ],
-            'officeHours'       => $this->service->getOfficeHours($employee),
-            'monthlyStats'      => $this->service->getMonthlyStats($employee),
-            'todayData'         => $this->service->getTodayCompleteData($employee),
-            'attendanceRecords' => $this->service->getAttendanceRecords($employee),
+            'officeHours'       => $this->service->officeHours($employee),
+            'performance'       => $this->service->monthlyPerformance($employee),
+            'holidays'          => $this->service->monthlyHolidays($employee),
+            'teamToday'         => $this->service->teamToday($employee),
+            'todayData'         => $this->service->todayData($employee),
         ]);
     }
 
@@ -60,7 +61,7 @@ class EmployeeAttendanceController extends Controller
         return response()->json([
             'success'   => true,
             'message'   => $result['message'],
-            'todayData' => $this->service->getTodayCompleteData($employee),
+            'todayData' => $this->service->todayData($employee),
             'startTime' => data_get($result, 'session.check_in_time'),
         ]);
     }
@@ -83,7 +84,7 @@ class EmployeeAttendanceController extends Controller
         return response()->json([
             'success'    => true,
             'message'    => $result['message'],
-            'todayData'  => $this->service->getTodayCompleteData($employee),
+            'todayData'  => $this->service->todayData($employee),
             'endTime'    => data_get($result, 'session.check_out_time'),
             'totalHours' => $this->service->formatDuration(data_get($result, 'session.duration_minutes', 0) * 60),
         ]);
@@ -97,8 +98,7 @@ class EmployeeAttendanceController extends Controller
         $result = $this->service->startBreak(
             $employee,
             $request->resolvedClientIp(),
-            $request->input('break_type'),
-            $request->input('reason')
+            $request->only(['break_type', 'reason'])
         );
 
         if (!$result['success']) {
@@ -108,7 +108,7 @@ class EmployeeAttendanceController extends Controller
         return response()->json([
             'success'   => true,
             'message'   => $result['message'],
-            'todayData' => $this->service->getTodayCompleteData($employee),
+            'todayData' => $this->service->todayData($employee),
             'break'     => $result['break'],
         ]);
     }
@@ -127,7 +127,7 @@ class EmployeeAttendanceController extends Controller
         return response()->json([
             'success'       => true,
             'message'       => $result['message'],
-            'todayData'     => $this->service->getTodayCompleteData($employee),
+            'todayData'     => $this->service->todayData($employee),
             'breakDuration' => $result['duration'],
         ]);
     }
@@ -142,7 +142,7 @@ class EmployeeAttendanceController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $this->service->getTodayCompleteData($employee),
+            'data'    => $this->service->todayData($employee),
         ]);
     }
 
@@ -158,7 +158,7 @@ class EmployeeAttendanceController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $this->service->getMonthlyData($employee, (int) $year, (int) $month),
+            'data'    => $this->service->monthlyData($employee, (int) $year, (int) $month),
         ]);
     }
 

@@ -58,7 +58,7 @@ class BreakEndRequest extends FormRequest
             $remaining = 60 - $breakSeconds;
             $validator->errors()->add(
                 'break',
-                "Break too short. Please wait {$remaining} more second(s)."
+                "Too soon to end break. Wait {$remaining}s."
             );
         }
     }

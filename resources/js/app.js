@@ -1,4 +1,5 @@
 import '../css/app.css';
+import '../css/attendance.css';
 import './bootstrap';
 
 import {createInertiaApp} from '@inertiajs/vue3';
@@ -21,7 +22,14 @@ import VueTablerIcons from 'vue-tabler-icons';
 import VueScrollTo from 'vue-scrollto';
 //========================================
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'HRMS';
+
+const toastOptios = {
+    transition: "Vue-Toastification__fade",
+    position: "bottom-right",
+    timeout: 3941,
+}
+
 
 const pinia = createPinia();
 
@@ -31,7 +39,7 @@ createInertiaApp({
     setup({el, App, props, plugin}) {
         return createApp({render: () => h(App, props)})
             .use(plugin)
-            .use(Toast)
+            .use(Toast, toastOptios)
             .use(ElementPlus)
             .use(vuetify)
             .use(VueTablerIcons)

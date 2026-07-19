@@ -138,7 +138,7 @@ class CheckInRequest extends FormRequest
         if ($minutesSince < $minimumGap) {
             $validator->errors()->add(
                 'session',
-                "Please wait at least {$minimumGap} minutes between sessions. {$minutesSince} minutes have passed since last checkout."
+                "Wait {$minimumGap} min between sessions."
             );
         }
     }

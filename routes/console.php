@@ -14,7 +14,7 @@ Artisan::command('inspire', function () {
 // per-company auto_close_at time is honored closely; the service skips companies
 // where auto_close is disabled and sessions whose close time has not yet arrived.
 Schedule::call(function () {
-    $count = app(AttendanceService::class)->autoCloseActiveSessions();
+    $count = app(AttendanceService::class)->autoCloseSessions();
 
     if ($count > 0) {
         info("Auto-closed {$count} stale attendance session(s).");

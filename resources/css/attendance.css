@@ -1,0 +1,271 @@
+/*
+ * Employee Attendance — mobile-app redesign styles.
+ * Shared by the design mockup and the Vue components (Employee/attendance page).
+ *
+ * All rules are scoped under `.attendance` so the generic class names (.card, .td,
+ * .pill, …) never leak into the rest of the app. Palette is driven by standalone
+ * brand tokens; dark mode follows the app's active Vuetify theme (any DARK_* theme),
+ * with prefers-color-scheme as a fallback for the standalone mockup.
+ */
+
+.attendance {
+  --ci-a:#4F7BFF; --ci-b:#7A5CFF; --co-a:#FF5C93; --co-b:#C23CD4;
+  --success:#16B364; --warn:#F5A524; --late:#F0416B; --info:#3AA6F0;
+
+  --surface:#FFFFFF; --surface-2:#F6F8FC;
+  --ink:#141A2A; --muted:#6C7689; --faint:#9AA3B5; --hairline:#E6E9F2;
+  --success-bg:#E5F6EC; --warn-bg:#FDF2DD; --late-bg:#FCE6EC; --info-bg:#E4F2FD;
+  --shadow:0 10px 30px -12px rgba(24,35,80,.22);
+  --ring-track:#E7EAF3;
+
+  width:100%;
+  padding:8px 2px 40px;
+  color:var(--ink);
+  font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  line-height:1.45;
+}
+/* Restore border-box locally — the standalone mockup has no global reset (the app does) */
+.attendance, .attendance * { box-sizing:border-box; }
+
+/* Dark tokens — follow the app's Vuetify dark theme (DARK_BLUE_THEME, DARK_AQUA_THEME, …) */
+[class*="v-theme--DARK"] .attendance {
+  --surface:#161C2B; --surface-2:#1B2233;
+  --ink:#EAEEF8; --muted:#9AA4BC; --faint:#6C7690; --hairline:#28324A;
+  --success-bg:#12301F; --warn-bg:#31260F; --late-bg:#331623; --info-bg:#0F2739;
+  --shadow:0 16px 40px -18px rgba(0,0,0,.7);
+  --ring-track:#28324A;
+}
+/* Fallback for the standalone mockup (no Vuetify present) */
+@media (prefers-color-scheme: dark) {
+  :root:not(.v-application) .attendance {
+    --surface:#161C2B; --surface-2:#1B2233;
+    --ink:#EAEEF8; --muted:#9AA4BC; --faint:#6C7690; --hairline:#28324A;
+    --success-bg:#12301F; --warn-bg:#31260F; --late-bg:#331623; --info-bg:#0F2739;
+    --shadow:0 16px 40px -18px rgba(0,0,0,.7);
+    --ring-track:#28324A;
+  }
+}
+
+.attendance .tnum { font-variant-numeric:tabular-nums; }
+
+/* ── Layout ─────────────────────────────────────────────────────── */
+.attendance .card { background:var(--surface); border:1px solid var(--hairline); border-radius:22px; box-shadow:var(--shadow); }
+.attendance .grid { display:grid; gap:18px; }
+.attendance .two { grid-template-columns:1fr; }
+@media (min-width:880px) { .attendance .two { grid-template-columns:1fr 1fr; align-items:start; } }
+@media (min-width:880px) { .attendance .toprow { align-items:stretch; } }
+@media (max-width:879px) { .attendance .toprow .hero { order:-1; } }
+
+/* ── Hero (trackerClock) ────────────────────────────────────────── */
+.attendance .hero { padding:14px 18px; position:relative; overflow:hidden; }
+.attendance .hero::before, .attendance .hero::after { content:""; position:absolute; border-radius:50%; filter:blur(52px); opacity:.5; z-index:0; pointer-events:none; }
+.attendance .hero::before { width:240px; height:240px; left:-80px; top:-80px; background:radial-gradient(circle,rgba(122,92,255,.32),transparent 70%); }
+.attendance .hero::after { width:240px; height:240px; right:-80px; bottom:-50px; background:radial-gradient(circle,rgba(79,123,255,.26),transparent 70%); }
+.attendance .hero.working::before { background:radial-gradient(circle,rgba(255,92,147,.30),transparent 70%); }
+.attendance .hero.working::after { background:radial-gradient(circle,rgba(194,60,212,.28),transparent 70%); }
+.attendance .hero-col { position:relative; z-index:1; max-width:520px; margin:0 auto; display:flex; flex-direction:column; align-items:center; text-align:center; }
+.attendance .clock { font-size:21px; font-weight:700; letter-spacing:.01em; line-height:1; }
+.attendance .date { color:var(--muted); font-size:12px; margin-top:4px; }
+
+.attendance .tapwrap { position:relative; width:210px; height:210px; margin:12px auto 2px; display:grid; place-items:center; }
+.attendance .tapwrap svg.ring { position:absolute; inset:0; transform:rotate(-90deg); }
+.attendance .ring-track { stroke:var(--ring-track); }
+.attendance .ring-fill { transition:stroke-dashoffset .4s ease; }
+
+.attendance .tapbtn {
+  width:170px; height:170px; border-radius:50%; border:0; cursor:pointer; color:#fff; position:relative; z-index:1; overflow:hidden;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  background:
+    radial-gradient(120% 120% at 50% 10%, rgba(255,255,255,.38), rgba(255,255,255,0) 44%),
+    linear-gradient(150deg,var(--ci-a),var(--ci-b));
+  box-shadow:
+    0 22px 46px -12px rgba(79,109,255,.62),
+    0 6px 14px -6px rgba(79,109,255,.5),
+    inset 0 3px 2px rgba(255,255,255,.5),
+    inset 0 -12px 24px rgba(24,20,80,.38),
+    inset 0 0 0 1px rgba(255,255,255,.14);
+  transition:transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease, filter .2s ease;
+}
+/* glossy top sheen */
+.attendance .tapbtn::before { content:""; position:absolute; left:15%; right:15%; top:8%; height:40%; border-radius:50%; background:linear-gradient(180deg, rgba(255,255,255,.6), rgba(255,255,255,0)); filter:blur(1px); opacity:.7; pointer-events:none; z-index:1; }
+/* inner bevel ring */
+.attendance .tapbtn::after { content:""; position:absolute; inset:15px; border-radius:50%; border:1px solid rgba(255,255,255,.2); pointer-events:none; z-index:1; }
+.attendance .tapbtn .hand, .attendance .tapbtn .cta { position:relative; z-index:2; }
+.attendance .working .tapbtn, .attendance .hero.working .tapbtn {
+  background:
+    radial-gradient(120% 120% at 50% 10%, rgba(255,255,255,.38), rgba(255,255,255,0) 44%),
+    linear-gradient(150deg,var(--co-a),var(--co-b));
+  box-shadow:
+    0 22px 48px -12px rgba(194,60,212,.62),
+    0 6px 14px -6px rgba(194,60,212,.5),
+    inset 0 3px 2px rgba(255,255,255,.5),
+    inset 0 -12px 24px rgba(90,10,90,.38),
+    inset 0 0 0 1px rgba(255,255,255,.14);
+}
+.attendance .tapbtn:hover:not(:disabled) {
+  transform:scale(1.05); filter:brightness(1.06) saturate(1.05);
+  box-shadow:
+    0 30px 58px -10px rgba(79,109,255,.72),
+    0 10px 20px -6px rgba(79,109,255,.55),
+    inset 0 3px 2px rgba(255,255,255,.55),
+    inset 0 -12px 24px rgba(24,20,80,.38),
+    inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.attendance .hero.working .tapbtn:hover:not(:disabled) {
+  box-shadow:
+    0 30px 60px -10px rgba(194,60,212,.72),
+    0 10px 20px -6px rgba(194,60,212,.55),
+    inset 0 3px 2px rgba(255,255,255,.55),
+    inset 0 -12px 24px rgba(90,10,90,.38),
+    inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.attendance .tapbtn:active:not(:disabled) {
+  transform:scale(.94); transition-duration:.08s;
+  box-shadow:
+    0 10px 22px -10px rgba(79,109,255,.55),
+    inset 0 5px 12px rgba(24,20,80,.5),
+    inset 0 2px 2px rgba(255,255,255,.35);
+}
+.attendance .tapbtn:focus-visible { outline:3px solid rgba(255,255,255,.8); outline-offset:4px; }
+.attendance .tapbtn:disabled { cursor:default; opacity:.92; }
+.attendance .tapbtn .hand { width:44px; height:44px; transition:transform .2s ease; filter:drop-shadow(0 2px 3px rgba(0,0,0,.18)); }
+.attendance .tapbtn:hover:not(:disabled) .hand { animation:att-tap .55s ease; }
+@keyframes att-tap { 0%,100%{transform:translateY(0) rotate(0)} 30%{transform:translateY(-4px) rotate(-9deg)} 55%{transform:translateY(2px) rotate(3deg)} 75%{transform:translateY(-1px) rotate(-1deg)} }
+.attendance .tapbtn .cta { font-size:13px; font-weight:700; letter-spacing:.14em; text-shadow:0 1px 2px rgba(0,0,0,.22); }
+.attendance .tapbtn .cta small { display:block; font-size:9.5px; font-weight:600; letter-spacing:.11em; opacity:.9; margin-top:3px; }
+
+.attendance .pulse { position:absolute; width:170px; height:170px; border-radius:50%; z-index:-1; background:linear-gradient(150deg,var(--ci-a),var(--ci-b)); opacity:.35; animation:att-pulse 2.4s ease-out infinite; }
+.attendance .hero.working .pulse { background:linear-gradient(150deg,var(--co-a),var(--co-b)); }
+@keyframes att-pulse { 0%{transform:scale(1);opacity:.35} 70%{transform:scale(1.35);opacity:0} 100%{opacity:0} }
+@media (prefers-reduced-motion: reduce) { .attendance .pulse { animation:none; display:none } .attendance .tapbtn:hover:not(:disabled) .hand { animation:none } }
+
+.attendance .worktag { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:700; color:var(--ink); background:var(--surface-2); border:1px solid var(--hairline); border-radius:999px; padding:6px 13px; margin-top:8px; }
+.attendance .worktag.off { opacity:.6; }
+.attendance .worktag b { color:var(--ink); font-variant-numeric:tabular-nums; letter-spacing:.02em; }
+.attendance .worktag .live { width:7px; height:7px; border-radius:50%; background:var(--success); animation:att-live 1.6s infinite; }
+@keyframes att-live { 0%{box-shadow:0 0 0 0 rgba(22,179,100,.5)} 70%{box-shadow:0 0 0 6px rgba(22,179,100,0)} 100%{box-shadow:0 0 0 0 rgba(22,179,100,0)} }
+
+.attendance .done-chip { display:inline-flex; align-items:center; margin-top:10px; font-size:11.5px; font-weight:700; color:var(--success); background:var(--success-bg); border-radius:999px; padding:5px 12px; }
+
+/* Today stats — 3-across row below the button */
+.attendance .today { width:100%; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; padding-top:11px; border-top:1px solid var(--hairline); }
+.attendance .tstat { display:flex; flex-direction:column; align-items:center; gap:5px; text-align:center; }
+.attendance .tstat .ic { width:26px; height:26px; border-radius:9px; display:grid; place-items:center; flex-shrink:0; }
+.attendance .tstat .ic svg { width:14px; height:14px; }
+.attendance .ic.ci { color:var(--info); }
+.attendance .ic.co { color:var(--late); }
+.attendance .ic.wh { color:var(--success); }
+.attendance .tmeta { display:flex; flex-direction:column; }
+.attendance .tmeta .val { font-size:14px; font-weight:700; letter-spacing:-.01em; }
+.attendance .tmeta .val small { font-size:10px; color:var(--muted); font-weight:600; }
+.attendance .tmeta .cap { font-size:10px; color:var(--muted); margin-top:1px; }
+
+@media (max-width:600px) {
+  .attendance .clock { font-size:19px; }
+  .attendance .tapwrap { width:190px; height:190px; }
+  .attendance .tapbtn { width:154px; height:154px; }
+  .attendance .pulse { width:154px; height:154px; }
+}
+
+/* ── Section headers ────────────────────────────────────────────── */
+.attendance .sect-h { display:flex; align-items:center; justify-content:space-between; margin:0 2px 12px; }
+.attendance .sect-h h2 { font-size:12px; font-weight:700; margin:0; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+.attendance .sect-h .sub { font-size:12px; color:var(--muted); }
+
+/* ── Panels & tables (teamMembers, records) ─────────────────────── */
+.attendance .panel { padding:18px; }
+.attendance .tbl { width:100%; overflow-x:auto; }
+.attendance .thead, .attendance .trow { display:grid; gap:8px; align-items:center; padding:11px 4px; }
+.attendance .thead { border-bottom:1.5px solid var(--hairline); }
+.attendance .trow { border-bottom:1px solid var(--hairline); }
+.attendance .trow:last-child { border-bottom:0; }
+.attendance .th { font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); font-weight:700; }
+.attendance .th.r, .attendance .td.r { text-align:right; justify-self:end; }
+.attendance .td { font-size:12.5px; color:var(--ink); font-variant-numeric:tabular-nums; min-width:0; }
+.attendance .td.muted { color:var(--muted); }
+.attendance .cell-name { min-width:0; }
+.attendance .td.name { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.attendance .td.role { font-size:11px; color:var(--muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.attendance .late-in { color:rgb(var(--v-theme-deeporange)); font-weight:600; }
+.attendance .team .thead, .attendance .team .trow { grid-template-columns:1fr 66px 88px; }
+.attendance .empty { text-align:center; color:var(--muted); font-size:12.5px; padding:20px 0; }
+
+.attendance .teamsum { display:flex; flex-wrap:wrap; gap:8px; margin:0 2px 12px; font-size:12px; color:var(--muted); }
+.attendance .teamsum b { font-weight:800; font-size:13px; }
+.attendance .teamsum .p b { color:var(--success); }
+.attendance .teamsum .l b { color:var(--warn); }
+.attendance .teamsum .a b { color:var(--late); }
+
+/* ── Status pills ───────────────────────────────────────────────── */
+.attendance .pill { font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:999px; letter-spacing:.02em; white-space:nowrap; display:inline-block; }
+.attendance .pill.present, .attendance .pill.working { background:var(--success-bg); color:var(--success); }
+.attendance .pill.late { background:rgba(var(--v-theme-deeporange),.14); color:rgb(var(--v-theme-deeporange)); }
+.attendance .pill.absent { background:var(--late-bg); color:var(--late); }
+.attendance .pill.wfh, .attendance .pill.half { background:var(--info-bg); color:var(--info); }
+.attendance .pill.holiday { background:rgba(79,123,255,.13); color:var(--ci-a); }
+.attendance .pill.leave, .attendance .pill.weekend { background:var(--surface-2); color:var(--muted); }
+
+/* ── Performance — small stat cards (dashboard style) ───────────── */
+.attendance .pgrid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; align-content:start; height:100%; }
+.attendance .pstat { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:15px 16px; transition:transform .2s ease, box-shadow .2s ease; }
+.attendance .pstat:hover { transform:translateY(-3px); box-shadow:0 16px 32px -16px rgba(24,35,80,.3); }
+.attendance .pstat-body { min-width:0; }
+.attendance .pstat .lbl { font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:700; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.attendance .pstat .num { font-size:24px; font-weight:800; letter-spacing:-.02em; line-height:1; }
+
+.attendance .mic { width:32px; height:32px; border-radius:10px; display:grid; place-items:center; flex-shrink:0; }
+.attendance .mic svg { width:16px; height:16px; }
+.attendance .pstat .mic { width:42px; height:42px; border-radius:12px; }
+.attendance .pstat .mic .v-icon { font-size:22px; }
+.attendance .mic.primary { background:rgba(79,123,255,.13); color:var(--ci-a); }
+.attendance .mic.info { background:var(--info-bg); color:var(--info); }
+.attendance .mic.success { background:var(--success-bg); color:var(--success); }
+.attendance .mic.warn { background:var(--warn-bg); color:var(--warn); }
+.attendance .mic.error { background:var(--late-bg); color:var(--late); }
+
+/* text-value cards (Office hours, IP) — same card, smaller value to fit text */
+.attendance .pstat--text .num { font-size:15px; letter-spacing:0; }
+.attendance .pstat--wide { grid-column:1 / -1; }
+
+/* Holidays card (current month) */
+.attendance .mic.holiday { background:rgba(122,92,255,.13); color:var(--ci-b); }
+.attendance .hcard { padding:14px 16px; }
+.attendance .hhead { display:flex; align-items:center; gap:11px; margin-bottom:8px; }
+.attendance .hhead .htitle { font-size:13px; font-weight:700; color:var(--ink); }
+.attendance .hhead .hmonth { font-size:11px; color:var(--muted); margin-left:auto; }
+.attendance .hlist { display:flex; flex-direction:column; }
+.attendance .hrow { display:flex; align-items:center; gap:10px; padding:9px 2px; border-bottom:1px solid var(--hairline); }
+.attendance .hrow:last-child { border-bottom:0; }
+.attendance .hrow .hdot { width:7px; height:7px; border-radius:50%; background:var(--ci-b); flex-shrink:0; }
+.attendance .hrow .hname { font-size:12.5px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.attendance .hrow .hdate { margin-left:auto; font-size:11.5px; color:var(--muted); font-weight:600; white-space:nowrap; }
+.attendance .hempty { font-size:12px; color:var(--muted); padding:10px 0; text-align:center; }
+
+/* Filters row (app: Vuetify inputs; mockup: .fbtn buttons) */
+.attendance .filters { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
+.attendance .fbtn { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; color:var(--muted); background:transparent; border:1px solid var(--hairline); border-radius:10px; padding:7px 11px; cursor:pointer; }
+.attendance .fbtn svg { width:14px; height:14px; }
+.attendance .fbtn.accent { margin-left:auto; color:var(--ci-a); border-color:color-mix(in srgb,var(--ci-a) 45%,var(--hairline)); }
+
+/* Static My Attendance grid (mockup only; the app renders a Vuetify data-table) */
+.attendance .att .thead, .attendance .att .trow { grid-template-columns:50px 90px 1fr 1fr 58px 68px; }
+
+/* ── My Attendance records (Vuetify data-table, restyled clean) ──── */
+.attendance .records-title { font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+.attendance .records .v-table,
+.attendance .records .v-data-table { background:transparent; }
+/* specificity kept above the global app.css !important rules on .v-data-table th/td */
+.attendance .records .v-data-table th.v-data-table__th { background:transparent !important; color:var(--faint) !important; font-size:10.5px !important; font-weight:700 !important; letter-spacing:.07em; text-transform:uppercase; border-color:var(--hairline) !important; }
+.attendance .records .v-data-table td.v-data-table__td { font-size:11.5px !important; color:var(--ink); font-variant-numeric:tabular-nums; border-color:var(--hairline) !important; white-space:nowrap; }
+.attendance .records .in-time { color:var(--success); font-weight:600; }
+.attendance .records .out-time { color:var(--ci-b); font-weight:600; }
+.attendance .records .v-data-table tbody tr:hover > td.v-data-table__td { background:rgba(0,0,0,.02) !important; }
+/* tighter rows on mobile */
+@media (max-width:959px) {
+    .attendance .records .v-table { --v-table-row-height:40px; }
+    .attendance .records .v-data-table td.v-data-table__td,
+    .attendance .records .v-data-table th.v-data-table__th { padding-top:3px !important; padding-bottom:3px !important; height:auto !important; }
+}
+.attendance .month-picker { padding:8px; border:1px solid var(--hairline); border-radius:8px; width:100%; font-size:14px; background:transparent; color:var(--ink); }
+.attendance .month-picker:focus { outline:none; border-color:var(--ci-a); }

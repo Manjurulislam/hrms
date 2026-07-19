@@ -1,9 +1,24 @@
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { useToast } from 'vue-toastification'
+import { useDisplay } from 'vuetify'
 
 const toast = useToast()
+const { mdAndUp } = useDisplay()
+
+// Fewer columns on mobile so Status stays visible (drop Hours + expand)
+const headers = computed(() => {
+    const cols = [
+        { title: 'Date', key: 'attendance_date_display', sortable: true },
+        { title: 'In', key: 'first_check_in_display', sortable: false },
+        { title: 'Out', key: 'last_check_out_display', sortable: false },
+    ]
+    if (mdAndUp.value) cols.push({ title: 'Hours', key: 'working_hours', sortable: false })
+    cols.push({ title: 'Status', key: 'status', sortable: false, align: 'end' })
+    if (mdAndUp.value) cols.push({ title: '', key: 'data-table-expand', sortable: false, width: '40px' })
+    return cols
+})
 
 // Props
 const props = defineProps({
@@ -35,17 +50,6 @@ const expanded = ref([])
 
 // State
 const state = reactive({
-    headers: [
-        { title: '', key: 'data-table-expand', sortable: false, width: '40px' },
-        { title: 'Date', key: 'attendance_date_display', sortable: true },
-        { title: 'Day', key: 'day', sortable: false },
-        { title: 'Check In', key: 'first_check_in_display', sortable: false },
-        { title: 'Check Out', key: 'last_check_out_display', sortable: false },
-        { title: 'Working Hours', key: 'working_hours', sortable: false },
-        { title: 'Break Hours', key: 'break_hours', sortable: false },
-        { title: 'Sessions', key: 'total_sessions', sortable: false },
-        { title: 'Status', key: 'status', sortable: false, width: '10%' }
-    ],
     serverItems: [],
     pagination: {
         itemsPerPage: 50,
@@ -131,19 +135,19 @@ const handleDateChange = (value) => {
     reload()
 }
 
-// Get status color
-const getStatusColor = (status) => {
-    const colors = {
-        'present': 'success',
-        'absent': 'error',
-        'late': 'deeporange',
-        'half_day': 'info',
-        'leave': 'secondary',
-        'holiday': 'primary',
-        'weekend': 'grey',
-        'work_from_home': 'cyan'
+// Map a status key to a pill style class (clean coloured pill)
+const pillClass = (status) => {
+    const map = {
+        'present': 'present',
+        'absent': 'absent',
+        'late': 'late',
+        'half_day': 'half',
+        'leave': 'leave',
+        'holiday': 'holiday',
+        'weekend': 'weekend',
+        'work_from_home': 'wfh'
     }
-    return colors[status] || 'grey'
+    return map[status] || 'absent'
 }
 
 // Session status helpers
@@ -224,26 +228,24 @@ onMounted(() => {
 </script>
 
 <template>
-    <v-card elevation="3">
-        <v-card-title class="d-flex justify-space-between align-center">
-            <div class="d-flex align-center">
-                <v-icon class="me-2" size="small">mdi-calendar-check</v-icon>
-                <span class="text-body-2 font-weight-light">Attendance</span>
-            </div>
+    <section class="card panel records">
+        <div class="sect-h">
+            <span class="records-title">Attendance</span>
             <v-btn
                 @click="exportData"
                 color="primary"
-                variant="tonal"
+                variant="outlined"
                 size="small"
-                prepend-icon="mdi-download"
+                prepend-icon="mdi-tray-arrow-down"
+                class="d-none d-md-inline-flex"
             >
                 Export
             </v-btn>
-        </v-card-title>
+        </div>
 
-        <v-card-text>
-            <!-- Filters -->
-            <v-row class="mb-3" dense>
+        <div class="records-body">
+            <!-- Filters (hidden on mobile) -->
+            <v-row class="mb-3 d-none d-md-flex" dense>
                 <!-- Month Selector -->
                 <v-col cols="12" sm="4" md="3">
                     <v-menu :close-on-content-click="false" offset-y>
@@ -303,61 +305,37 @@ onMounted(() => {
             <!-- Data Table -->
             <v-data-table-server
                 v-model:expanded="expanded"
-                :headers="state.headers"
+                :headers="headers"
                 :items="state.serverItems"
                 :items-length="state.pagination.totalItems"
                 :items-per-page="state.pagination.itemsPerPage"
                 :loading="state.loading"
+                :hide-default-footer="!mdAndUp"
+                :show-expand="mdAndUp"
                 density="compact"
                 item-value="id"
-                show-expand
                 @update:options="getData"
                 class="elevation-0 custom-table"
             >
                 <template v-slot:item.attendance_date_display="{ item }">
-                    <span class="font-weight-medium">{{ item.attendance_date_display }}</span>
-                </template>
-
-                <template v-slot:item.day="{ item }">
-                    <v-chip
-                        size="x-small"
-                        :color="item.day === 'Sun' || item.day === 'Sat' ? 'grey' : 'default'"
-                        variant="text"
-                    >
-                        {{ item.day }}
-                    </v-chip>
+                    <div class="font-weight-medium">{{ item.attendance_date_display }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ item.day }}</div>
                 </template>
 
                 <template v-slot:item.first_check_in_display="{ item }">
-                    <span :class="item.late_minutes > 0 ? 'text-warning' : ''">{{ item.first_check_in_display }}</span>
+                    <span class="in-time">{{ item.first_check_in_display }}</span>
                 </template>
 
                 <template v-slot:item.last_check_out_display="{ item }">
-                    {{ item.last_check_out_display }}
+                    <span class="out-time">{{ item.last_check_out_display }}</span>
                 </template>
 
                 <template v-slot:item.working_hours="{ item }">
                     {{ item.working_hours }}
                 </template>
 
-                <template v-slot:item.break_hours="{ item }">
-                    {{ item.break_hours }}
-                </template>
-
-                <template v-slot:item.total_sessions="{ item }">
-                    <v-chip size="x-small" variant="tonal">
-                        {{ item.total_sessions || 0 }}
-                    </v-chip>
-                </template>
-
                 <template v-slot:item.status="{ item }">
-                    <v-chip
-                        :color="getStatusColor(item.status)"
-                        size="x-small"
-                        label
-                    >
-                        {{ item.status_label }}
-                    </v-chip>
+                    <span class="pill" :class="pillClass(item.status)">{{ item.status_label }}</span>
                 </template>
 
                 <!-- Expanded Row: Sessions & Breaks -->
@@ -430,29 +408,25 @@ onMounted(() => {
                     </div>
                 </template>
             </v-data-table-server>
-        </v-card-text>
-    </v-card>
+        </div>
+    </section>
 </template>
 
 <style scoped>
-.custom-table :deep(.v-data-table__td) {
-    white-space: nowrap;
-}
-
-.custom-table :deep(.v-data-table-header__content) {
-    font-weight: 600;
-}
-
+/* The month picker lives inside a teleported v-menu overlay (outside .attendance),
+   so it can't use the shared stylesheet's scoped tokens — style it here with
+   globally-available Vuetify theme tokens. Everything else comes from attendance.css. */
 .month-picker {
     padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.2);
+    border-radius: 6px;
     width: 100%;
     font-size: 14px;
+    background: transparent;
+    color: rgb(var(--v-theme-on-surface));
 }
-
 .month-picker:focus {
     outline: none;
-    border-color: #1976D2;
+    border-color: rgb(var(--v-theme-primary));
 }
 </style>

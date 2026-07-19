@@ -1,0 +1,188 @@
+<title>Attendance — Mobile-App Redesign Mockup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../../../resources/css/attendance.css">
+
+<div class="attendance">
+
+  <!-- TOP ROW: My Attendance Performance (left) + Clock In/Out (right) -->
+  <div class="grid two toprow" style="margin-bottom:18px;">
+    <div class="pgrid">
+      <div class="card pstat">
+        <div class="pstat-body"><div class="lbl">Attendance rate</div><div class="num">95%</div></div>
+        <span class="mic primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg></span>
+      </div>
+      <div class="card pstat">
+        <div class="pstat-body"><div class="lbl">Working days</div><div class="num">22</div></div>
+        <span class="mic info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></span>
+      </div>
+      <div class="card pstat">
+        <div class="pstat-body"><div class="lbl">Present</div><div class="num">18</div></div>
+        <span class="mic success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      </div>
+      <div class="card pstat">
+        <div class="pstat-body"><div class="lbl">Late arrivals</div><div class="num">1</div></div>
+        <span class="mic warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+      </div>
+      <div class="card pstat">
+        <div class="pstat-body"><div class="lbl">Absent</div><div class="num">0</div></div>
+        <span class="mic error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+      </div>
+      <div class="card pstat pstat--text">
+        <div class="pstat-body"><div class="lbl">Office hours</div><div class="num">9:00 AM – 6:00 PM</div></div>
+        <span class="mic info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+      </div>
+      <div class="card pstat pstat--text pstat--wide">
+        <div class="pstat-body"><div class="lbl">IP address</div><div class="num">103.17.39.205</div></div>
+        <span class="mic primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span>
+      </div>
+      <div class="card hcard pstat--wide">
+        <div class="hhead">
+          <span class="mic holiday"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.4 5 5.6.6-4 4 1 5.4L12 19l-5 3 1-5.4-4-4 5.6-.6z"/></svg></span>
+          <span class="htitle">Holidays</span>
+          <span class="hmonth">July 2026</span>
+        </div>
+        <div class="hlist">
+          <div class="hrow"><span class="hdot"></span><span class="hname">Bank Holiday</span><span class="hdate">01 Jul</span></div>
+          <div class="hrow"><span class="hdot"></span><span class="hname">Ashura</span><span class="hdate">17 Jul</span></div>
+        </div>
+      </div>
+    </div>
+
+    <section class="card hero working" id="hero">
+    <div class="hero-col">
+        <div class="clock tnum" id="clock">3:29:11 PM</div>
+        <div class="date" id="date">Thursday, July 16, 2026</div>
+        <div class="tapwrap">
+          <span class="pulse"></span>
+          <svg class="ring" viewBox="0 0 224 224" aria-hidden="true">
+            <circle cx="112" cy="112" r="104" fill="none" stroke="var(--ring-track)" stroke-width="7"/>
+            <circle id="ringfill" cx="112" cy="112" r="104" fill="none" stroke="url(#g)" stroke-width="7"
+                    stroke-linecap="round" stroke-dasharray="653" stroke-dashoffset="196"/>
+            <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="var(--co-a)"/><stop offset="1" stop-color="var(--co-b)"/>
+            </linearGradient></defs>
+          </svg>
+          <button class="tapbtn" id="tapbtn" onclick="toggleState()">
+            <svg class="hand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5V4a1.5 1.5 0 0 1 3 0v6m0-1V6a1.5 1.5 0 0 1 3 0v6.5m0 0V9a1.5 1.5 0 0 1 3 0v6.2c0 3.2-2.4 5.8-6 5.8-2.3 0-3.6-.8-4.9-2.2l-3.7-4a1.6 1.6 0 0 1 2.3-2.2L8 15"/>
+            </svg>
+            <span class="cta" id="cta">CHECK OUT<small id="cta-sub">Tap to end work</small></span>
+          </button>
+        </div>
+        <div class="worktag" id="worktag"><span class="live"></span>Work duration <b id="worktimer">05:58:50</b></div>
+        <div class="today">
+          <div class="tstat">
+            <div class="ic ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg></div>
+            <div class="tmeta"><div class="val tnum">09:30 <small>AM</small></div><div class="cap">Clock In</div></div>
+          </div>
+          <div class="tstat">
+            <div class="ic co"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></div>
+            <div class="tmeta"><div class="val tnum">--:--</div><div class="cap">Clock Out</div></div>
+          </div>
+          <div class="tstat">
+            <div class="ic wh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+            <div class="tmeta"><div class="val tnum">5h 58m</div><div class="cap">Working Hours</div></div>
+          </div>
+        </div>
+    </div>
+  </section>
+
+  </div>
+
+  <!-- SIDE BY SIDE (col-6 each): My Attendance + Team Members -->
+  <div class="grid two">
+    <!-- LEFT: My Attendance -->
+    <section class="card panel">
+      <div class="sect-h"><h2>My Attendance</h2><span class="sub">July 2026</span></div>
+      <div class="filters">
+        <button class="fbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>July 2026</button>
+        <button class="fbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M7 12h10M10 18h4"/></svg>All status</button>
+        <button class="fbtn accent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16"/></svg>Export</button>
+      </div>
+      <div class="tbl att">
+        <div class="thead">
+          <div class="th">Date</div><div class="th">Day</div><div class="th">In</div><div class="th">Out</div><div class="th">Hours</div><div class="th r">Status</div>
+        </div>
+        <div class="trow">
+          <div class="td">16 Jul</div><div class="td muted">Thursday</div><div class="td"><span class="late-in">9:30a</span></div><div class="td muted">--:--</div><div class="td">5h58m</div><div class="td r"><span class="pill late">Late</span></div>
+        </div>
+        <div class="trow">
+          <div class="td">15 Jul</div><div class="td muted">Wednesday</div><div class="td">8:58a</div><div class="td">6:04p</div><div class="td">8h24m</div><div class="td r"><span class="pill present">Present</span></div>
+        </div>
+        <div class="trow">
+          <div class="td">14 Jul</div><div class="td muted">Tuesday</div><div class="td">9:02a</div><div class="td">6:10p</div><div class="td">8h33m</div><div class="td r"><span class="pill present">Present</span></div>
+        </div>
+        <div class="trow">
+          <div class="td">13 Jul</div><div class="td muted">Monday</div><div class="td">1:30p</div><div class="td">6:00p</div><div class="td">4h15m</div><div class="td r"><span class="pill wfh">WFH</span></div>
+        </div>
+        <div class="trow">
+          <div class="td">12 Jul</div><div class="td muted">Sunday</div><div class="td muted">—</div><div class="td muted">—</div><div class="td muted">—</div><div class="td r"><span class="pill absent">Absent</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Team Members -->
+    <section class="card panel">
+      <div class="sect-h"><h2>Team Members</h2><span class="sub">Thursday, 16 Jul · 6</span></div>
+      <div class="teamsum">
+        <span class="p"><b>4</b> Present</span>
+        <span class="l"><b>1</b> Late</span>
+        <span class="a"><b>1</b> Absent</span>
+      </div>
+      <div class="tbl team">
+        <div class="thead"><div class="th">Member</div><div class="th">In</div><div class="th r">Status</div></div>
+        <div class="trow">
+          <div><div class="td name">Tanvir Ahmed</div><div class="td role">UI Designer</div></div>
+          <div class="td muted">8:55a</div><div class="td r"><span class="pill working">Working</span></div>
+        </div>
+        <div class="trow">
+          <div><div class="td name">Rakib Hasan</div><div class="td role">Software Engineer</div></div>
+          <div class="td muted">9:02a</div><div class="td r"><span class="pill present">Present</span></div>
+        </div>
+        <div class="trow">
+          <div><div class="td name">Farhana Akter</div><div class="td role">Support</div></div>
+          <div class="td muted">8:58a</div><div class="td r"><span class="pill present">Present</span></div>
+        </div>
+        <div class="trow">
+          <div><div class="td name">Nusrat Jahan</div><div class="td role">QA Engineer</div></div>
+          <div class="td muted">9:31a</div><div class="td r"><span class="pill late">Late</span></div>
+        </div>
+        <div class="trow">
+          <div><div class="td name">Imran Kabir</div><div class="td role">DevOps</div></div>
+          <div class="td muted">10:05a</div><div class="td r"><span class="pill wfh">WFH</span></div>
+        </div>
+        <div class="trow">
+          <div><div class="td name">Sadia Islam</div><div class="td role">Backend Developer</div></div>
+          <div class="td muted">—</div><div class="td r"><span class="pill absent">Absent</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+</div>
+
+<script>
+  // Tap the big button to preview both states (Clock In / Clock Out)
+  function applyState(working){
+    const hero=document.getElementById('hero');
+    hero.classList.toggle('working', working);
+    document.getElementById('cta').firstChild.textContent = working ? 'CHECK OUT' : 'CHECK IN';
+    document.getElementById('cta-sub').textContent = working ? 'Tap to end work' : 'Tap to start work';
+    const stops=document.querySelectorAll('#g stop');
+    stops[0].setAttribute('stop-color', working ? 'var(--co-a)' : 'var(--ci-a)');
+    stops[1].setAttribute('stop-color', working ? 'var(--co-b)' : 'var(--ci-b)');
+    document.getElementById('worktag').style.opacity = working ? '1' : '.55';
+    document.getElementById('ringfill').setAttribute('stroke-dashoffset', working ? '196' : '653');
+  }
+  function toggleState(){ applyState(!document.getElementById('hero').classList.contains('working')); }
+
+  function tick(){
+    const now=new Date();
+    let h=now.getHours(), m=now.getMinutes(), s=now.getSeconds();
+    const ap=h>=12?'PM':'AM'; let hh=h%12; if(hh===0)hh=12;
+    const pad=n=>String(n).padStart(2,'0');
+    document.getElementById('clock').textContent=`${hh}:${pad(m)}:${pad(s)} ${ap}`;
+    document.getElementById('date').textContent=now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  }
+  tick(); setInterval(tick,1000);
+</script>
