@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\Backend\DashboardService;
 use App\Services\Backend\EmployeeDashboardService;
 use App\Services\Backend\SharedService;
@@ -60,8 +61,20 @@ class DashboardController extends Controller
 
     public function getData(Request $request): JsonResponse
     {
+        // This endpoint returns company-wide data, so it must be admin-only —
+        // the route is in RoutePermissionService::SKIP_ROUTES (reachable by any
+        // authenticated user), so gate it here.
+        abort_unless($this->isAdmin(auth()->user()), 403, 'Access denied.');
+
         $companyId = $request->filled('company_id') ? $request->integer('company_id') : null;
 
         return response()->json($this->dashboardService->getData($companyId));
+    }
+
+    private function isAdmin(?User $user): bool
+    {
+        return (bool) $user?->roles()
+            ->whereIn('slug', ['super_admin', 'admin', 'hr', 'manager'])
+            ->exists();
     }
 }

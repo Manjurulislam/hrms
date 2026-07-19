@@ -15,9 +15,12 @@ class EmployeeDashboardService
 {
     public function getData(Employee $employee): array
     {
+        // Fetch once and reuse for both stats and the monthly chart.
+        $monthAttendance = $this->getCurrentMonthAttendance($employee);
+
         return [
-            'stats'             => $this->getStats($employee),
-            'monthlyAttendance' => $this->getMonthlyAttendance($employee),
+            'stats'             => $this->getStats($employee, $monthAttendance),
+            'monthlyAttendance' => $this->getMonthlyAttendance($monthAttendance),
             'leaveBalances'     => $this->getLeaveBalances($employee),
             'recentLeaves'      => $this->getRecentLeaves($employee),
             'weeklyHours'       => $this->getWeeklyHours($employee),
@@ -28,10 +31,8 @@ class EmployeeDashboardService
     // Stats
     // ═══════════════════════════════════════════════════════════════
 
-    private function getStats(Employee $employee): array
+    private function getStats(Employee $employee, $monthAttendance): array
     {
-        $monthAttendance = $this->getCurrentMonthAttendance($employee);
-
         $presentCount = $monthAttendance->whereIn('status', self::presentStatuses())->count();
         $totalWorkingDays = $monthAttendance->where('is_working_day', true)->count();
 
@@ -68,9 +69,9 @@ class EmployeeDashboardService
     // Monthly Attendance
     // ═══════════════════════════════════════════════════════════════
 
-    private function getMonthlyAttendance(Employee $employee): array
+    private function getMonthlyAttendance($monthAttendance): array
     {
-        return $this->getCurrentMonthAttendance($employee)
+        return $monthAttendance
             ->map(fn($item) => [
                 'date'   => Carbon::parse($item->attendance_date)->format('d'),
                 'hours'  => round($item->total_working_minutes / 60, 1),
@@ -88,8 +89,15 @@ class EmployeeDashboardService
         $year = now()->year;
         $leaveTypes = $this->getActiveLeaveTypes($employee);
 
-        return $leaveTypes->map(function ($type) use ($employee, $year) {
-            $balance = $this->getOrCreateBalance($employee, $type, $year);
+        // Pull existing balances in one query; only create the missing ones.
+        $balances = LeaveBalance::where('employee_id', $employee->id)
+            ->where('year', $year)
+            ->whereIn('leave_type_id', $leaveTypes->pluck('id'))
+            ->get()
+            ->keyBy('leave_type_id');
+
+        return $leaveTypes->map(function ($type) use ($employee, $year, $balances) {
+            $balance = $balances->get($type->id) ?? $this->getOrCreateBalance($employee, $type, $year);
 
             return [
                 'name'      => $type->name,
