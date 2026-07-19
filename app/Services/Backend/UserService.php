@@ -4,6 +4,7 @@ namespace App\Services\Backend;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Utility\MenuService;
 use App\Traits\PaginateQuery;
 use App\Traits\QueryParams;
 use Illuminate\Http\Request;
@@ -33,6 +34,7 @@ class UserService
             $role = data_get($data, 'role');
             $user = User::create(collect($data)->except('role')->toArray());
             $user->roles()->sync($role);
+            MenuService::forget($user->id);
 
             return $user;
         });
@@ -51,6 +53,7 @@ class UserService
 
             $user->update($userData);
             $user->roles()->sync($role);
+            MenuService::forget($user->id);
 
             return $user;
         });

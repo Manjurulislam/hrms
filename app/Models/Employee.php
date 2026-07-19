@@ -6,6 +6,7 @@ use App\Enums\BloodGroup;
 use App\Enums\EmpStatus;
 use App\Enums\Gender;
 use App\Enums\MaritalStatus;
+use App\Services\Utility\MenuService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -18,6 +19,27 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 class Employee extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia;
+
+    protected static function booted(): void
+    {
+        // Gaining/losing a subordinate flips the "manager" menu flag for the
+        // affected manager(s), so drop their cached menu when manager_id changes.
+        static::saved(function (Employee $employee) {
+            if (!$employee->wasChanged('manager_id') && !$employee->wasRecentlyCreated) {
+                return;
+            }
+
+            collect([$employee->getOriginal('manager_id'), $employee->manager_id])
+                ->filter()
+                ->unique()
+                ->each(function ($managerId) {
+                    if ($userId = User::where('employee_id', $managerId)->value('id')) {
+                        MenuService::forget($userId);
+                    }
+                });
+        });
+    }
+
     protected $fillable = [
         'id_no',
         'first_name',

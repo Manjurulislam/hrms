@@ -9,6 +9,7 @@ use App\Enums\Gender;
 use App\Enums\MaritalStatus;
 use App\Models\Employee;
 use App\Models\Role;
+use App\Services\Utility\MenuService;
 use App\Traits\PaginateQuery;
 use App\Traits\QueryParams;
 use Illuminate\Http\Request;
@@ -206,5 +207,6 @@ class EmployeeService
             ->toArray();
 
         $employee->user->roles()->sync($finalIds);
+        MenuService::forget($employee->user->id);
     }
 }

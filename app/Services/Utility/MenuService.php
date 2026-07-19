@@ -2,14 +2,35 @@
 
 namespace App\Services\Utility;
 
+use Illuminate\Support\Facades\Cache;
+
 class MenuService
 {
+    // Cache key for a user's resolved menu tree.
+    public static function cacheKey(int $userId): string
+    {
+        return "menus.user.{$userId}";
+    }
+
+    // Drop a user's cached menu (call after a role / manager change).
+    public static function forget(int $userId): void
+    {
+        Cache::forget(self::cacheKey($userId));
+    }
+
     public function getMenus($user): array
     {
         if (!$user) {
             return [];
         }
 
+        // The menu tree is a pure function of the user's access flags (which otherwise
+        // cost a roles load + a subordinates() query on every request). Cache it.
+        return Cache::remember(self::cacheKey($user->id), now()->addHour(), fn() => $this->build($user));
+    }
+
+    protected function build($user): array
+    {
         $user->loadMissing('roles');
         $roleSlugs  = $user->roles->pluck('slug');
         $isAdmin    = $roleSlugs->intersect(['super_admin', 'admin', 'hr'])->isNotEmpty();
