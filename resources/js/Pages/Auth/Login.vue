@@ -6,7 +6,7 @@ import Logo from "@/Layouts/full/logo/Logo.vue";
 
 <template>
     <div class="authentication auth-bg">
-        <Head title="Log in"/>
+        <Head title="SWT"/>
         <v-container class="pa-3 auth-login">
             <v-row class="h-100vh d-flex justify-center align-center">
                 <v-col class="d-flex align-center" lg="5" md="12">
