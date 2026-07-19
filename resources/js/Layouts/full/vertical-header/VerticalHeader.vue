@@ -3,7 +3,6 @@ import {ref, watch} from 'vue';
 import {useCustomizerStore} from '@/Service/stores/customizer';
 import NotificationDD from './NotificationDD.vue';
 import ProfileDD from './ProfileDD.vue';
-import RightMobileSidebar from './RightMobileSidebar.vue';
 import {Icon} from '@iconify/vue';
 import Logo from '../logo/Logo.vue';
 import ThemeToggler from './ThemeToggler.vue';
@@ -58,27 +57,8 @@ watch(priority, (newPriority) => {
         </div> -->
 
         <!-- ---------------------------------------------- -->
-        <!-- User Profile -->
+        <!-- User Profile (all breakpoints; single tap opens the sign-out menu) -->
         <!-- ---------------------------------------------- -->
-        <div class="hidden-sm-and-down">
-            <ProfileDD/>
-        </div>
-
-        <!----Mobile ----->
-        <v-menu :close-on-content-click="true" class="mobile_popup ">
-            <template v-slot:activator="{ props }">
-                <v-btn class="hidden-md-and-up custom-hover-primary" color="primary" icon size="small" v-bind="props"
-                       variant="text">
-                    <Icon height="22" icon="solar:menu-dots-bold-duotone"/>
-                </v-btn>
-            </template>
-            <v-sheet class="mt-4 dropdown-box px-4 py-3" elevation="10" rounded="lg">
-                <div class="d-flex justify-space-between align-center">
-                    <RightMobileSidebar/>
-                    <!-- <NotificationDD/> -->
-                    <ProfileDD/>
-                </div>
-            </v-sheet>
-        </v-menu>
+        <ProfileDD/>
     </v-app-bar>
 </template>
